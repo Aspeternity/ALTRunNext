@@ -99,7 +99,6 @@ public:
 
     bool ImportUserCommands(
         const std::filesystem::path& path,
-        bool legacyMode,
         std::size_t* imported = nullptr,
         std::size_t* skipped = nullptr);
     bool ExportUserCommands(
