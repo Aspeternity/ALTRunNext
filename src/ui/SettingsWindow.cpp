@@ -6332,6 +6332,7 @@ LRESULT SettingsWindow::HandleMessage(
         case kIdClearQueryOnShow:
         case kIdHideOnFocusLost:
         case kIdShowTrayIcon:
+        case kIdShowResultIcons:
             if (notify == BN_CLICKED) {
                 ToggleGeneralSetting(id);
             }
@@ -6404,18 +6405,6 @@ LRESULT SettingsWindow::HandleMessage(
             }
             return 0;
 
-        case kIdAuxHotkeyEnabled:
-            if (notify == BN_CLICKED) {
-                ApplyAuxiliaryHotkeyControl();
-            }
-            return 0;
-
-        case kIdAuxHotkeyApply:
-            if (notify == BN_CLICKED) {
-                ApplyAuxiliaryHotkeyControl();
-            }
-            return 0;
-
         case kIdProviderStartMenu:
         case kIdProviderPackaged:
         case kIdProviderAppPaths:
@@ -6438,21 +6427,16 @@ LRESULT SettingsWindow::HandleMessage(
             }
             return 0;
 
-        case kIdHotkeyApply:
-            if (notify == BN_CLICKED) {
-                ApplyHotkeyControl();
-            }
-            return 0;
-
         case kIdPopupMonitor:
             if (notify == CBN_SELCHANGE) {
                 ApplyMonitorControl();
             }
             return 0;
 
-        case kIdDataOpenFolder:
-            if (notify == BN_CLICKED) {
-                app_.OpenDataFolder();
+        case kIdLauncherPlacement:
+        case kIdSettingsPlacement:
+            if (notify == CBN_SELCHANGE) {
+                ApplyWindowPlacementControls();
             }
             return 0;
 
@@ -6499,12 +6483,6 @@ LRESULT SettingsWindow::HandleMessage(
             }
             return 0;
 
-        case kIdShowResultIcons:
-            if (notify == BN_CLICKED) {
-                ApplyAppearanceControls();
-            }
-            return 0;
-
         case kIdOpenDataFolder:
             if (notify == BN_CLICKED) {
                 app_.OpenDataFolder();
@@ -6527,7 +6505,21 @@ LRESULT SettingsWindow::HandleMessage(
         case kIdUpdateAutoCheck:
             if (notify == BN_CLICKED &&
                 !syncing_) {
-                ApplyUpdateSettings();
+                const auto settings =
+                    app_.SettingsData();
+
+                if (!app_.SetUpdateSettings(
+                        !settings.autoCheckUpdates,
+                        settings.updateChannel)) {
+                    MessageBoxW(
+                        hwnd_,
+                        T(L"无法保存更新设置。",
+                          L"Could not save update settings."),
+                        L"ALTRun Next",
+                        MB_OK | MB_ICONERROR);
+                }
+
+                RefreshFromSettings();
             }
             return 0;
 
