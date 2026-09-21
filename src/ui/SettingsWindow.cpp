@@ -3435,19 +3435,18 @@ void SettingsWindow::Layout() {
         TRUE);
     MoveWindow(
         brandSubtitle_,
-        sidebarMargin + Scale(28),
+        sidebarMargin,
         Scale(47),
-        navWidth - Scale(28),
+        navWidth,
         Scale(30),
         TRUE);
 
-    std::array<HWND, 6> primaryNav{
+    std::array<HWND, 5> primaryNav{
         navGeneral_,
         navHotkeys_,
         navProviders_,
         navAppearance_,
         navData_,
-        navDiagnostics_,
     };
 
     const int navTop =
@@ -4053,94 +4052,6 @@ void SettingsWindow::Layout() {
             TRUE);
     }
 
-    if (page_ == Page::Diagnostics) {
-        const int width =
-            std::min(
-                contentWidth,
-                Scale(760));
-        const int gap =
-            Scale(18);
-        const int column =
-            (width - gap) / 2;
-
-        MoveWindow(
-            diagnosticsMemoryTitle_,
-            contentLeft + Scale(18),
-            Scale(132),
-            column - Scale(36),
-            Scale(24),
-            TRUE);
-        MoveWindow(
-            diagnosticsMemoryStatus_,
-            contentLeft + Scale(18),
-            Scale(162),
-            column - Scale(36),
-            Scale(70),
-            TRUE);
-
-        MoveWindow(
-            diagnosticsSearchTitle_,
-            contentLeft + column +
-                gap + Scale(18),
-            Scale(132),
-            column - Scale(36),
-            Scale(24),
-            TRUE);
-        MoveWindow(
-            diagnosticsSearchStatus_,
-            contentLeft + column +
-                gap + Scale(18),
-            Scale(162),
-            column - Scale(36),
-            Scale(74),
-            TRUE);
-
-        MoveWindow(
-            actionsWindowsTitle_,
-            contentLeft + Scale(18),
-            Scale(284),
-            width - Scale(36),
-            Scale(24),
-            TRUE);
-        MoveWindow(
-            actionsWindowsStatus_,
-            contentLeft + Scale(18),
-            Scale(314),
-            width - Scale(36),
-            Scale(122),
-            TRUE);
-
-        MoveWindow(
-            actionsClipboardTitle_,
-            contentLeft + Scale(18),
-            Scale(484),
-            width - Scale(36),
-            Scale(24),
-            TRUE);
-        MoveWindow(
-            actionsClipboardStatus_,
-            contentLeft + Scale(18),
-            Scale(514),
-            width - Scale(36),
-            Scale(38),
-            TRUE);
-
-        MoveWindow(
-            actionsWebTitle_,
-            contentLeft + Scale(18),
-            Scale(592),
-            width - Scale(36),
-            Scale(24),
-            TRUE);
-        MoveWindow(
-            actionsWebStatus_,
-            contentLeft + Scale(18),
-            Scale(622),
-            width - Scale(36),
-            Scale(38),
-            TRUE);
-    }
-
     if (page_ == Page::About) {
         const int width =
             std::min(
@@ -4315,10 +4226,6 @@ void SettingsWindow::DrawNavigationButton(
     case kIdNavData:
         selected =
             page_ == Page::Data;
-        break;
-    case kIdNavDiagnostics:
-        selected =
-            page_ == Page::Diagnostics;
         break;
     case kIdNavAbout:
         selected =
@@ -4764,6 +4671,7 @@ void SettingsWindow::DrawActionButton(
 }
 
 
+
 void SettingsWindow::DrawGeneralToggle(
     const DRAWITEMSTRUCT& item) {
 
@@ -4774,11 +4682,14 @@ void SettingsWindow::DrawGeneralToggle(
         (item.itemState &
          ODS_SELECTED) != 0;
 
+    const COLORREF rowColor =
+        pressed
+            ? kCardPressed
+            : kCardBackground;
+
     HBRUSH rowBrush =
         CreateSolidBrush(
-            pressed
-                ? kCardPressed
-                : kCardBackground);
+            rowColor);
 
     FillRect(
         item.hDC,
@@ -4855,8 +4766,10 @@ void SettingsWindow::DrawGeneralToggle(
         break;
     }
 
-    const int switchWidth = Scale(40);
-    const int switchHeight = Scale(22);
+    const int switchWidth =
+        Scale(40);
+    const int switchHeight =
+        Scale(22);
     const int switchLeft =
         rect.right -
         Scale(18) -
@@ -4867,90 +4780,237 @@ void SettingsWindow::DrawGeneralToggle(
          rect.top -
          switchHeight) / 2;
 
-    RECT track{
-        switchLeft,
-        switchTop,
-        switchLeft + switchWidth,
-        switchTop + switchHeight,
-    };
+    constexpr int kSupersample = 3;
+    const int margin =
+        std::max(1, Scale(2));
+    const int targetWidth =
+        switchWidth + margin * 2;
+    const int targetHeight =
+        switchHeight + margin * 2;
+    const int sourceWidth =
+        targetWidth * kSupersample;
+    const int sourceHeight =
+        targetHeight * kSupersample;
 
-    HBRUSH trackBrush =
-        CreateSolidBrush(
-            checked
-                ? kAccent
-                : RGB(214, 219, 226));
-    HPEN trackPen =
-        CreatePen(
-            PS_SOLID,
-            1,
-            checked
-                ? kAccent
-                : RGB(184, 191, 201));
+    HDC switchDc =
+        CreateCompatibleDC(
+            item.hDC);
+    HBITMAP switchBitmap =
+        switchDc
+            ? CreateCompatibleBitmap(
+                  item.hDC,
+                  sourceWidth,
+                  sourceHeight)
+            : nullptr;
 
-    HGDIOBJ oldBrush =
+    if (switchDc && switchBitmap) {
+        HGDIOBJ oldBitmap =
+            SelectObject(
+                switchDc,
+                switchBitmap);
+
+        RECT sourceRect{
+            0,
+            0,
+            sourceWidth,
+            sourceHeight,
+        };
+
+        HBRUSH sourceBackground =
+            CreateSolidBrush(
+                rowColor);
+        FillRect(
+            switchDc,
+            &sourceRect,
+            sourceBackground);
+        DeleteObject(
+            sourceBackground);
+
+        const int sourceMargin =
+            margin * kSupersample;
+        const int trackWidth =
+            switchWidth * kSupersample;
+        const int trackHeight =
+            switchHeight * kSupersample;
+
+        HBRUSH trackBrush =
+            CreateSolidBrush(
+                checked
+                    ? kAccent
+                    : RGB(210, 216, 224));
+
+        HGDIOBJ oldBrush =
+            SelectObject(
+                switchDc,
+                trackBrush);
+        HGDIOBJ oldPen =
+            SelectObject(
+                switchDc,
+                GetStockObject(NULL_PEN));
+
+        RoundRect(
+            switchDc,
+            sourceMargin,
+            sourceMargin,
+            sourceMargin + trackWidth,
+            sourceMargin + trackHeight,
+            trackHeight,
+            trackHeight);
+
+        const int knobSize =
+            Scale(16) *
+            kSupersample;
+        const int knobInset =
+            Scale(3) *
+            kSupersample;
+        const int knobLeft =
+            checked
+                ? sourceMargin +
+                    trackWidth -
+                    knobInset -
+                    knobSize
+                : sourceMargin +
+                    knobInset;
+
+        HBRUSH knobBrush =
+            CreateSolidBrush(
+                RGB(255, 255, 255));
+
         SelectObject(
-            item.hDC,
+            switchDc,
+            knobBrush);
+
+        Ellipse(
+            switchDc,
+            knobLeft,
+            sourceMargin +
+                knobInset,
+            knobLeft +
+                knobSize,
+            sourceMargin +
+                knobInset +
+                knobSize);
+
+        SelectObject(
+            switchDc,
+            oldBrush);
+        SelectObject(
+            switchDc,
+            oldPen);
+        DeleteObject(
             trackBrush);
-    HGDIOBJ oldPen =
-        SelectObject(
+        DeleteObject(
+            knobBrush);
+
+        const int oldStretchMode =
+            SetStretchBltMode(
+                item.hDC,
+                HALFTONE);
+        POINT oldBrushOrigin{};
+        SetBrushOrgEx(
             item.hDC,
-            trackPen);
+            0,
+            0,
+            &oldBrushOrigin);
 
-    RoundRect(
-        item.hDC,
-        track.left,
-        track.top,
-        track.right,
-        track.bottom,
-        switchHeight,
-        switchHeight);
+        StretchBlt(
+            item.hDC,
+            switchLeft - margin,
+            switchTop - margin,
+            targetWidth,
+            targetHeight,
+            switchDc,
+            0,
+            0,
+            sourceWidth,
+            sourceHeight,
+            SRCCOPY);
 
-    SelectObject(item.hDC, oldBrush);
-    SelectObject(item.hDC, oldPen);
-    DeleteObject(trackBrush);
-    DeleteObject(trackPen);
+        SetBrushOrgEx(
+            item.hDC,
+            oldBrushOrigin.x,
+            oldBrushOrigin.y,
+            nullptr);
+        SetStretchBltMode(
+            item.hDC,
+            oldStretchMode);
 
-    const int knobSize = Scale(16);
-    const int knobInset = Scale(3);
-    const int knobLeft =
-        checked
-            ? track.right -
-                knobInset -
-                knobSize
-            : track.left +
-                knobInset;
+        SelectObject(
+            switchDc,
+            oldBitmap);
+    } else {
+        HBRUSH trackBrush =
+            CreateSolidBrush(
+                checked
+                    ? kAccent
+                    : RGB(210, 216, 224));
+        HGDIOBJ oldBrush =
+            SelectObject(
+                item.hDC,
+                trackBrush);
+        HGDIOBJ oldPen =
+            SelectObject(
+                item.hDC,
+                GetStockObject(NULL_PEN));
 
-    HBRUSH knobBrush =
-        CreateSolidBrush(
-            RGB(255, 255, 255));
-    HPEN knobPen =
-        CreatePen(
-            PS_SOLID,
-            1,
-            RGB(255, 255, 255));
+        RoundRect(
+            item.hDC,
+            switchLeft,
+            switchTop,
+            switchLeft + switchWidth,
+            switchTop + switchHeight,
+            switchHeight,
+            switchHeight);
 
-    oldBrush =
+        const int knobSize =
+            Scale(16);
+        const int knobInset =
+            Scale(3);
+        const int knobLeft =
+            checked
+                ? switchLeft +
+                    switchWidth -
+                    knobInset -
+                    knobSize
+                : switchLeft +
+                    knobInset;
+
+        HBRUSH knobBrush =
+            CreateSolidBrush(
+                RGB(255, 255, 255));
         SelectObject(
             item.hDC,
             knobBrush);
-    oldPen =
+
+        Ellipse(
+            item.hDC,
+            knobLeft,
+            switchTop + knobInset,
+            knobLeft + knobSize,
+            switchTop +
+                knobInset +
+                knobSize);
+
         SelectObject(
             item.hDC,
-            knobPen);
+            oldBrush);
+        SelectObject(
+            item.hDC,
+            oldPen);
+        DeleteObject(
+            trackBrush);
+        DeleteObject(
+            knobBrush);
+    }
 
-    Ellipse(
-        item.hDC,
-        knobLeft,
-        track.top + knobInset,
-        knobLeft + knobSize,
-        track.top +
-            knobInset +
-            knobSize);
-
-    SelectObject(item.hDC, oldBrush);
-    SelectObject(item.hDC, oldPen);
-    DeleteObject(knobBrush);
-    DeleteObject(knobPen);
+    if (switchBitmap) {
+        DeleteObject(
+            switchBitmap);
+    }
+    if (switchDc) {
+        DeleteDC(
+            switchDc);
+    }
 
     SetBkMode(
         item.hDC,
@@ -5000,7 +5060,7 @@ void SettingsWindow::DrawGeneralToggle(
                 1,
                 kBorder);
 
-        oldPen =
+        HGDIOBJ oldPen =
             SelectObject(
                 item.hDC,
                 separator);
@@ -5024,14 +5084,22 @@ void SettingsWindow::DrawGeneralToggle(
 
     if (item.itemState &
         ODS_FOCUS) {
-        RECT focus = rect;
-        InflateRect(
-            &focus,
-            -Scale(7),
-            -Scale(5));
-        DrawFocusRect(
+        RECT focusBar{
+            rect.left + Scale(5),
+            rect.top + Scale(12),
+            rect.left + Scale(7),
+            rect.bottom - Scale(12),
+        };
+
+        HBRUSH focusBrush =
+            CreateSolidBrush(
+                kAccent);
+        FillRect(
             item.hDC,
-            &focus);
+            &focusBar,
+            focusBrush);
+        DeleteObject(
+            focusBrush);
     }
 }
 
@@ -5427,13 +5495,6 @@ void SettingsWindow::Show() {
             1000,
             nullptr);
         RefreshProviderStatus();
-    } else if (page_ == Page::Diagnostics) {
-        SetTimer(
-            hwnd_,
-            kDiagnosticsStatusTimerId,
-            1000,
-            nullptr);
-        RefreshActionDiagnostics();
     }
 
     if (!IsWindowVisible(hwnd_)) {
@@ -5504,12 +5565,6 @@ LRESULT SettingsWindow::HandleMessage(
             RefreshProviderStatus();
             return 0;
         }
-        if (wParam ==
-            kDiagnosticsStatusTimerId &&
-            page_ == Page::Diagnostics) {
-            RefreshActionDiagnostics();
-            return 0;
-        }
         break;
 
     case WM_KEYDOWN:
@@ -5527,6 +5582,23 @@ LRESULT SettingsWindow::HandleMessage(
         const UINT id = LOWORD(wParam);
         const UINT notify = HIWORD(wParam);
 
+        const auto redrawClickedToggle =
+            [&]() {
+                HWND control =
+                    reinterpret_cast<HWND>(
+                        lParam);
+                if (!control) {
+                    return;
+                }
+
+                InvalidateRect(
+                    control,
+                    nullptr,
+                    TRUE);
+                UpdateWindow(
+                    control);
+            };
+
         switch (id) {
         case kIdNavGeneral:
             if (notify == BN_CLICKED) {
@@ -5537,12 +5609,6 @@ LRESULT SettingsWindow::HandleMessage(
         case kIdNavHotkeys:
             if (notify == BN_CLICKED) {
                 ShowPage(Page::Hotkeys);
-            }
-            return 0;
-
-        case kIdNavDiagnostics:
-            if (notify == BN_CLICKED) {
-                ShowPage(Page::Diagnostics);
             }
             return 0;
 
@@ -5579,6 +5645,7 @@ LRESULT SettingsWindow::HandleMessage(
         case kIdShowResultIcons:
             if (notify == BN_CLICKED) {
                 ToggleGeneralSetting(id);
+                redrawClickedToggle();
             }
             return 0;
 
@@ -5588,6 +5655,7 @@ LRESULT SettingsWindow::HandleMessage(
         case kIdExecuteSingleResult:
             if (notify == BN_CLICKED) {
                 ApplyClassicBehaviorControl(id);
+                redrawClickedToggle();
             }
             return 0;
 
@@ -5628,6 +5696,7 @@ LRESULT SettingsWindow::HandleMessage(
         case kIdHotkeyEnabled:
             if (notify == BN_CLICKED) {
                 ToggleSelectedHotkeyEnabled();
+                redrawClickedToggle();
             }
             return 0;
 
@@ -5656,6 +5725,7 @@ LRESULT SettingsWindow::HandleMessage(
         case kIdProviderEverything:
             if (notify == BN_CLICKED) {
                 ToggleProviderSetting(id);
+                redrawClickedToggle();
             }
             return 0;
 
@@ -5764,6 +5834,7 @@ LRESULT SettingsWindow::HandleMessage(
                 }
 
                 RefreshFromSettings();
+                redrawClickedToggle();
             }
             return 0;
 
@@ -5811,7 +5882,6 @@ LRESULT SettingsWindow::HandleMessage(
             item->CtlID == kIdNavProviders ||
             item->CtlID == kIdNavAppearance ||
             item->CtlID == kIdNavData ||
-            item->CtlID == kIdNavDiagnostics ||
             item->CtlID == kIdNavAbout) {
             DrawNavigationButton(
                 *item);
@@ -6165,57 +6235,6 @@ LRESULT SettingsWindow::HandleMessage(
                     64,
                     720));
         } else if (
-            page_ == Page::Diagnostics) {
-
-            const int contentRight =
-                client.right -
-                Scale(
-                    settings_layout::
-                        kContentRightInsetLogical);
-            const int width =
-                std::min(
-                    contentRight -
-                        contentLeft,
-                    Scale(760));
-            const int gap =
-                Scale(18);
-            const int column =
-                (width - gap) / 2;
-
-            drawCard({
-                contentLeft,
-                Scale(118),
-                contentLeft +
-                    column,
-                Scale(248),
-            });
-
-            drawCard({
-                contentLeft +
-                    column +
-                    gap,
-                Scale(118),
-                contentLeft +
-                    width,
-                Scale(248),
-            });
-
-            drawCard(
-                PageCardRect(
-                    270,
-                    180,
-                    760));
-            drawCard(
-                PageCardRect(
-                    470,
-                    88,
-                    760));
-            drawCard(
-                PageCardRect(
-                    578,
-                    88,
-                    760));
-        } else if (
             page_ == Page::About) {
             drawCard(
                 PageCardRect(
@@ -6284,22 +6303,6 @@ LRESULT SettingsWindow::HandleMessage(
             control == uiStyleLabel_ ||
             control == languageLabel_ ||
             control == dataPath_ ||
-            control ==
-                diagnosticsMemoryTitle_ ||
-            control ==
-                diagnosticsMemoryStatus_ ||
-            control ==
-                diagnosticsSearchTitle_ ||
-            control ==
-                diagnosticsSearchStatus_ ||
-            control == actionsWindowsTitle_ ||
-            control == actionsWindowsStatus_ ||
-            control ==
-                actionsClipboardTitle_ ||
-            control ==
-                actionsClipboardStatus_ ||
-            control == actionsWebTitle_ ||
-            control == actionsWebStatus_ ||
             control == updateChannelLabel_ ||
             control == updateStatus_;
 
@@ -6331,14 +6334,6 @@ LRESULT SettingsWindow::HandleMessage(
             control == hotkeyScope_ ||
             control == hotkeyPageStatus_ ||
             control == hotkeyPageNote_ ||
-            control ==
-                diagnosticsMemoryStatus_ ||
-            control ==
-                diagnosticsSearchStatus_ ||
-            control == actionsWindowsStatus_ ||
-            control ==
-                actionsClipboardStatus_ ||
-            control == actionsWebStatus_ ||
             control == actionsNote_ ||
             control == providerStatus_ ||
             control == providerNote_ ||
@@ -6465,59 +6460,6 @@ LRESULT SettingsWindow::HandleMessage(
                 RDW_ERASE |
                 RDW_ALLCHILDREN |
                 RDW_UPDATENOW);
-
-        return 0;
-    }
-
-    case WM_GETMINMAXINFO: {
-        auto* info =
-            reinterpret_cast<MINMAXINFO*>(
-                lParam);
-
-        int minimumWidth =
-            Scale(960);
-
-        int minimumHeight =
-            Scale(680);
-
-        const HMONITOR monitor =
-            MonitorFromWindow(
-                hwnd_,
-                MONITOR_DEFAULTTONEAREST);
-
-        MONITORINFO monitorInfo{
-            sizeof(monitorInfo)};
-
-        if (GetMonitorInfoW(
-                monitor,
-                &monitorInfo)) {
-
-            const int workWidth =
-                static_cast<int>(
-                    monitorInfo.rcWork.right -
-                    monitorInfo.rcWork.left);
-
-            const int workHeight =
-                static_cast<int>(
-                    monitorInfo.rcWork.bottom -
-                    monitorInfo.rcWork.top);
-
-            minimumWidth =
-                std::min(
-                    minimumWidth,
-                    workWidth);
-
-            minimumHeight =
-                std::min(
-                    minimumHeight,
-                    workHeight);
-        }
-
-        info->ptMinTrackSize.x =
-            minimumWidth;
-
-        info->ptMinTrackSize.y =
-            minimumHeight;
 
         return 0;
     }
