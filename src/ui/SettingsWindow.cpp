@@ -6267,6 +6267,7 @@ LRESULT SettingsWindow::HandleMessage(
         }
         break;
 
+
     case WM_PAINT: {
         PAINTSTRUCT paint{};
         HDC dc =
@@ -6330,7 +6331,9 @@ LRESULT SettingsWindow::HandleMessage(
         MoveToEx(
             dc,
             contentLeft,
-            Scale(116) -
+            Scale(
+                settings_layout::
+                    kPageDividerTopLogical) -
                 (page_ ==
                          Page::General
                      ? generalScrollOffset_
@@ -6342,7 +6345,9 @@ LRESULT SettingsWindow::HandleMessage(
                 Scale(
                     settings_layout::
                         kContentRightInsetLogical),
-            Scale(116) -
+            Scale(
+                settings_layout::
+                    kPageDividerTopLogical) -
                 (page_ ==
                          Page::General
                      ? generalScrollOffset_
@@ -6447,64 +6452,57 @@ LRESULT SettingsWindow::HandleMessage(
 
             drawCard({
                 contentLeft,
-                Scale(150),
+                Scale(116),
                 contentLeft +
                     listWidth,
-                Scale(564),
+                Scale(516),
             });
 
             drawCard({
                 contentLeft +
                     listWidth +
                     gap,
-                Scale(150),
+                Scale(116),
                 contentRight,
-                Scale(564),
+                Scale(516),
             });
         } else if (
             page_ == Page::Providers) {
             drawCard(
                 ProviderCardRect());
-
-            const int filesTitleTop =
-                170 +
-                settings_layout::
-                    kToggleRowLogical * 4 +
-                22;
-
             drawCard(
                 PageCardRect(
-                    filesTitleTop + 32,
-                    294,
+                    394,
+                    174,
                     720));
         } else if (
             page_ == Page::Appearance) {
             drawCard(
                 PageCardRect(
-                    170,
-                    68,
+                    140,
+                    58,
                     680));
             drawCard(
                 PageCardRect(
-                    302,
-                    68,
+                    264,
+                    58,
                     680));
         } else if (
             page_ == Page::Data) {
             drawCard(
                 PageCardRect(
-                    170,
-                    66,
+                    140,
+                    60,
                     720));
             drawCard(
                 PageCardRect(
-                    312,
-                    72,
+                    264,
+                    64,
                     720));
             drawCard(
                 PageCardRect(
-                    452,
-                    72,
+                    392,
+                    64,
                     720));
         } else if (
             page_ == Page::Diagnostics) {
@@ -6526,47 +6524,47 @@ LRESULT SettingsWindow::HandleMessage(
 
             drawCard({
                 contentLeft,
-                Scale(150),
+                Scale(118),
                 contentLeft +
                     column,
-                Scale(286),
+                Scale(248),
             });
 
             drawCard({
                 contentLeft +
                     column +
                     gap,
-                Scale(150),
+                Scale(118),
                 contentLeft +
                     width,
-                Scale(286),
+                Scale(248),
             });
 
             drawCard(
                 PageCardRect(
-                    310,
-                    160,
+                    270,
+                    180,
                     760));
             drawCard(
                 PageCardRect(
-                    490,
+                    470,
                     88,
                     760));
             drawCard(
                 PageCardRect(
-                    598,
+                    578,
                     88,
                     760));
         } else if (
             page_ == Page::About) {
             drawCard(
                 PageCardRect(
-                    314,
+                    238,
                     238,
                     680));
             drawCard(
                 PageCardRect(
-                    608,
+                    542,
                     80,
                     680));
         }
@@ -6595,6 +6593,7 @@ LRESULT SettingsWindow::HandleMessage(
             cardBrush_);
     }
 
+
     case WM_CTLCOLORSTATIC: {
         HDC dc =
             reinterpret_cast<HDC>(
@@ -6604,12 +6603,61 @@ LRESULT SettingsWindow::HandleMessage(
             reinterpret_cast<HWND>(
                 lParam);
 
+        const bool sidebarStatic =
+            control == brandName_ ||
+            control == brandSubtitle_;
+
+        const bool cardStatic =
+            control ==
+                numericQuickLaunchOrderLabel_ ||
+            control == popupMonitorLabel_ ||
+            control ==
+                launcherPlacementLabel_ ||
+            control ==
+                settingsPlacementLabel_ ||
+            control == hotkeyEditorTitle_ ||
+            control ==
+                hotkeyEditorDescription_ ||
+            control == hotkeyScope_ ||
+            control == hotkeyPageStatus_ ||
+            control == providerStatus_ ||
+            control == uiStyleLabel_ ||
+            control == languageLabel_ ||
+            control == dataPath_ ||
+            control ==
+                diagnosticsMemoryTitle_ ||
+            control ==
+                diagnosticsMemoryStatus_ ||
+            control ==
+                diagnosticsSearchTitle_ ||
+            control ==
+                diagnosticsSearchStatus_ ||
+            control == actionsWindowsTitle_ ||
+            control == actionsWindowsStatus_ ||
+            control ==
+                actionsClipboardTitle_ ||
+            control ==
+                actionsClipboardStatus_ ||
+            control == actionsWebTitle_ ||
+            control == actionsWebStatus_ ||
+            control == updateChannelLabel_ ||
+            control == updateStatus_;
+
+        const COLORREF background =
+            sidebarStatic
+                ? kSidebarBackground
+                : cardStatic
+                    ? kCardBackground
+                    : kWindowBackground;
+
         SetBkMode(
             dc,
-            TRANSPARENT);
+            OPAQUE);
+        SetBkColor(
+            dc,
+            background);
 
         const bool muted =
-            control == brandSubtitle_ ||
             control == pageDescription_ ||
             control ==
                 popupMonitorDescription_ ||
@@ -6649,8 +6697,11 @@ LRESULT SettingsWindow::HandleMessage(
 
         return reinterpret_cast<
             LRESULT>(
-                GetStockObject(
-                    HOLLOW_BRUSH));
+                sidebarStatic
+                    ? sidebarBrush_
+                    : cardStatic
+                        ? cardBrush_
+                        : backgroundBrush_);
     }
 
     case WM_SIZE:
