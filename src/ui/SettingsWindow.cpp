@@ -2925,10 +2925,12 @@ void SettingsWindow::ToggleGeneralSetting(UINT id) {
         settings.popupMonitor);
 }
 
+
 void SettingsWindow::ToggleProviderSetting(
     UINT id) {
 
-    if (syncing_) {
+    if (syncing_ ||
+        providerCommitInProgress_) {
         return;
     }
 
@@ -2965,28 +2967,125 @@ void SettingsWindow::ToggleProviderSetting(
         return;
     }
 
-    const bool enabled =
+    // Keep the visual state local and immediate. The expensive provider
+    // cache/lifecycle work is committed once after a short quiet period,
+    // so repeated clicks collapse to the user's final intent instead of
+    // queueing synchronous refreshes on the UI thread.
+    pendingProviderStates_[
+        providerId] =
         !ToggleChecked(id);
 
-    const bool everythingProvider =
-        providerId ==
-        providers::
-            kEverythingFilesystem;
+    InvalidateRect(
+        reinterpret_cast<HWND>(
+            GetDlgItem(
+                hwnd_,
+                static_cast<int>(id))),
+        nullptr,
+        TRUE);
 
-    if (!app_.SetProviderEnabled(
-            std::move(providerId),
-            enabled)) {
+    KillTimer(
+        hwnd_,
+        kProviderCommitTimerId);
+
+    SetTimer(
+        hwnd_,
+        kProviderCommitTimerId,
+        180,
+        nullptr);
+}
+
+void SettingsWindow::CommitPendingProviderChanges() {
+    KillTimer(
+        hwnd_,
+        kProviderCommitTimerId);
+
+    if (pendingProviderStates_.empty() ||
+        providerCommitInProgress_) {
+        return;
+    }
+
+    const auto pending =
+        pendingProviderStates_;
+
+    providerCommitInProgress_ = true;
+
+    for (HWND control :
+         std::array<HWND, 5>{
+             providerStartMenu_,
+             providerPackaged_,
+             providerAppPaths_,
+             providerPath_,
+             providerEverything_}) {
+        EnableWindow(
+            control,
+            FALSE);
+    }
+
+    bool failed = false;
+    bool everythingFailed = false;
+
+    for (const auto& [providerId, enabled] :
+         pending) {
+        const bool defaultEnabled =
+            providerId !=
+            providers::
+                kEverythingFilesystem;
+
+        const bool current =
+            providers::IsEnabled(
+                app_.SettingsData()
+                    .providerEnabled,
+                providerId,
+                defaultEnabled);
+
+        if (current == enabled) {
+            continue;
+        }
+
+        if (!app_.SetProviderEnabled(
+                providerId,
+                enabled)) {
+            failed = true;
+            everythingFailed =
+                everythingFailed ||
+                providerId ==
+                    providers::
+                        kEverythingFilesystem;
+        }
+    }
+
+    pendingProviderStates_.clear();
+    providerCommitInProgress_ = false;
+
+    for (HWND control :
+         std::array<HWND, 5>{
+             providerStartMenu_,
+             providerPackaged_,
+             providerAppPaths_,
+             providerPath_,
+             providerEverything_}) {
+        EnableWindow(
+            control,
+            TRUE);
+        InvalidateRect(
+            control,
+            nullptr,
+            TRUE);
+    }
+
+    RefreshFromSettings();
+
+    if (failed) {
         MessageBoxW(
             hwnd_,
-            everythingProvider
-                ? T(L"无法更改 Everything 搜索源状态。\n\n如果使用的是 ALTRun Next 托管版，请确认 Windows 管理员权限请求；取消 UAC 后开关会恢复原状态。",
-                    L"Unable to change the Everything search-source state.\n\nIf ALTRun Next manages this Everything copy, approve the Windows administrator request. Cancelling UAC restores the previous setting.")
-                : T(L"无法保存搜索来源设置。",
-                    L"Unable to save search-source settings."),
+            everythingFailed
+                ? T(L"部分搜索来源未能应用；Everything 托管模式可能需要 Windows 管理员权限。未成功的开关已恢复实际状态。",
+                    L"Some search-source changes could not be applied. Managed Everything may require Windows administrator approval. Failed switches were restored to their actual state.")
+                : T(L"部分搜索来源设置无法保存，未成功的开关已恢复实际状态。",
+                    L"Some search-source settings could not be saved. Failed switches were restored to their actual state."),
             L"ALTRun Next",
-            MB_OK | MB_ICONERROR);
-
-        RefreshFromSettings();
+            MB_OK |
+                MB_ICONERROR);
     }
 }
 
@@ -3116,11 +3215,21 @@ bool SettingsWindow::ToggleChecked(
         app_.SettingsData();
 
     const auto providerEnabled =
-        [&](std::string_view providerId) {
+        [&](std::string_view providerId,
+            bool defaultEnabled = true) {
+            const auto pending =
+                pendingProviderStates_.find(
+                    std::string(providerId));
+
+            if (pending !=
+                pendingProviderStates_.end()) {
+                return pending->second;
+            }
+
             return providers::IsEnabled(
                 settings.providerEnabled,
                 providerId,
-                true);
+                defaultEnabled);
         };
 
     switch (id) {
@@ -3138,14 +3247,6 @@ bool SettingsWindow::ToggleChecked(
         return settings.showTrayIcon;
     case kIdShowResultIcons:
         return settings.showResultIcons;
-    case kIdHotkeyEnabled:
-        if (selectedHotkeyActionId_.empty()) {
-            return false;
-        }
-        return EffectiveHotkeyBinding(
-                   settings.hotkeyBindings,
-                   selectedHotkeyActionId_)
-            .enabled;
     case kIdUpdateAutoCheck:
         return settings.autoCheckUpdates;
     case kIdPinyinSearch:
@@ -3170,8 +3271,7 @@ bool SettingsWindow::ToggleChecked(
         return providerEnabled(
             providers::kPath);
     case kIdProviderEverything:
-        return providers::IsEnabled(
-            settings.providerEnabled,
+        return providerEnabled(
             providers::
                 kEverythingFilesystem,
             false);
