@@ -1698,7 +1698,6 @@ void SettingsWindow::ApplyLanguage() {
     UpdateNavLabels();
     UpdatePageHeader();
     RefreshFromSettings();
-    RefreshCommandList(editingCommandId_);
     RefreshDataCompatibilityStatus();
 
     syncing_ = oldSyncing;
