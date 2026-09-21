@@ -146,13 +146,42 @@ bool SettingsWindow::Create() {
 
     dpi_ = GetDpiForWindow(hwnd_);
 
+    // Size from the desired client viewport rather than treating an
+    // outer-window size as if it were client geometry.
+    RECT desiredWindow{
+        0,
+        0,
+        Scale(1080),
+        Scale(720),
+    };
+
+    const DWORD windowStyle =
+        static_cast<DWORD>(
+            GetWindowLongPtrW(
+                hwnd_,
+                GWL_STYLE));
+    const DWORD windowExStyle =
+        static_cast<DWORD>(
+            GetWindowLongPtrW(
+                hwnd_,
+                GWL_EXSTYLE));
+
+    AdjustWindowRectExForDpi(
+        &desiredWindow,
+        windowStyle,
+        FALSE,
+        windowExStyle,
+        dpi_);
+
     SetWindowPos(
         hwnd_,
         nullptr,
         0,
         0,
-        Scale(1080),
-        Scale(800),
+        desiredWindow.right -
+            desiredWindow.left,
+        desiredWindow.bottom -
+            desiredWindow.top,
         SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 
     ShowScrollBar(
@@ -232,9 +261,9 @@ HWND SettingsWindow::CreateCheckbox(
 
 void SettingsWindow::CreateControls() {
     brandName_ =
-        CreateStatic(L"ALTRun Next");
+        CreateStatic(L"ALTRun");
     brandSubtitle_ =
-        CreateStatic(L"Settings");
+        CreateStatic(L"Next");
 
     navGeneral_ =
         CreateButton(
@@ -504,7 +533,7 @@ void SettingsWindow::CreateHotkeyPage() {
             SS_LEFT | SS_NOPREFIX);
 
     hotkeyEnabled_ =
-        CreateCheckbox(
+        CreateCheckboxRow(
             L"",
             kIdHotkeyEnabled);
 
@@ -907,7 +936,6 @@ void SettingsWindow::ApplyFonts() {
         navData_,
         navDiagnostics_,
         navAbout_,
-        brandSubtitle_,
         pageDescription_,
         startWithWindows_,
         showOnStartup_,
@@ -1040,6 +1068,15 @@ void SettingsWindow::ApplyFonts() {
             TRUE);
     }
 
+    if (brandSubtitle_) {
+        SendMessageW(
+            brandSubtitle_,
+            WM_SETFONT,
+            reinterpret_cast<WPARAM>(
+                titleFont_),
+            TRUE);
+    }
+
     for (HWND control :
          std::array<HWND, 2>{
              brandName_,
@@ -1068,11 +1105,10 @@ void SettingsWindow::ApplyLanguage() {
           L"ALTRun Next Settings"));
     SetWindowTextW(
         brandName_,
-        L"ALTRun Next");
+        L"ALTRun");
     SetWindowTextW(
         brandSubtitle_,
-        T(L"设置", L"Settings"));
-
+        L"Next");
     SetWindowTextW(
         generalBehaviorTitle_,
         T(L"启动器行为",
@@ -1155,92 +1191,24 @@ void SettingsWindow::ApplyLanguage() {
           L"Launcher monitor"));
     SetWindowTextW(
         popupMonitorDescription_,
-        T(L"决定 Launcher 呼出时使用哪一块屏幕。",
-          L"Choose which display the launcher uses when it opens."));
-
-    SendMessageW(
-        popupMonitor_,
-        CB_RESETCONTENT, 0, 0);
-    SendMessageW(
-        popupMonitor_,
-        CB_ADDSTRING, 0,
-        reinterpret_cast<LPARAM>(
-            T(L"当前鼠标所在显示器",
-              L"Monitor containing the mouse")));
-    SendMessageW(
-        popupMonitor_,
-        CB_ADDSTRING, 0,
-        reinterpret_cast<LPARAM>(
-            T(L"当前活动窗口所在显示器",
-              L"Monitor containing the active window")));
-    SendMessageW(
-        popupMonitor_,
-        CB_ADDSTRING, 0,
-        reinterpret_cast<LPARAM>(
-            T(L"主显示器",
-              L"Primary monitor")));
-
+        L"");
     SetWindowTextW(
         launcherPlacementLabel_,
         T(L"Launcher 出现位置",
           L"Launcher position"));
     SetWindowTextW(
         launcherPlacementDescription_,
-        T(L"选择靠上、屏幕居中或恢复上次拖动后的坐标。",
-          L"Open near the top, centered, or at the last manually moved position."));
-
-    SendMessageW(
-        launcherPlacement_,
-        CB_RESETCONTENT, 0, 0);
-    SendMessageW(
-        launcherPlacement_,
-        CB_ADDSTRING, 0,
-        reinterpret_cast<LPARAM>(
-            T(L"靠近屏幕上方",
-              L"Near top of screen")));
-    SendMessageW(
-        launcherPlacement_,
-        CB_ADDSTRING, 0,
-        reinterpret_cast<LPARAM>(
-            T(L"屏幕居中",
-              L"Center on screen")));
-    SendMessageW(
-        launcherPlacement_,
-        CB_ADDSTRING, 0,
-        reinterpret_cast<LPARAM>(
-            T(L"上次位置",
-              L"Last position")));
-
+        L"");
     SetWindowTextW(
         settingsPlacementLabel_,
         T(L"设置窗口出现位置",
           L"Settings window position"));
     SetWindowTextW(
         settingsPlacementDescription_,
-        T(L"每次重新打开设置时居中，或恢复上次拖动后的坐标。",
-          L"Center the Settings window when reopened, or restore its last moved position."));
-
-    SendMessageW(
-        settingsPlacement_,
-        CB_RESETCONTENT, 0, 0);
-    SendMessageW(
-        settingsPlacement_,
-        CB_ADDSTRING, 0,
-        reinterpret_cast<LPARAM>(
-            T(L"屏幕居中",
-              L"Center on screen")));
-    SendMessageW(
-        settingsPlacement_,
-        CB_ADDSTRING, 0,
-        reinterpret_cast<LPARAM>(
-            T(L"上次位置",
-              L"Last position")));
-
+        L"");
     SetWindowTextW(
         generalNote_,
-        T(L"窗口位置与搜索行为会立即保存；“上次位置”会自动限制在当前可用屏幕范围内。",
-          L"Placement and search behavior are saved immediately. Last positions are clamped to the currently available displays."));
-
+        L"");
     SetWindowTextW(
         hotkeyEnabled_,
         T(L"启用此快捷键",
@@ -1255,9 +1223,7 @@ void SettingsWindow::ApplyLanguage() {
           L"Reset all hotkeys"));
     SetWindowTextW(
         hotkeyPageNote_,
-        T(L"选择左侧动作后，可直接更改快捷键；Esc 取消捕获。Windows 全局热键只有注册成功后才会保存。",
-          L"Select an action on the left, then change its binding directly; Esc cancels capture. Windows-global bindings are saved only after registration succeeds."));
-
+        L"");
     SetWindowTextW(
         providerSectionTitle_,
         T(L"应用来源",
@@ -1293,9 +1259,7 @@ void SettingsWindow::ApplyLanguage() {
           L"Recheck"));
     SetWindowTextW(
         providerNote_,
-        T(L"Everything 使用本机 IPC 实时查询。ALTRun Next 会优先复用已有标准版；只有自己管理的便携版才会管理其 Service 生命周期。",
-          L"Everything is queried live over local IPC. Existing standard copies are preferred; ALTRun Next manages service lifecycle only for its own portable copy."));
-
+        L"");
     SetWindowTextW(
         appearanceLauncherTitle_,
         T(L"启动器",
@@ -1341,9 +1305,7 @@ void SettingsWindow::ApplyLanguage() {
             L"English"));
     SetWindowTextW(
         appearanceNote_,
-        T(L"启动器样式和界面语言会立即应用。结果图标已移到“常规 → 启动器行为”。",
-          L"Launcher style and interface language apply immediately. Result icons are now under General → Launcher behavior."));
-
+        L"");
     SetWindowTextW(
         dataPathLabel_,
         T(L"数据目录",
@@ -1412,9 +1374,7 @@ void SettingsWindow::ApplyLanguage() {
           L"Web & URL"));
     SetWindowTextW(
         actionsNote_,
-        T(L"诊断数据每秒刷新一次，仅用于观察运行状态，不会主动修改或裁剪进程。",
-          L"Diagnostics refresh once per second for observation only and never modify or trim the process."));
-
+        L"");
     SetWindowTextW(
         aboutName_,
         L"ALTRun Next");
@@ -1430,9 +1390,7 @@ void SettingsWindow::ApplyLanguage() {
 
     SetWindowTextW(
         aboutDescription_,
-        T(L"轻量、快速、键盘优先的 Windows 启动器。",
-          L"A lightweight, fast, keyboard-first Windows launcher."));
-
+        L"");
     SetWindowTextW(
         updateSectionTitle_,
         T(L"更新",
@@ -1692,40 +1650,41 @@ std::wstring SettingsWindow::HotkeyActionLabel(
         actionId.end());
 }
 
+
 std::wstring SettingsWindow::HotkeyActionDescription(
     std::string_view actionId) const {
     if (actionId ==
         hotkey_actions::kActivate) {
         return T(
-            L"在任何程序中显示或隐藏启动器。主热键始终保持启用，并要求至少一个修饰键。",
-            L"Show or hide the launcher from any application. The primary binding is always enabled and requires a modifier.");
+            L"全局显示或隐藏启动器。",
+            L"Show or hide the launcher globally.");
     }
     if (actionId ==
         hotkey_actions::
             kActivateSecondary) {
         return T(
-            L"可选的第二组 Windows 全局呼出热键，默认关闭。",
-            L"Optional second Windows-global activation binding; disabled by default.");
+            L"备用的全局呼出组合键。",
+            L"Optional secondary global activation.");
     }
     if (actionId ==
         hotkey_actions::kOpenSettings) {
         return T(
-            L"仅在启动器窗口打开时进入设置页面。",
-            L"Open Settings while the launcher is visible.");
+            L"从启动器打开设置。",
+            L"Open Settings from the launcher.");
     }
     if (actionId ==
         hotkey_actions::
             kNavigateCurrentFileManager) {
         return T(
-            L"对 Folder 结果执行上下文导航：Explorer 或 Total Commander 当前面板。",
-            L"Contextually navigate a Folder result in Explorer or the active Total Commander panel.");
+            L"在当前文件管理器中定位文件夹结果。",
+            L"Navigate a folder result in the current file manager.");
     }
     if (actionId ==
         hotkey_actions::
             kCopySelectedTarget) {
         return T(
-            L"复制当前结果的路径、URL、Target 或 Smart Action payload。",
-            L"Copy the selected result path, URL, target or Smart Action payload.");
+            L"复制当前结果目标。",
+            L"Copy the selected result target.");
     }
     return L"";
 }
@@ -1852,6 +1811,7 @@ void SettingsWindow::RefreshHotkeyPage() {
     syncing_ = oldSyncing;
 }
 
+
 void SettingsWindow::LoadHotkeyEditor(
     std::string_view actionId) {
     const auto* action =
@@ -1889,10 +1849,10 @@ void SettingsWindow::LoadHotkeyEditor(
     std::wstring scope =
         action->scope ==
                 HotkeyScope::Global
-            ? T(L"作用域：Windows 全局",
-                L"Scope: Windows global")
-            : T(L"作用域：启动器内部",
-                L"Scope: Launcher");
+            ? T(L"Windows 全局",
+                L"Windows global")
+            : T(L"启动器内部",
+                L"Launcher only");
 
     SetWindowTextW(
         hotkeyScope_,
@@ -1912,6 +1872,11 @@ void SettingsWindow::LoadHotkeyEditor(
             ? FALSE
             : TRUE);
 
+    InvalidateRect(
+        hotkeyEnabled_,
+        nullptr,
+        TRUE);
+
     const auto chord =
         FormatHotkeyBinding(
             actionId);
@@ -1929,33 +1894,21 @@ void SettingsWindow::LoadHotkeyEditor(
     if (capturingHotkeyActionId_ ==
         actionId) {
         status =
-            T(L"正在捕获：按下组合键；Esc 取消。",
-              L"Capturing: press a key combination; Esc cancels.");
-    } else if (!binding.enabled) {
-        status =
-            T(L"运行状态：已禁用",
-              L"Runtime status: Disabled");
+            T(L"按下新的组合键；Esc 取消。",
+              L"Press a new key combination; Esc cancels.");
     } else if (
+        binding.enabled &&
         action->scope ==
-        HotkeyScope::Global) {
-        if (app_.IsHotkeyActionRegistered(
-                actionId)) {
-            status =
-                T(L"运行状态：● 已向 Windows 注册",
-                  L"Runtime status: ● Registered with Windows");
-        } else {
-            status =
-                T(L"运行状态：⚠ Windows 注册失败，旧绑定仍保持有效。错误码：",
-                  L"Runtime status: ⚠ Windows registration failed; the previous binding remains active. Error: ");
-            status +=
-                std::to_wstring(
-                    app_.HotkeyActionLastError(
-                        actionId));
-        }
-    } else {
+            HotkeyScope::Global &&
+        !app_.IsHotkeyActionRegistered(
+            actionId)) {
         status =
-            T(L"运行状态：● 就绪（仅启动器内）",
-              L"Runtime status: ● Ready (launcher only)");
+            T(L"⚠ Windows 注册失败，旧绑定仍有效。错误码：",
+              L"⚠ Windows registration failed; the previous binding remains active. Error: ");
+        status +=
+            std::to_wstring(
+                app_.HotkeyActionLastError(
+                    actionId));
     }
 
     SetWindowTextW(
@@ -2540,6 +2493,7 @@ void SettingsWindow::RefreshActionDiagnostics() {
           L"Direct HTTP / HTTPS / www URLs: Ready\r\n{query} URL templates: Ready  ·  builtin.web is runtime-only and is not written to provider-cache"));
 }
 
+
 void SettingsWindow::RefreshProviderStatus() {
     if (!providerStatus_) {
         return;
@@ -2564,12 +2518,8 @@ void SettingsWindow::RefreshProviderStatus() {
 
     if (!enabled) {
         text =
-            T(L"○ Everything 文件与文件夹已禁用",
-              L"○ Everything files & folders are disabled");
-        text += L"\r\n";
-        text +=
-            T(L"启用后通过本机 IPC 实时查询，不会影响上方应用来源。",
-              L"Enable it for live local IPC queries; application sources above remain independent.");
+            T(L"○ Everything 已禁用",
+              L"○ Everything is disabled");
     } else if (
         ipc.availability ==
         EverythingAvailability::
@@ -2579,11 +2529,6 @@ void SettingsWindow::RefreshProviderStatus() {
             T(L"● Everything 正在运行",
               L"● Everything is running");
 
-        text += L"\r\n";
-        text += T(
-            L"IPC 已连接",
-            L"IPC connected");
-
         if (bootstrap.source ==
                 win::EverythingBootstrapSource::
                     Managed ||
@@ -2591,79 +2536,35 @@ void SettingsWindow::RefreshProviderStatus() {
                 win::EverythingBootstrapSource::
                     Downloaded ||
             bootstrap.downloaded) {
-            text += T(
-                L" · ALTRun Next 托管",
-                L" · Managed by ALTRun Next");
-        } else {
-            text += T(
-                L" · 外部安装",
-                L" · External installation");
-        }
-
-        if (ipc.hasQuery) {
-            text += L"\r\n";
             text +=
-                T(L"最近查询：",
-                  L"Last query: ");
-
-            switch (ipc.lastStatus) {
-            case EverythingQueryStatus::Success:
-                text += T(L"成功", L"Success");
-                break;
-            case EverythingQueryStatus::Unavailable:
-                text += T(L"不可用", L"Unavailable");
-                break;
-            case EverythingQueryStatus::SendTimeout:
-                text += T(L"发送超时", L"Send timeout");
-                break;
-            case EverythingQueryStatus::ReplyTimeout:
-                text += T(L"响应超时", L"Reply timeout");
-                break;
-            case EverythingQueryStatus::ProtocolError:
-                text += T(L"协议错误", L"Protocol error");
-                break;
-            case EverythingQueryStatus::Cancelled:
-                text += T(L"已取消", L"Cancelled");
-                break;
-            }
-
-            text += T(
-                L" · 返回 ",
-                L" · returned ");
-            text += std::to_wstring(
-                ipc.lastResultCount);
-
-            text += T(
-                L" · ",
-                L" · ");
-            text += std::to_wstring(
-                std::max<std::int64_t>(
-                    0,
-                    (ipc.lastLatency.count() +
-                     500) /
-                        1000));
-            text += L" ms";
+                T(L" · ALTRun Next 托管",
+                  L" · Managed by ALTRun Next");
+        } else {
+            text +=
+                T(L" · 外部安装",
+                  L" · External installation");
         }
     } else if (bootstrap.running) {
         text =
             T(L"◌ 正在准备 Everything",
               L"◌ Preparing Everything");
-        text += L"\r\n";
+
+        text += L" · ";
 
         switch (bootstrap.stage) {
         case win::EverythingBootstrapStage::Discovering:
-            text += T(L"正在检测本机已有版本", L"Looking for an existing copy");
+            text += T(L"检测本机版本", L"Detecting local copies");
             break;
         case win::EverythingBootstrapStage::StartingExisting:
-            text += T(L"正在启动已有版本", L"Starting existing copy");
+            text += T(L"启动已有版本", L"Starting existing copy");
             break;
         case win::EverythingBootstrapStage::DownloadingManifest:
-            text += T(L"正在获取官方校验清单", L"Fetching official checksum manifest");
+            text += T(L"获取校验清单", L"Fetching checksums");
             break;
         case win::EverythingBootstrapStage::DownloadingPackage:
-            text += T(L"正在下载官方标准便携版", L"Downloading official standard portable build");
+            text += T(L"下载便携版", L"Downloading portable build");
             if (bootstrap.downloadedBytes > 0) {
-                text += L" · ";
+                text += L" ";
                 text += FormatBytes(
                     bootstrap.downloadedBytes);
                 if (bootstrap.totalBytes > 0) {
@@ -2674,24 +2575,24 @@ void SettingsWindow::RefreshProviderStatus() {
             }
             break;
         case win::EverythingBootstrapStage::VerifyingPackage:
-            text += T(L"正在校验 SHA-256", L"Verifying SHA-256");
+            text += T(L"校验 SHA-256", L"Verifying SHA-256");
             break;
         case win::EverythingBootstrapStage::ExtractingPackage:
-            text += T(L"正在解压便携版", L"Extracting portable build");
+            text += T(L"解压文件", L"Extracting");
             break;
         case win::EverythingBootstrapStage::InstallingService:
         case win::EverythingBootstrapStage::RepairingService:
-            text += T(L"正在配置 Everything Service，请确认 UAC", L"Configuring Everything Service; confirm UAC");
+            text += T(L"配置 Service，请确认 UAC", L"Configuring Service; confirm UAC");
             break;
         case win::EverythingBootstrapStage::WaitingForService:
-            text += T(L"正在等待 Everything Service", L"Waiting for Everything Service");
+            text += T(L"等待 Service", L"Waiting for Service");
             break;
         case win::EverythingBootstrapStage::StartingManaged:
         case win::EverythingBootstrapStage::WaitingForIpc:
-            text += T(L"正在启动托管实例并等待 IPC", L"Starting the managed instance and waiting for IPC");
+            text += T(L"等待 IPC", L"Waiting for IPC");
             break;
         default:
-            text += T(L"正在应用托管配置", L"Applying managed configuration");
+            text += T(L"应用配置", L"Applying configuration");
             break;
         }
     } else {
@@ -2702,23 +2603,15 @@ void SettingsWindow::RefreshProviderStatus() {
                 win::EverythingBootstrapFailure::
                     ServiceRepairRequired) {
             text =
-                T(L"⚠ Everything Service 路径需要修复",
-                  L"⚠ Everything Service path needs repair");
-            text += L"\r\n";
-            text +=
-                T(L"选择“获取并启动 Everything”后会在一次 UAC 授权中修复 ALTRun Next 自己管理的 Service。",
-                  L"Choose Get and start Everything to repair only the ALTRun-managed service with one UAC confirmation.");
+                T(L"⚠ Everything Service 需要修复",
+                  L"⚠ Everything Service needs repair");
         } else if (
             bootstrap.failure ==
                 win::EverythingBootstrapFailure::
                     ServiceRequired) {
             text =
-                T(L"⚠ Everything 缺少 NTFS 索引服务",
-                  L"⚠ Everything is missing its NTFS indexing service");
-            text += L"\r\n";
-            text +=
-                T(L"选择“获取并启动 Everything”安装 Everything Service。",
-                  L"Choose Get and start Everything to install the Everything Service.");
+                T(L"⚠ Everything Service 尚未安装",
+                  L"⚠ Everything Service is not installed");
         } else if (
             bootstrap.stage ==
                 win::EverythingBootstrapStage::
@@ -2728,35 +2621,19 @@ void SettingsWindow::RefreshProviderStatus() {
                   L"⚠ Automatic Everything setup failed");
 
             if (bootstrap.nativeError != 0) {
-                text += L" · ";
-                text +=
-                    T(L"系统错误 ",
-                      L"Native error ");
+                text += T(L" · 系统错误 ", L" · Native error ");
                 text += std::to_wstring(
                     bootstrap.nativeError);
             }
-
-            text += L"\r\n";
-            text +=
-                T(L"可重新检测已有标准版，或再次获取托管便携版。",
-                  L"Recheck an existing standard copy or try the managed portable setup again.");
         } else if (
             ipc.ambiguousNamedInstances) {
             text =
                 T(L"⚠ 检测到多个 Everything 命名实例",
                   L"⚠ Multiple named Everything instances detected");
-            text += L"\r\n";
-            text +=
-                T(L"无法安全自动选择，请保留一个可用标准实例后重新检测。",
-                  L"Automatic selection is ambiguous; keep one usable standard instance and recheck.");
         } else {
             text =
                 T(L"○ 未检测到可用的 Everything",
                   L"○ No usable Everything instance detected");
-            text += L"\r\n";
-            text +=
-                T(L"可重新检测已有标准版，或让 ALTRun Next 获取官方标准便携版。",
-                  L"Recheck an existing standard copy or let ALTRun Next fetch the official standard portable build.");
         }
     }
 
@@ -2817,6 +2694,7 @@ void SettingsWindow::RecheckEverything() {
     RefreshProviderStatus();
 }
 
+
 void SettingsWindow::RefreshDataCompatibilityStatus() {
     if (!dataStatus_) {
         return;
@@ -2825,16 +2703,9 @@ void SettingsWindow::RefreshDataCompatibilityStatus() {
     const std::wstring warning =
         app_.DataCompatibilityWarning();
 
-    if (!warning.empty()) {
-        SetWindowTextW(
-            dataStatus_,
-            warning.c_str());
-    } else if (page_ == Page::Data) {
-        SetWindowTextW(
-            dataStatus_,
-            T(L"数据健康检查正常：目录可写，且本次启动未发生备份恢复或兼容保护。",
-              L"Data health check passed: the directory is writable and no backup recovery or compatibility protection was needed this startup."));
-    }
+    SetWindowTextW(
+        dataStatus_,
+        warning.c_str());
 }
 
 void SettingsWindow::OnDynamicProviderStatusChanged() {
@@ -2919,79 +2790,46 @@ void SettingsWindow::UpdateNavLabels() {
         label(Page::About, L"关于", L"About").c_str());
 }
 
+
 void SettingsWindow::UpdatePageHeader() {
+    const wchar_t* title = L"";
+
     switch (page_) {
     case Page::General:
-        SetWindowTextW(
-            pageTitle_,
-            T(L"常规", L"General"));
-        SetWindowTextW(
-            pageDescription_,
-            T(L"控制启动器行为、搜索方式和呼出位置。",
-              L"Control launcher behavior, search interaction and placement."));
+        title = T(L"常规", L"General");
         break;
-
     case Page::Hotkeys:
-        SetWindowTextW(
-            pageTitle_,
-            T(L"快捷键", L"Hotkeys"));
-        SetWindowTextW(
-            pageDescription_,
-            T(L"集中管理全局呼出和启动器内部动作热键；新增动作会统一注册到这里。",
-              L"Manage global activation and launcher action bindings in one place; future hotkey actions register here."));
+        title = T(L"快捷键", L"Hotkeys");
         break;
-
     case Page::Diagnostics:
-        SetWindowTextW(
-            pageTitle_,
-            T(L"诊断", L"Diagnostics"));
-        SetWindowTextW(
-            pageDescription_,
-            T(L"查看进程内存、搜索数据、后台任务、Smart Actions 与 Windows 呼出上下文，建立性能与故障诊断基线。",
-              L"Inspect process memory, search data, background work, Smart Actions and Windows activation context for performance and troubleshooting baselines."));
+        title = T(L"诊断", L"Diagnostics");
         break;
-
     case Page::Appearance:
-        SetWindowTextW(
-            pageTitle_,
-            T(L"外观", L"Appearance"));
-        SetWindowTextW(
-            pageDescription_,
-            T(L"选择启动器样式和 ALTRun Next 的界面语言。",
-              L"Choose launcher style and the ALTRun Next interface language."));
+        title = T(L"外观", L"Appearance");
         break;
-
     case Page::Providers:
-        SetWindowTextW(
-            pageTitle_,
-            T(L"搜索来源", L"Search sources"));
-        SetWindowTextW(
-            pageDescription_,
-            T(L"控制 Windows 应用来源和 Everything 文件 / 文件夹搜索，并查看运行状态。",
-              L"Choose Windows application sources and Everything file/folder search, and inspect runtime status."));
+        title = T(L"搜索来源", L"Search sources");
         break;
-
     case Page::Data:
-        SetWindowTextW(
-            pageTitle_,
-            T(L"数据", L"Data"));
-        SetWindowTextW(
-            pageDescription_,
-            T(L"导入、导出和维护 ALTRun Next 的本地数据。",
-              L"Import, export and maintain ALTRun Next local data."));
+        title = T(L"数据", L"Data");
         break;
-
     case Page::About:
-        SetWindowTextW(
-            pageTitle_,
-            T(L"关于", L"About"));
-        SetWindowTextW(
-            pageDescription_,
-            T(L"查看版本、更新状态和项目入口。",
-              L"View version information, update status and project links."));
+        title = T(L"关于", L"About");
         break;
     }
+
+    SetWindowTextW(
+        pageTitle_,
+        title);
+
+    SetWindowTextW(
+        pageDescription_,
+        L"");
+    ShowWindow(
+        pageDescription_,
+        SW_HIDE);
 }
+
 
 void SettingsWindow::ShowPage(Page page) {
     if (page_ == Page::Providers &&
@@ -3013,26 +2851,68 @@ void SettingsWindow::ShowPage(Page page) {
         generalScrollOffset_ = 0;
     }
 
+    SendMessageW(
+        hwnd_,
+        WM_SETREDRAW,
+        FALSE,
+        0);
+
     page_ = page;
 
-    const auto setVisible = [](const std::vector<HWND>& controls, bool visible) {
-        for (HWND control : controls) {
+    const auto setVisible =
+        [](const std::vector<HWND>& controls,
+           bool visible) {
+            for (HWND control : controls) {
+                ShowWindow(
+                    control,
+                    visible
+                        ? SW_SHOW
+                        : SW_HIDE);
+            }
+        };
+
+    setVisible(
+        generalControls_,
+        page == Page::General);
+    setVisible(
+        hotkeyControls_,
+        page == Page::Hotkeys);
+    setVisible(
+        diagnosticsControls_,
+        page == Page::Diagnostics);
+    setVisible(
+        appearanceControls_,
+        page == Page::Appearance);
+    setVisible(
+        providerControls_,
+        page == Page::Providers);
+    setVisible(
+        dataControls_,
+        page == Page::Data);
+    setVisible(
+        aboutControls_,
+        page == Page::About);
+
+    for (HWND control :
+         std::array<HWND, 10>{
+             pageDescription_,
+             popupMonitorDescription_,
+             launcherPlacementDescription_,
+             settingsPlacementDescription_,
+             generalNote_,
+             hotkeyPageNote_,
+             providerNote_,
+             appearanceNote_,
+             actionsNote_,
+             aboutDescription_}) {
+        if (control) {
             ShowWindow(
                 control,
-                visible ? SW_SHOW : SW_HIDE);
+                SW_HIDE);
         }
-    };
+    }
 
-    setVisible(generalControls_, page == Page::General);
-    setVisible(hotkeyControls_, page == Page::Hotkeys);
-    setVisible(diagnosticsControls_, page == Page::Diagnostics);
-    setVisible(appearanceControls_, page == Page::Appearance);
-    setVisible(providerControls_, page == Page::Providers);
-    setVisible(dataControls_, page == Page::Data);
-    setVisible(aboutControls_, page == Page::About);
-
-    if (
-        page == Page::Hotkeys) {
+    if (page == Page::Hotkeys) {
         RefreshHotkeyPage();
     } else if (
         page == Page::Diagnostics) {
@@ -3059,12 +2939,20 @@ void SettingsWindow::ShowPage(Page page) {
     UpdatePageHeader();
     Layout();
 
+    SendMessageW(
+        hwnd_,
+        WM_SETREDRAW,
+        TRUE,
+        0);
+
     RedrawWindow(
         hwnd_,
         nullptr,
         nullptr,
-        RDW_INVALIDATE | RDW_ERASE |
-            RDW_ALLCHILDREN | RDW_UPDATENOW);
+        RDW_INVALIDATE |
+            RDW_ERASE |
+            RDW_ALLCHILDREN |
+            RDW_UPDATENOW);
 }
 
 void SettingsWindow::ApplyClassicBehaviorControl(
@@ -3610,6 +3498,14 @@ bool SettingsWindow::ToggleChecked(
         return settings.showTrayIcon;
     case kIdShowResultIcons:
         return settings.showResultIcons;
+    case kIdHotkeyEnabled:
+        if (selectedHotkeyActionId_.empty()) {
+            return false;
+        }
+        return EffectiveHotkeyBinding(
+                   settings.hotkeyBindings,
+                   selectedHotkeyActionId_)
+            .enabled;
     case kIdUpdateAutoCheck:
         return settings.autoCheckUpdates;
     case kIdPinyinSearch:
