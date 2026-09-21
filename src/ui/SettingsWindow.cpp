@@ -4098,8 +4098,14 @@ void SettingsWindow::Layout() {
         const int labelX =
             metrics.placement.left +
             Scale(18);
+        const int placementWidth =
+            metrics.placement.right -
+            metrics.placement.left;
         const int comboWidth =
-            Scale(250);
+            std::clamp(
+                placementWidth * 46 / 100,
+                Scale(180),
+                Scale(250));
         const int comboX =
             metrics.placement.right -
             comboWidth -
