@@ -122,8 +122,6 @@ private:
         kIdUpdateInstall = 51306;
 
     static constexpr UINT
-        kIdDataOpenFolder = 51501;
-    static constexpr UINT
         kIdDataImportTsv = 51502;
     static constexpr UINT
         kIdDataImportLegacy = 51503;
@@ -344,13 +342,16 @@ private:
     HWND settingsPlacement_{};
     HWND generalNote_{};
 
+    HWND appearanceLauncherTitle_{};
     HWND uiStyleLabel_{};
     HWND uiStyle_{};
+    HWND appearanceAppTitle_{};
     HWND languageLabel_{};
     HWND language_{};
     HWND appearanceNote_{};
 
     HWND providerSectionTitle_{};
+    HWND providerFilesTitle_{};
     HWND providerStartMenu_{};
     HWND providerPackaged_{};
     HWND providerAppPaths_{};
@@ -375,6 +376,7 @@ private:
     HWND dataStatus_{};
 
     HWND aboutName_{};
+    HWND aboutProjectTitle_{};
     HWND aboutVersion_{};
     HWND aboutDescription_{};
     HWND updateSectionTitle_{};
