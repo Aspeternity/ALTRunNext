@@ -139,6 +139,8 @@ if version == "0.8.0-alpha.2.4":
         "kProviderCommitTimerId",
         "CommitPendingProviderChanges()",
         "providerCommitInProgress_",
+        "SetProviderEnabledBatch(",
+        "ordinaryChanges",
         "180",
         "ImportCommands()",
         'T(L"导入快捷项…"',
@@ -173,7 +175,11 @@ if version == "0.8.0-alpha.2.4":
 
     user_store = read("src/core/UserCommandStore.cpp") + read("src/core/UserCommandStore.hpp")
     command_store = read("src/core/CommandStore.cpp") + read("src/core/CommandStore.hpp")
+    settings_store = read("src/core/Settings.cpp") + read("src/core/Settings.hpp")
     app = read("src/app/App.cpp") + read("src/app/App.hpp")
+
+    if "SetProviderEnabledBatch(" not in settings_store or "SetProviderEnabledBatch(" not in app:
+        fail("v0.8 alpha.2.4 ordinary provider batching API is missing")
 
     for token in ("legacyMode",):
         if token in user_store or token in command_store or token in app:
