@@ -5850,43 +5850,102 @@ void SettingsWindow::DrawGeneralToggle(
     }
 }
 
-void SettingsWindow::CenterOnCurrentMonitor() {
+void SettingsWindow::PositionForShow() {
+    RECT rect{};
+    GetWindowRect(
+        hwnd_,
+        &rect);
+
+    const int requestedWidth =
+        rect.right - rect.left;
+    const int requestedHeight =
+        rect.bottom - rect.top;
+
+    const auto& settings =
+        app_.SettingsData();
+
+    if (settings.settingsPlacement ==
+            "last" &&
+        settings.settingsLastPositionValid) {
+
+        RECT requested{
+            settings.settingsLastX,
+            settings.settingsLastY,
+            settings.settingsLastX +
+                requestedWidth,
+            settings.settingsLastY +
+                requestedHeight,
+        };
+
+        HMONITOR monitor =
+            MonitorFromRect(
+                &requested,
+                MONITOR_DEFAULTTONEAREST);
+
+        MONITORINFO info{
+            sizeof(info)};
+
+        if (GetMonitorInfoW(
+                monitor,
+                &info)) {
+
+            const auto clamped =
+                settings_layout::
+                    ClampRectToWorkArea(
+                        {
+                            requested.left,
+                            requested.top,
+                            requested.right,
+                            requested.bottom,
+                        },
+                        {
+                            info.rcWork.left,
+                            info.rcWork.top,
+                            info.rcWork.right,
+                            info.rcWork.bottom,
+                        });
+
+            SetWindowPos(
+                hwnd_,
+                nullptr,
+                clamped.left,
+                clamped.top,
+                clamped.right -
+                    clamped.left,
+                clamped.bottom -
+                    clamped.top,
+                SWP_NOZORDER |
+                    SWP_NOACTIVATE);
+            return;
+        }
+    }
+
     POINT cursor{};
-    GetCursorPos(&cursor);
+    GetCursorPos(
+        &cursor);
 
     HMONITOR monitor =
         MonitorFromPoint(
             cursor,
             MONITOR_DEFAULTTONEAREST);
 
-    MONITORINFO info{sizeof(info)};
-    GetMonitorInfoW(monitor, &info);
-
-    RECT rect{};
-    GetWindowRect(hwnd_, &rect);
-
-    const int requestedWidth =
-        rect.right - rect.left;
-
-    const int requestedHeight =
-        rect.bottom - rect.top;
+    MONITORINFO info{
+        sizeof(info)};
+    GetMonitorInfoW(
+        monitor,
+        &info);
 
     const int workWidth =
         info.rcWork.right -
         info.rcWork.left;
-
     const int workHeight =
         info.rcWork.bottom -
         info.rcWork.top;
 
-    // Per-monitor DPI can make the logical default larger than the
-    // available work area (for example 150% scaling on a 1080p panel).
-    // Never center an oversized Settings window partly off-screen.
     const int width =
         std::min(
             requestedWidth,
             workWidth);
-
     const int height =
         std::min(
             requestedHeight,
@@ -5897,7 +5956,6 @@ void SettingsWindow::CenterOnCurrentMonitor() {
         std::max(
             0,
             (workWidth - width) / 2);
-
     const int y =
         info.rcWork.top +
         std::max(
@@ -5911,7 +5969,8 @@ void SettingsWindow::CenterOnCurrentMonitor() {
         y,
         width,
         height,
-        SWP_NOZORDER | SWP_NOACTIVATE);
+        SWP_NOZORDER |
+            SWP_NOACTIVATE);
 }
 
 void SettingsWindow::OnUpdateStatusChanged() {
@@ -6193,7 +6252,7 @@ void SettingsWindow::Show() {
     }
 
     if (!IsWindowVisible(hwnd_)) {
-        CenterOnCurrentMonitor();
+        PositionForShow();
     }
 
     ShowWindow(
@@ -7051,6 +7110,21 @@ LRESULT SettingsWindow::HandleMessage(
             nullptr,
             TRUE);
         return 0;
+
+    case WM_EXITSIZEMOVE: {
+        if (!IsIconic(hwnd_) &&
+            !IsZoomed(hwnd_)) {
+            RECT moved{};
+            if (GetWindowRect(
+                    hwnd_,
+                    &moved)) {
+                app_.RememberSettingsPosition(
+                    moved.left,
+                    moved.top);
+            }
+        }
+        return 0;
+    }
 
     case WM_DPICHANGED: {
         dpi_ = HIWORD(wParam);
