@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <ctime>
 #include <filesystem>
 #include <iomanip>
 #include <iterator>
@@ -76,55 +75,6 @@ std::wstring FormatBytes(
     }
 
     return out.str();
-}
-
-std::wstring FormatLocalTime(
-    std::int64_t unixTime) {
-
-    if (unixTime <= 0) {
-        return L"—";
-    }
-
-    const std::time_t value =
-        static_cast<std::time_t>(
-            unixTime);
-
-    std::tm local{};
-
-    if (localtime_s(
-            &local,
-            &value) != 0) {
-        return L"—";
-    }
-
-    wchar_t buffer[32]{};
-
-    if (std::wcsftime(
-            buffer,
-            sizeof(buffer) /
-                sizeof(buffer[0]),
-            L"%Y-%m-%d %H:%M:%S",
-            &local) == 0) {
-        return L"—";
-    }
-
-    return buffer;
-}
-
-bool IsChecked(HWND control) {
-    return SendMessageW(
-        control,
-        BM_GETCHECK,
-        0,
-        0) == BST_CHECKED;
-}
-
-void SetChecked(HWND control, bool checked) {
-    SendMessageW(
-        control,
-        BM_SETCHECK,
-        checked ? BST_CHECKED : BST_UNCHECKED,
-        0);
 }
 
 } // namespace
