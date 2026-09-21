@@ -2595,95 +2595,7 @@ void SettingsWindow::RefreshProviderStatus() {
         return;
     }
 
-    const auto statuses =
-        app_.ProviderStatuses();
-
-    std::wstring text;
-
-    for (std::size_t i = 0;
-         i < statuses.size();
-         ++i) {
-
-        const auto& status =
-            statuses[i];
-
-        std::wstring name =
-            status.name;
-
-        if (status.id ==
-            providers::kStartMenu) {
-            name =
-                T(L"开始菜单", L"Start Menu");
-        } else if (
-            status.id ==
-            providers::kPackaged) {
-            name = L"Windows Apps";
-        } else if (
-            status.id ==
-            providers::kAppPaths) {
-            name = L"App Paths";
-        } else if (
-            status.id ==
-            providers::kPath) {
-            name = L"PATH";
-        }
-
-        text += name;
-        text += L"  ·  ";
-
-        if (!status.enabled) {
-            text += T(
-                L"已禁用",
-                L"Disabled");
-        } else if (
-            status.lastAttemptUnix > 0 &&
-            !status.lastAttemptSucceeded) {
-            text += T(
-                L"刷新失败",
-                L"Refresh failed");
-        } else {
-            text += T(
-                L"正常",
-                L"Healthy");
-        }
-
-        text += L"  ·  ";
-        text += T(L"缓存 ", L"Cached ");
-        text += std::to_wstring(
-            status.commandCount);
-        text += T(L" / 搜索 ", L" / active ");
-        text += std::to_wstring(
-            status.activeCommandCount);
-
-        if (status.suppressedCommandCount >
-            0) {
-            text += T(L" / 去重 ", L" / dedup ");
-            text += std::to_wstring(
-                status.suppressedCommandCount);
-        }
-
-        text += L"  ·  ";
-        text += T(
-            L"成功刷新 ",
-            L"Last success ");
-        text += FormatLocalTime(
-            status.lastRefreshUnix);
-
-        if (status.lastAttemptUnix > 0 &&
-            !status.lastAttemptSucceeded &&
-            !status.lastError.empty()) {
-
-            text += L"\r\n    ↳ ";
-            text += T(
-                L"错误：",
-                L"Error: ");
-            text += status.lastError;
-        }
-
-        text += L"\r\n";
-    }
-
-    const bool everythingEnabled =
+    const bool enabled =
         providers::IsEnabled(
             app_.SettingsData()
                 .providerEnabled,
@@ -2691,419 +2603,226 @@ void SettingsWindow::RefreshProviderStatus() {
                 kEverythingFilesystem,
             false);
 
+    const auto ipc =
+        app_.EverythingStatus();
+    const auto bootstrap =
+        app_.EverythingBootstrapStatus();
+
     bool showGetEverything = false;
     bool showRecheck = false;
+    std::wstring text;
 
-    text += T(
-        L"Everything 文件与文件夹",
-        L"Everything files & folders");
-    text += L"  ·  ";
+    if (!enabled) {
+        text =
+            T(L"○ Everything 文件与文件夹已禁用",
+              L"○ Everything files & folders are disabled");
+        text += L"\r\n";
+        text +=
+            T(L"启用后通过本机 IPC 实时查询，不会影响上方应用来源。",
+              L"Enable it for live local IPC queries; application sources above remain independent.");
+    } else if (
+        ipc.availability ==
+        EverythingAvailability::
+            Available) {
 
-    if (!everythingEnabled) {
+        text =
+            T(L"● Everything 正在运行",
+              L"● Everything is running");
+
+        text += L"\r\n";
         text += T(
-            L"已禁用",
-            L"Disabled");
-    } else {
-        const auto ipc =
-            app_.EverythingStatus();
-        const auto bootstrap =
-            app_.EverythingBootstrapStatus();
+            L"IPC 已连接",
+            L"IPC connected");
 
-        if (ipc.availability ==
-            EverythingAvailability::
-                Available) {
+        if (bootstrap.source ==
+                win::EverythingBootstrapSource::
+                    Managed ||
+            bootstrap.source ==
+                win::EverythingBootstrapSource::
+                    Downloaded ||
+            bootstrap.downloaded) {
             text += T(
-                L"IPC 可用",
-                L"IPC available");
-
-            if (!ipc.ipcWindowClass.empty()) {
-                text += L"\r\n    ↳ ";
-                text += T(
-                    L"IPC 端点：",
-                    L"IPC endpoint: ");
-                text += ipc.ipcWindowClass;
-
-                if (ipc.namedInstanceFallback) {
-                    text += T(
-                        L"  ·  命名实例",
-                        L"  ·  named instance");
-                }
-            }
-
-            if (bootstrap.downloaded) {
-                text += L"\r\n    ↳ ";
-                text += T(
-                    L"已由 ALTRun Next 获取并启动官方标准便携版",
-                    L"Official standard portable build was fetched and started by ALTRun Next");
-            }
-
-            if (ipc.hasQuery) {
-                text += L"\r\n    ↳ ";
-                text += T(
-                    L"最近查询：",
-                    L"Last query: ");
-
-                switch (ipc.lastStatus) {
-                case EverythingQueryStatus::Success:
-                    text += T(
-                        L"成功",
-                        L"Success");
-                    break;
-                case EverythingQueryStatus::Unavailable:
-                    text += T(
-                        L"不可用",
-                        L"Unavailable");
-                    break;
-                case EverythingQueryStatus::SendTimeout:
-                    text += T(
-                        L"发送超时",
-                        L"Send timeout");
-                    break;
-                case EverythingQueryStatus::ReplyTimeout:
-                    text += T(
-                        L"响应超时",
-                        L"Reply timeout");
-                    break;
-                case EverythingQueryStatus::ProtocolError:
-                    text += T(
-                        L"协议错误",
-                        L"Protocol error");
-                    break;
-                case EverythingQueryStatus::Cancelled:
-                    text += T(
-                        L"已取消",
-                        L"Cancelled");
-                    break;
-                }
-
-                text += T(
-                    L"  ·  显示 ",
-                    L"  ·  returned ");
-                text += std::to_wstring(
-                    ipc.lastResultCount);
-
-                if (ipc.lastTotalMatches > 0) {
-                    text += L" / ";
-                    text += std::to_wstring(
-                        ipc.lastTotalMatches);
-                }
-
-                text += T(
-                    L"  ·  耗时 ",
-                    L"  ·  latency ");
-                text += std::to_wstring(
-                    std::max<std::int64_t>(
-                        0,
-                        (ipc.lastLatency.count() +
-                         500) /
-                            1000));
-                text += L" ms";
-            } else {
-                text += T(
-                    L"  ·  等待首次查询",
-                    L"  ·  Waiting for first query");
-            }
-        } else if (bootstrap.running) {
-            text += T(
-                L"正在准备 Everything",
-                L"Preparing Everything");
-            text += L"  ·  ";
-
-            switch (bootstrap.stage) {
-            case win::EverythingBootstrapStage::
-                Discovering:
-                text += T(
-                    L"检测本机已有版本",
-                    L"Looking for an existing copy");
-                break;
-            case win::EverythingBootstrapStage::
-                StartingExisting:
-                text += T(
-                    L"正在启动已有版本",
-                    L"Starting existing copy");
-                break;
-            case win::EverythingBootstrapStage::
-                DownloadingManifest:
-                text += T(
-                    L"获取官方 SHA-256 清单",
-                    L"Fetching official SHA-256 manifest");
-                break;
-            case win::EverythingBootstrapStage::
-                DownloadingPackage:
-                text += T(
-                    L"下载官方标准便携版",
-                    L"Downloading official standard portable build");
-                if (bootstrap.downloadedBytes > 0) {
-                    text += L"  ·  ";
-                    text += FormatBytes(
-                        bootstrap.downloadedBytes);
-                    if (bootstrap.totalBytes > 0) {
-                        text += L" / ";
-                        text += FormatBytes(
-                            bootstrap.totalBytes);
-                    }
-                }
-                break;
-            case win::EverythingBootstrapStage::
-                VerifyingPackage:
-                text += T(
-                    L"校验 SHA-256",
-                    L"Verifying SHA-256");
-                break;
-            case win::EverythingBootstrapStage::
-                ExtractingPackage:
-                text += T(
-                    L"解压便携版",
-                    L"Extracting portable build");
-                break;
-            case win::EverythingBootstrapStage::
-                ConfiguringManaged:
-                text += T(
-                    L"配置后台运行并隐藏托盘图标",
-                    L"Configuring background mode and hidden tray icon");
-                break;
-            case win::EverythingBootstrapStage::
-                StoppingManaged:
-                text += T(
-                    L"正在重启托管 Everything 以应用配置",
-                    L"Restarting managed Everything to apply configuration");
-                break;
-            case win::EverythingBootstrapStage::
-                InstallingService:
-                text += T(
-                    L"安装 / 启动 Everything Service（请确认 UAC）",
-                    L"Installing / starting Everything Service (confirm UAC)");
-                break;
-            case win::EverythingBootstrapStage::
-                RepairingService:
-                text += T(
-                    L"修复 Everything Service 路径（请确认 UAC）",
-                    L"Repairing the Everything Service path (confirm UAC)");
-                break;
-            case win::EverythingBootstrapStage::
-                WaitingForService:
-                text += T(
-                    L"等待 Everything Service 就绪",
-                    L"Waiting for Everything Service");
-                break;
-            case win::EverythingBootstrapStage::
-                StartingManaged:
-                text += T(
-                    L"启动托管实例",
-                    L"Starting managed instance");
-                break;
-            case win::EverythingBootstrapStage::
-                WaitingForIpc:
-                text += T(
-                    L"等待 IPC 就绪",
-                    L"Waiting for IPC");
-                break;
-            default:
-                text += T(
-                    L"处理中",
-                    L"Working");
-                break;
-            }
+                L" · ALTRun Next 托管",
+                L" · Managed by ALTRun Next");
         } else {
-            showGetEverything = true;
-            showRecheck = true;
+            text += T(
+                L" · 外部安装",
+                L" · External installation");
+        }
 
-            if (bootstrap.stage ==
-                    win::EverythingBootstrapStage::
-                        NeedsInstall &&
-                bootstrap.failure ==
-                    win::EverythingBootstrapFailure::
-                        ServiceRepairRequired) {
-                text += T(
-                    L"检测到需要修复的 Everything Service 路径",
-                    L"The Everything Service path needs repair");
-                text += L"\r\n    ↳ ";
-                text += T(
-                    L"服务可能仍指向移动前的旧路径，或使用 alpha.9.1 临时采用的 Program Files Service Host。点击“获取并启动 Everything”后，ALTRun Next 会在一次 UAC 授权中把自己管理的服务修复回当前便携目录 data/tools/Everything；外部 Everything 不会被改写。",
-                    L"The service may still point to a pre-move path or the temporary Program Files service host used by alpha.9.1. Choose Get and start Everything to repair ALTRun Next's managed service back to the current portable data/tools/Everything path with one UAC confirmation. External Everything installations are not retargeted.");
-            } else if (
-                bootstrap.stage ==
-                    win::EverythingBootstrapStage::
-                        NeedsInstall &&
-                bootstrap.failure ==
-                    win::EverythingBootstrapFailure::
-                        ServiceRequired) {
-                text += T(
-                    L"托管 Everything 已就绪，但缺少 NTFS 索引服务",
-                    L"Managed Everything is present, but the NTFS indexing service is missing");
-                text += L"\r\n    ↳ ";
-                text += T(
-                    L"点击“获取并启动 Everything”安装 Everything Service；Windows 只会在首次安装服务时请求 UAC。托管版将继续以普通用户后台运行且不显示托盘图标。",
-                    L"Choose Get and start Everything to install the Everything Service. Windows asks for UAC only when the service is first installed. The managed client will continue as a standard-user background process with no tray icon.");
-            } else if (
-                bootstrap.stage ==
-                    win::EverythingBootstrapStage::
-                        NeedsInstall &&
-                bootstrap.failure ==
-                    win::EverythingBootstrapFailure::
-                        IpcUnavailable) {
-                text += T(
-                    L"检测到 Everything，但 IPC 不可用",
-                    L"Everything was found, but IPC is unavailable");
-                text += L"  ·  ";
-                text += T(
-                    L"可能是 Lite 版或当前实例配置不兼容",
-                    L"It may be Lite or an incompatible instance configuration");
-            } else if (
-                bootstrap.stage ==
+        if (ipc.hasQuery) {
+            text += L"\r\n";
+            text +=
+                T(L"最近查询：",
+                  L"Last query: ");
+
+            switch (ipc.lastStatus) {
+            case EverythingQueryStatus::Success:
+                text += T(L"成功", L"Success");
+                break;
+            case EverythingQueryStatus::Unavailable:
+                text += T(L"不可用", L"Unavailable");
+                break;
+            case EverythingQueryStatus::SendTimeout:
+                text += T(L"发送超时", L"Send timeout");
+                break;
+            case EverythingQueryStatus::ReplyTimeout:
+                text += T(L"响应超时", L"Reply timeout");
+                break;
+            case EverythingQueryStatus::ProtocolError:
+                text += T(L"协议错误", L"Protocol error");
+                break;
+            case EverythingQueryStatus::Cancelled:
+                text += T(L"已取消", L"Cancelled");
+                break;
+            }
+
+            text += T(
+                L" · 返回 ",
+                L" · returned ");
+            text += std::to_wstring(
+                ipc.lastResultCount);
+
+            text += T(
+                L" · ",
+                L" · ");
+            text += std::to_wstring(
+                std::max<std::int64_t>(
+                    0,
+                    (ipc.lastLatency.count() +
+                     500) /
+                        1000));
+            text += L" ms";
+        }
+    } else if (bootstrap.running) {
+        text =
+            T(L"◌ 正在准备 Everything",
+              L"◌ Preparing Everything");
+        text += L"\r\n";
+
+        switch (bootstrap.stage) {
+        case win::EverythingBootstrapStage::Discovering:
+            text += T(L"正在检测本机已有版本", L"Looking for an existing copy");
+            break;
+        case win::EverythingBootstrapStage::StartingExisting:
+            text += T(L"正在启动已有版本", L"Starting existing copy");
+            break;
+        case win::EverythingBootstrapStage::DownloadingManifest:
+            text += T(L"正在获取官方校验清单", L"Fetching official checksum manifest");
+            break;
+        case win::EverythingBootstrapStage::DownloadingPackage:
+            text += T(L"正在下载官方标准便携版", L"Downloading official standard portable build");
+            if (bootstrap.downloadedBytes > 0) {
+                text += L" · ";
+                text += FormatBytes(
+                    bootstrap.downloadedBytes);
+                if (bootstrap.totalBytes > 0) {
+                    text += L" / ";
+                    text += FormatBytes(
+                        bootstrap.totalBytes);
+                }
+            }
+            break;
+        case win::EverythingBootstrapStage::VerifyingPackage:
+            text += T(L"正在校验 SHA-256", L"Verifying SHA-256");
+            break;
+        case win::EverythingBootstrapStage::ExtractingPackage:
+            text += T(L"正在解压便携版", L"Extracting portable build");
+            break;
+        case win::EverythingBootstrapStage::InstallingService:
+        case win::EverythingBootstrapStage::RepairingService:
+            text += T(L"正在配置 Everything Service，请确认 UAC", L"Configuring Everything Service; confirm UAC");
+            break;
+        case win::EverythingBootstrapStage::WaitingForService:
+            text += T(L"正在等待 Everything Service", L"Waiting for Everything Service");
+            break;
+        case win::EverythingBootstrapStage::StartingManaged:
+        case win::EverythingBootstrapStage::WaitingForIpc:
+            text += T(L"正在启动托管实例并等待 IPC", L"Starting the managed instance and waiting for IPC");
+            break;
+        default:
+            text += T(L"正在应用托管配置", L"Applying managed configuration");
+            break;
+        }
+    } else {
+        showGetEverything = true;
+        showRecheck = true;
+
+        if (bootstrap.failure ==
+                win::EverythingBootstrapFailure::
+                    ServiceRepairRequired) {
+            text =
+                T(L"⚠ Everything Service 路径需要修复",
+                  L"⚠ Everything Service path needs repair");
+            text += L"\r\n";
+            text +=
+                T(L"选择“获取并启动 Everything”后会在一次 UAC 授权中修复 ALTRun Next 自己管理的 Service。",
+                  L"Choose Get and start Everything to repair only the ALTRun-managed service with one UAC confirmation.");
+        } else if (
+            bootstrap.failure ==
+                win::EverythingBootstrapFailure::
+                    ServiceRequired) {
+            text =
+                T(L"⚠ Everything 缺少 NTFS 索引服务",
+                  L"⚠ Everything is missing its NTFS indexing service");
+            text += L"\r\n";
+            text +=
+                T(L"选择“获取并启动 Everything”安装 Everything Service。",
+                  L"Choose Get and start Everything to install the Everything Service.");
+        } else if (
+            bootstrap.stage ==
                 win::EverythingBootstrapStage::
                     Failed) {
-                text += T(
-                    L"自动准备失败",
-                    L"Automatic preparation failed");
+            text =
+                T(L"⚠ Everything 自动准备失败",
+                  L"⚠ Automatic Everything setup failed");
 
-                text += L"  ·  ";
-                switch (bootstrap.failure) {
-                case win::EverythingBootstrapFailure::
-                    ManifestDownloadFailed:
-                    text += T(
-                        L"无法获取官方校验清单",
-                        L"Could not fetch the official checksum manifest");
-                    break;
-                case win::EverythingBootstrapFailure::
-                    PackageChecksumMissing:
-                    text += T(
-                        L"官方清单中缺少当前安装包校验值",
-                        L"The official manifest does not contain this package");
-                    break;
-                case win::EverythingBootstrapFailure::
-                    PackageDownloadFailed:
-                    text += T(
-                        L"下载安装包失败",
-                        L"Package download failed");
-                    break;
-                case win::EverythingBootstrapFailure::
-                    PackageHashFailed:
-                    text += T(
-                        L"无法计算安装包 SHA-256",
-                        L"Could not calculate package SHA-256");
-                    break;
-                case win::EverythingBootstrapFailure::
-                    PackageHashMismatch:
-                    text += T(
-                        L"SHA-256 校验不一致，安装包已拒绝",
-                        L"SHA-256 mismatch; the package was rejected");
-                    break;
-                case win::EverythingBootstrapFailure::
-                    PackageStagingFailed:
-                    text += T(
-                        L"已校验安装包转入 ZIP 解压阶段失败",
-                        L"Could not stage the verified package as a ZIP for extraction");
-                    break;
-                case win::EverythingBootstrapFailure::
-                    ExtractionFailed:
-                    text += T(
-                        L"解压失败",
-                        L"Extraction failed");
-                    break;
-                case win::EverythingBootstrapFailure::
-                    ManagedStopFailed:
-                    text += T(
-                        L"无法关闭旧的托管 Everything 实例",
-                        L"Could not stop the previous managed Everything instance");
-                    break;
-                case win::EverythingBootstrapFailure::
-                    ManagedConfigFailed:
-                    text += T(
-                        L"无法写入托管 Everything 配置",
-                        L"Could not write the managed Everything configuration");
-                    break;
-                case win::EverythingBootstrapFailure::
-                    ServiceElevationCancelled:
-                    text += T(
-                        L"已取消 UAC，Everything Service 未安装",
-                        L"UAC was cancelled; the Everything Service was not installed");
-                    break;
-                case win::EverythingBootstrapFailure::
-                    ServiceInstallFailed:
-                    text += T(
-                        L"Everything Service 安装 / 启动失败",
-                        L"Everything Service installation / startup failed");
-                    break;
-                case win::EverythingBootstrapFailure::
-                    ServiceRepairFailed:
-                    text += T(
-                        L"Everything Service 路径修复失败",
-                        L"Could not repair the Everything Service path");
-                    break;
-                case win::EverythingBootstrapFailure::
-                    ServiceUnavailable:
-                    text += T(
-                        L"Everything Service 未能进入运行状态",
-                        L"Everything Service did not reach the running state");
-                    break;
-                case win::EverythingBootstrapFailure::
-                    ManagedLaunchFailed:
-                case win::EverythingBootstrapFailure::
-                    ExistingLaunchFailed:
-                    text += T(
-                        L"启动 Everything 失败",
-                        L"Could not start Everything");
-                    break;
-                case win::EverythingBootstrapFailure::
-                    IpcUnavailable:
-                    text += T(
-                        L"启动后 IPC 仍不可用",
-                        L"IPC remained unavailable after startup");
-                    break;
-                default:
-                    text += T(
-                        L"请重新检测或再次获取",
-                        L"Recheck or try fetching again");
-                    break;
-                }
-
-                if (bootstrap.nativeError != 0) {
-                    text += T(
-                        L"  ·  系统错误 ",
-                        L"  ·  native error ");
-                    text += std::to_wstring(
-                        bootstrap.nativeError);
-                }
-            } else if (ipc.ambiguousNamedInstances) {
-                text += T(
-                    L"检测到多个 Everything 命名实例，无法安全自动选择",
-                    L"Multiple named Everything instances were found; automatic selection is ambiguous");
-            } else {
-                text += T(
-                    L"未检测到可用的 Everything IPC",
-                    L"No usable Everything IPC was detected");
-            }
-
-            text += L"\r\n    ↳ ";
-            text += T(
-                L"可重新检测已有标准版，或由 ALTRun Next 获取并启动官方标准便携版；应用搜索回退仍有效。",
-                L"Recheck an existing standard copy, or let ALTRun Next fetch and start the official standard portable build. Application-search fallback remains active.");
-
-            if (!bootstrap.executablePath.empty()) {
-                text += L"\r\n    ↳ ";
-                text += T(
-                    L"检测到：",
-                    L"Detected: ");
+            if (bootstrap.nativeError != 0) {
+                text += L" · ";
                 text +=
-                    bootstrap.executablePath
-                        .wstring();
+                    T(L"系统错误 ",
+                      L"Native error ");
+                text += std::to_wstring(
+                    bootstrap.nativeError);
             }
+
+            text += L"\r\n";
+            text +=
+                T(L"可重新检测已有标准版，或再次获取托管便携版。",
+                  L"Recheck an existing standard copy or try the managed portable setup again.");
+        } else if (
+            ipc.ambiguousNamedInstances) {
+            text =
+                T(L"⚠ 检测到多个 Everything 命名实例",
+                  L"⚠ Multiple named Everything instances detected");
+            text += L"\r\n";
+            text +=
+                T(L"无法安全自动选择，请保留一个可用标准实例后重新检测。",
+                  L"Automatic selection is ambiguous; keep one usable standard instance and recheck.");
+        } else {
+            text =
+                T(L"○ 未检测到可用的 Everything",
+                  L"○ No usable Everything instance detected");
+            text += L"\r\n";
+            text +=
+                T(L"可重新检测已有标准版，或让 ALTRun Next 获取官方标准便携版。",
+                  L"Recheck an existing standard copy or let ALTRun Next fetch the official standard portable build.");
         }
     }
 
-    const bool providerPageVisible =
+    const bool visible =
         page_ == Page::Providers;
 
     ShowWindow(
         providerGetEverything_,
-        providerPageVisible &&
+        visible &&
                 showGetEverything
             ? SW_SHOW
             : SW_HIDE);
+
     ShowWindow(
         providerRecheckEverything_,
-        providerPageVisible &&
+        visible &&
                 showRecheck
             ? SW_SHOW
             : SW_HIDE);
