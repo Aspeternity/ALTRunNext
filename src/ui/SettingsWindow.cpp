@@ -5311,6 +5311,163 @@ void SettingsWindow::DrawNavigationButton(
     }
 }
 
+void SettingsWindow::DrawHotkeyActionItem(
+    const DRAWITEMSTRUCT& item) {
+
+    if (item.itemID ==
+            static_cast<UINT>(-1) ||
+        item.itemID >=
+            hotkeyActionIds_.size()) {
+        return;
+    }
+
+    RECT rect =
+        item.rcItem;
+
+    const bool selected =
+        (item.itemState &
+         ODS_SELECTED) != 0;
+
+    const COLORREF background =
+        selected
+            ? kPalette.selectionBackground
+            : kCardBackground;
+
+    HBRUSH fill =
+        CreateSolidBrush(
+            background);
+    FillRect(
+        item.hDC,
+        &rect,
+        fill);
+    DeleteObject(fill);
+
+    const std::string& actionId =
+        hotkeyActionIds_[
+            item.itemID];
+
+    const std::wstring title =
+        HotkeyActionLabel(
+            actionId);
+
+    const auto binding =
+        EffectiveHotkeyBinding(
+            app_.SettingsData()
+                .hotkeyBindings,
+            actionId);
+
+    const std::wstring detail =
+        binding.enabled
+            ? FormatHotkeyBinding(
+                  actionId)
+            : T(L"已禁用",
+                L"Disabled");
+
+    SetBkMode(
+        item.hDC,
+        TRANSPARENT);
+
+    HGDIOBJ oldFont =
+        SelectObject(
+            item.hDC,
+            sectionFont_);
+
+    RECT titleRect{
+        rect.left + Scale(12),
+        rect.top + Scale(6),
+        rect.right - Scale(10),
+        rect.top + Scale(28),
+    };
+
+    SetTextColor(
+        item.hDC,
+        kText);
+
+    DrawTextW(
+        item.hDC,
+        title.c_str(),
+        -1,
+        &titleRect,
+        DT_LEFT |
+            DT_SINGLELINE |
+            DT_VCENTER |
+            DT_END_ELLIPSIS |
+            DT_NOPREFIX);
+
+    SelectObject(
+        item.hDC,
+        normalFont_);
+
+    RECT detailRect{
+        titleRect.left,
+        rect.top + Scale(27),
+        titleRect.right,
+        rect.bottom - Scale(5),
+    };
+
+    SetTextColor(
+        item.hDC,
+        kMuted);
+
+    DrawTextW(
+        item.hDC,
+        detail.c_str(),
+        -1,
+        &detailRect,
+        DT_LEFT |
+            DT_SINGLELINE |
+            DT_VCENTER |
+            DT_END_ELLIPSIS |
+            DT_NOPREFIX);
+
+    SelectObject(
+        item.hDC,
+        oldFont);
+
+    if (item.itemID + 1 <
+        hotkeyActionIds_.size()) {
+        HPEN separator =
+            CreatePen(
+                PS_SOLID,
+                1,
+                kBorder);
+
+        HGDIOBJ oldPen =
+            SelectObject(
+                item.hDC,
+                separator);
+
+        MoveToEx(
+            item.hDC,
+            rect.left + Scale(12),
+            rect.bottom - 1,
+            nullptr);
+        LineTo(
+            item.hDC,
+            rect.right - Scale(10),
+            rect.bottom - 1);
+
+        SelectObject(
+            item.hDC,
+            oldPen);
+        DeleteObject(
+            separator);
+    }
+
+    if (item.itemState &
+        ODS_FOCUS) {
+        RECT focus =
+            rect;
+        InflateRect(
+            &focus,
+            -Scale(5),
+            -Scale(4));
+        DrawFocusRect(
+            item.hDC,
+            &focus);
+    }
+}
+
 void SettingsWindow::DrawActionButton(
     const DRAWITEMSTRUCT& item) {
 
@@ -6609,6 +6766,15 @@ LRESULT SettingsWindow::HandleMessage(
             break;
         }
 
+        if (item->CtlID ==
+                kIdHotkeyActionList &&
+            item->CtlType ==
+                ODT_LISTBOX) {
+            DrawHotkeyActionItem(
+                *item);
+            return TRUE;
+        }
+
         if (item->CtlID == kIdNavGeneral ||
             item->CtlID == kIdNavHotkeys ||
             item->CtlID == kIdNavProviders ||
@@ -7041,6 +7207,20 @@ LRESULT SettingsWindow::HandleMessage(
 
     case WM_ERASEBKGND:
         return 1;
+
+    case WM_CTLCOLORLISTBOX: {
+        HDC dc =
+            reinterpret_cast<HDC>(
+                wParam);
+        SetTextColor(
+            dc,
+            kText);
+        SetBkColor(
+            dc,
+            kCardBackground);
+        return reinterpret_cast<LRESULT>(
+            cardBrush_);
+    }
 
     case WM_CTLCOLORSTATIC: {
         HDC dc =
