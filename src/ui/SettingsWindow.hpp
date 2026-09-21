@@ -227,6 +227,8 @@ private:
         const DRAWITEMSTRUCT& item);
     void DrawActionButton(
         const DRAWITEMSTRUCT& item);
+    void DrawHotkeyActionItem(
+        const DRAWITEMSTRUCT& item);
 
     HWND CreateStatic(
         const wchar_t* text,
