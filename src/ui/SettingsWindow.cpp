@@ -3326,7 +3326,7 @@ void SettingsWindow::ShowPage(Page page) {
     setVisible(dataControls_, page == Page::Data);
     setVisible(aboutControls_, page == Page::About);
 
-else if (
+    if (
         page == Page::Hotkeys) {
         RefreshHotkeyPage();
     } else if (
