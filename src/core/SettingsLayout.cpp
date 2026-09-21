@@ -90,25 +90,34 @@ GeneralLayoutMetrics BuildGeneralLayout(
         searchTop +
         scale(kToggleRowLogical) * 5;
 
-    const int cardsBottom =
-        std::max(
-            behaviorBottom,
-            searchBottom);
-
     const int placementTitleTop =
-        cardsBottom +
+        searchBottom +
         scale(20);
 
     const int placementTop =
         placementTitleTop +
         scale(32);
 
+    const int placementLeft =
+        stackedCards
+            ? contentLeft
+            : searchLeft;
+
+    const int placementWidth =
+        stackedCards
+            ? contentWidth
+            : searchWidth;
+
     const int placementBottom =
         placementTop +
-        scale(ui::kSettingsComboRowLogical) * 3;
+        scale(
+            ui::kSettingsComboRowLogical) *
+            3;
 
     const int noteTop =
-        placementBottom +
+        std::max(
+            behaviorBottom,
+            placementBottom) +
         scale(12);
 
     GeneralLayoutMetrics metrics;
@@ -132,9 +141,10 @@ GeneralLayoutMetrics BuildGeneralLayout(
     };
 
     metrics.placement = {
-        contentLeft,
+        placementLeft,
         placementTop - scrollOffset,
-        contentRight,
+        placementLeft +
+            placementWidth,
         placementBottom -
             scrollOffset,
     };
