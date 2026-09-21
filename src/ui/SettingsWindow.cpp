@@ -2953,11 +2953,11 @@ void SettingsWindow::UpdateNavLabels() {
         navHotkeys_,
         label(Page::Hotkeys, L"快捷键", L"Hotkeys").c_str());
     SetWindowTextW(
-        navAppearance_,
-        label(Page::Appearance, L"外观", L"Appearance").c_str());
-    SetWindowTextW(
         navProviders_,
         label(Page::Providers, L"搜索来源", L"Search sources").c_str());
+    SetWindowTextW(
+        navAppearance_,
+        label(Page::Appearance, L"外观", L"Appearance").c_str());
     SetWindowTextW(
         navData_,
         label(Page::Data, L"数据", L"Data").c_str());
@@ -3007,8 +3007,8 @@ void SettingsWindow::UpdatePageHeader() {
             T(L"外观", L"Appearance"));
         SetWindowTextW(
             pageDescription_,
-            T(L"选择启动器样式、界面语言以及是否显示搜索结果图标。",
-              L"Choose launcher style, interface language and whether result icons are shown."));
+            T(L"选择启动器样式和 ALTRun Next 的界面语言。",
+              L"Choose launcher style and the ALTRun Next interface language."));
         break;
 
     case Page::Providers:
@@ -3037,8 +3037,8 @@ void SettingsWindow::UpdatePageHeader() {
             T(L"关于", L"About"));
         SetWindowTextW(
             pageDescription_,
-            T(L"版本、项目入口和本地数据位置。",
-              L"Version information, project links and local data."));
+            T(L"查看版本、更新状态和项目入口。",
+              L"View version information, update status and project links."));
         break;
     }
 }
