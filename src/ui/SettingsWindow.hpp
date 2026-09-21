@@ -175,7 +175,7 @@ private:
     void CreateAboutPage();
     void ApplyFonts();
     void Layout();
-    void CenterOnCurrentMonitor();
+    void PositionForShow();
     void ShowPage(Page page);
     void UpdateNavLabels();
     void UpdatePageHeader();
