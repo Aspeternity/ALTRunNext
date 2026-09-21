@@ -6553,40 +6553,54 @@ LRESULT SettingsWindow::HandleMessage(
 
     case WM_DRAWITEM: {
         const auto* item =
-            reinterpret_cast<DRAWITEMSTRUCT*>(
-                lParam);
+            reinterpret_cast<
+                DRAWITEMSTRUCT*>(
+                    lParam);
 
-        if (item &&
-            (item->CtlID == kIdNavGeneral ||
-             item->CtlID == kIdNavHotkeys ||
-             item->CtlID == kIdNavDiagnostics ||
-             item->CtlID == kIdNavAppearance ||
-             item->CtlID == kIdNavProviders ||
-             item->CtlID == kIdNavData ||
-             item->CtlID == kIdNavAbout)) {
-            DrawNavigationButton(*item);
+        if (!item) {
+            break;
+        }
+
+        if (item->CtlID == kIdNavGeneral ||
+            item->CtlID == kIdNavHotkeys ||
+            item->CtlID == kIdNavProviders ||
+            item->CtlID == kIdNavAppearance ||
+            item->CtlID == kIdNavData ||
+            item->CtlID == kIdNavDiagnostics ||
+            item->CtlID == kIdNavAbout) {
+            DrawNavigationButton(
+                *item);
             return TRUE;
         }
 
-        if (item &&
-            (item->CtlID == kIdStartWithWindows ||
-             item->CtlID == kIdShowOnStartup ||
-             item->CtlID == kIdHideAfterLaunch ||
-             item->CtlID == kIdClearQueryOnShow ||
-             item->CtlID == kIdHideOnFocusLost ||
-             item->CtlID == kIdShowTrayIcon ||
-             item->CtlID == kIdPinyinSearch ||
-             item->CtlID == kIdWildcardMatching ||
-             item->CtlID == kIdNumericQuickLaunch ||
-             item->CtlID == kIdExecuteSingleResult ||
-             item->CtlID == kIdProviderStartMenu ||
-             item->CtlID == kIdProviderPackaged ||
-             item->CtlID == kIdProviderAppPaths ||
-             item->CtlID == kIdProviderPath ||
-             item->CtlID == kIdProviderEverything)) {
-            DrawGeneralToggle(*item);
+        if (item->CtlID == kIdStartWithWindows ||
+            item->CtlID == kIdShowOnStartup ||
+            item->CtlID == kIdHideAfterLaunch ||
+            item->CtlID == kIdClearQueryOnShow ||
+            item->CtlID == kIdHideOnFocusLost ||
+            item->CtlID == kIdShowTrayIcon ||
+            item->CtlID == kIdShowResultIcons ||
+            item->CtlID == kIdPinyinSearch ||
+            item->CtlID == kIdWildcardMatching ||
+            item->CtlID == kIdNumericQuickLaunch ||
+            item->CtlID == kIdExecuteSingleResult ||
+            item->CtlID == kIdProviderStartMenu ||
+            item->CtlID == kIdProviderPackaged ||
+            item->CtlID == kIdProviderAppPaths ||
+            item->CtlID == kIdProviderPath ||
+            item->CtlID == kIdProviderEverything ||
+            item->CtlID == kIdUpdateAutoCheck) {
+            DrawGeneralToggle(
+                *item);
             return TRUE;
         }
+
+        if (item->CtlType == ODT_BUTTON) {
+            DrawActionButton(
+                *item);
+            return TRUE;
+        }
+
         break;
     }
 
@@ -6675,17 +6689,24 @@ LRESULT SettingsWindow::HandleMessage(
                 &paint);
 
         RECT client{};
-        GetClientRect(hwnd_, &client);
+        GetClientRect(
+            hwnd_,
+            &client);
+
         FillRect(
             dc,
             &client,
             backgroundBrush_);
 
+        const int sidebarX =
+            Scale(
+                kSidebarWidthLogical);
+
         RECT sidebar{
             client.left,
             client.top,
-            Scale(kSidebarWidthLogical),
-            client.bottom
+            sidebarX,
+            client.bottom,
         };
 
         FillRect(
@@ -6704,37 +6725,73 @@ LRESULT SettingsWindow::HandleMessage(
                 dc,
                 separator);
 
-        const int sidebarX =
-            Scale(kSidebarWidthLogical);
-
         MoveToEx(
             dc,
             sidebarX,
             client.top,
             nullptr);
-
         LineTo(
             dc,
             sidebarX,
             client.bottom);
 
+        const int contentLeft =
+            sidebarX +
+            Scale(
+                settings_layout::
+                    kContentLeftInsetLogical);
+
+        MoveToEx(
+            dc,
+            contentLeft,
+            Scale(116) -
+                (page_ ==
+                         Page::General
+                     ? generalScrollOffset_
+                     : 0),
+            nullptr);
+        LineTo(
+            dc,
+            client.right -
+                Scale(
+                    settings_layout::
+                        kContentRightInsetLogical),
+            Scale(116) -
+                (page_ ==
+                         Page::General
+                     ? generalScrollOffset_
+                     : 0));
+
+        const int aboutSeparatorY =
+            std::max(
+                Scale(360),
+                client.bottom -
+                    Scale(
+                        ui::
+                            kSettingsNavHeightLogical) -
+                    Scale(34));
+
+        MoveToEx(
+            dc,
+            Scale(16),
+            aboutSeparatorY,
+            nullptr);
+        LineTo(
+            dc,
+            sidebarX - Scale(16),
+            aboutSeparatorY);
+
         SelectObject(
             dc,
             oldPen);
+        DeleteObject(
+            separator);
 
-        DeleteObject(separator);
-
-        if (page_ == Page::General) {
-            for (const RECT card :
-                 std::array<RECT, 3>{
-                     BehaviorCardRect(),
-                     SearchBehaviorCardRect(),
-                     MonitorCardRect()}) {
-
+        const auto drawCard =
+            [&](RECT card) {
                 HBRUSH fill =
                     CreateSolidBrush(
                         kCardBackground);
-
                 HPEN border =
                     CreatePen(
                         PS_SOLID,
@@ -6745,7 +6802,6 @@ LRESULT SettingsWindow::HandleMessage(
                     SelectObject(
                         dc,
                         fill);
-
                 HGDIOBJ previousPen =
                     SelectObject(
                         dc,
@@ -6757,64 +6813,175 @@ LRESULT SettingsWindow::HandleMessage(
                     card.top,
                     card.right,
                     card.bottom,
-                    Scale(8),
-                    Scale(8));
+                    Scale(
+                        ui::
+                            kSettingsCardRadiusLogical),
+                    Scale(
+                        ui::
+                            kSettingsCardRadiusLogical));
 
                 SelectObject(
                     dc,
                     previousBrush);
-
                 SelectObject(
                     dc,
                     previousPen);
-
                 DeleteObject(fill);
                 DeleteObject(border);
-            }
-        }
+            };
 
-        if (page_ == Page::Providers) {
-            const RECT card =
-                ProviderCardRect();
+        if (page_ == Page::General) {
+            drawCard(
+                BehaviorCardRect());
+            drawCard(
+                SearchBehaviorCardRect());
+            drawCard(
+                PlacementCardRect());
+        } else if (
+            page_ == Page::Hotkeys) {
 
-            HBRUSH fill =
-                CreateSolidBrush(
-                    kCardBackground);
+            const int contentRight =
+                client.right -
+                Scale(
+                    settings_layout::
+                        kContentRightInsetLogical);
+            const int contentWidth =
+                contentRight -
+                contentLeft;
+            const int gap =
+                Scale(18);
+            const int listWidth =
+                std::min(
+                    Scale(285),
+                    std::max(
+                        Scale(230),
+                        contentWidth *
+                            38 / 100));
 
-            HPEN border =
-                CreatePen(
-                    PS_SOLID,
-                    1,
-                    kBorder);
+            drawCard({
+                contentLeft,
+                Scale(150),
+                contentLeft +
+                    listWidth,
+                Scale(564),
+            });
 
-            HGDIOBJ previousBrush =
-                SelectObject(
-                    dc,
-                    fill);
+            drawCard({
+                contentLeft +
+                    listWidth +
+                    gap,
+                Scale(150),
+                contentRight,
+                Scale(564),
+            });
+        } else if (
+            page_ == Page::Providers) {
+            drawCard(
+                ProviderCardRect());
 
-            HGDIOBJ previousPen =
-                SelectObject(
-                    dc,
-                    border);
+            const int filesTitleTop =
+                170 +
+                settings_layout::
+                    kToggleRowLogical * 4 +
+                22;
 
-            RoundRect(
-                dc,
-                card.left,
-                card.top,
-                card.right,
-                card.bottom,
-                Scale(8),
-                Scale(8));
+            drawCard(
+                PageCardRect(
+                    filesTitleTop + 32,
+                    294,
+                    720));
+        } else if (
+            page_ == Page::Appearance) {
+            drawCard(
+                PageCardRect(
+                    170,
+                    68,
+                    680));
+            drawCard(
+                PageCardRect(
+                    302,
+                    68,
+                    680));
+        } else if (
+            page_ == Page::Data) {
+            drawCard(
+                PageCardRect(
+                    170,
+                    66,
+                    720));
+            drawCard(
+                PageCardRect(
+                    312,
+                    72,
+                    720));
+            drawCard(
+                PageCardRect(
+                    452,
+                    72,
+                    720));
+        } else if (
+            page_ == Page::Diagnostics) {
 
-            SelectObject(
-                dc,
-                previousBrush);
-            SelectObject(
-                dc,
-                previousPen);
+            const int contentRight =
+                client.right -
+                Scale(
+                    settings_layout::
+                        kContentRightInsetLogical);
+            const int width =
+                std::min(
+                    contentRight -
+                        contentLeft,
+                    Scale(760));
+            const int gap =
+                Scale(18);
+            const int column =
+                (width - gap) / 2;
 
-            DeleteObject(fill);
-            DeleteObject(border);
+            drawCard({
+                contentLeft,
+                Scale(150),
+                contentLeft +
+                    column,
+                Scale(286),
+            });
+
+            drawCard({
+                contentLeft +
+                    column +
+                    gap,
+                Scale(150),
+                contentLeft +
+                    width,
+                Scale(286),
+            });
+
+            drawCard(
+                PageCardRect(
+                    310,
+                    160,
+                    760));
+            drawCard(
+                PageCardRect(
+                    490,
+                    88,
+                    760));
+            drawCard(
+                PageCardRect(
+                    598,
+                    88,
+                    760));
+        } else if (
+            page_ == Page::About) {
+            drawCard(
+                PageCardRect(
+                    314,
+                    238,
+                    680));
+            drawCard(
+                PageCardRect(
+                    608,
+                    80,
+                    680));
         }
 
         EndPaint(
@@ -6829,48 +6996,60 @@ LRESULT SettingsWindow::HandleMessage(
 
     case WM_CTLCOLORSTATIC: {
         HDC dc =
-            reinterpret_cast<HDC>(wParam);
+            reinterpret_cast<HDC>(
+                wParam);
 
         HWND control =
-            reinterpret_cast<HWND>(lParam);
+            reinterpret_cast<HWND>(
+                lParam);
 
-        const bool cardStatic =
+        SetBkMode(
+            dc,
+            TRANSPARENT);
+
+        const bool muted =
+            control == brandSubtitle_ ||
+            control == pageDescription_ ||
             control ==
-                numericQuickLaunchOrderLabel_ ||
-            control == popupMonitorLabel_ ||
-            control == popupMonitorDescription_;
-
-        const COLORREF background =
-            cardStatic
-                ? kCardBackground
-                : kWindowBackground;
-
-        SetBkMode(dc, OPAQUE);
-        SetBkColor(dc, background);
-
-        if (control == pageDescription_ ||
-            control == hotkeyStatus_ ||
-            control == auxiliaryHotkeyStatus_ ||
-            control == dataStatus_ ||
+                popupMonitorDescription_ ||
+            control ==
+                launcherPlacementDescription_ ||
+            control ==
+                settingsPlacementDescription_ ||
             control == generalNote_ ||
-            control == popupMonitorDescription_ ||
-            control == resultIconsNote_ ||
-            control == appearanceNote_ ||
+            control ==
+                hotkeyEditorDescription_ ||
+            control == hotkeyScope_ ||
+            control == hotkeyPageStatus_ ||
+            control == hotkeyPageNote_ ||
+            control ==
+                diagnosticsMemoryStatus_ ||
+            control ==
+                diagnosticsSearchStatus_ ||
+            control == actionsWindowsStatus_ ||
+            control ==
+                actionsClipboardStatus_ ||
+            control == actionsWebStatus_ ||
+            control == actionsNote_ ||
             control == providerStatus_ ||
             control == providerNote_ ||
+            control == appearanceNote_ ||
+            control == dataStatus_ ||
+            control == dataPath_ ||
             control == aboutVersion_ ||
             control == aboutDescription_ ||
-            control == dataPathLabel_ ||
-            control == dataPath_) {
-            SetTextColor(dc, kMuted);
-        } else {
-            SetTextColor(dc, kText);
-        }
+            control == updateStatus_;
 
-        return reinterpret_cast<LRESULT>(
-            cardStatic
-                ? cardBrush_
-                : backgroundBrush_);
+        SetTextColor(
+            dc,
+            muted
+                ? kMuted
+                : kText);
+
+        return reinterpret_cast<
+            LRESULT>(
+                GetStockObject(
+                    HOLLOW_BRUSH));
     }
 
     case WM_SIZE:
