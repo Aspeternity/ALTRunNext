@@ -2549,7 +2549,6 @@ void SettingsWindow::ShowPage(Page page) {
              launcherPlacementDescription_,
              settingsPlacementDescription_,
              generalNote_,
-             hotkeyPageNote_,
              providerNote_,
              appearanceNote_,
              aboutDescription_}) {
@@ -2675,15 +2674,12 @@ void SettingsWindow::ApplyClassicBehaviorControl(
             : FALSE);
 }
 
-void SettingsWindow::ImportCommands(bool legacyMode) {
+
+void SettingsWindow::ImportCommands() {
     std::array<wchar_t, 32768> file{};
 
-    const wchar_t nextFilter[] =
-        L"ALTRun Next TSV\0*.tsv;*.txt\0"
-        L"All files\0*.*\0\0";
-
-    const wchar_t legacyFilter[] =
-        L"Legacy ALTRun files\0*.ini;*.txt;*.tsv\0"
+    const wchar_t filter[] =
+        L"ALTRun Next shortcuts\0*.tsv;*.txt\0"
         L"All files\0*.*\0\0";
 
     OPENFILENAMEW open{};
@@ -2691,9 +2687,9 @@ void SettingsWindow::ImportCommands(bool legacyMode) {
     open.hwndOwner = hwnd_;
     open.lpstrFile = file.data();
     open.nMaxFile =
-        static_cast<DWORD>(file.size());
-    open.lpstrFilter =
-        legacyMode ? legacyFilter : nextFilter;
+        static_cast<DWORD>(
+            file.size());
+    open.lpstrFilter = filter;
     open.nFilterIndex = 1;
     open.Flags =
         OFN_FILEMUSTEXIST |
@@ -2709,8 +2705,8 @@ void SettingsWindow::ImportCommands(bool legacyMode) {
     std::size_t skipped = 0;
 
     if (!app_.ImportUserCommands(
-            std::filesystem::path(file.data()),
-            legacyMode,
+            std::filesystem::path(
+                file.data()),
             &imported,
             &skipped)) {
 
@@ -2718,17 +2714,26 @@ void SettingsWindow::ImportCommands(bool legacyMode) {
             hwnd_,
             T(L"导入失败，原数据未被替换。",
               L"Import failed. Existing data was not replaced."),
-            T(L"导入快捷项", L"Import shortcuts"),
-            MB_OK | MB_ICONERROR);
+            T(L"导入快捷项",
+              L"Import shortcuts"),
+            MB_OK |
+                MB_ICONERROR);
         return;
     }
 
     std::wstring status =
-        T(L"导入完成：新增 ", L"Import complete: added ");
-    status += std::to_wstring(imported);
-    status += T(L" 项，跳过 ", L", skipped ");
-    status += std::to_wstring(skipped);
-    status += T(L" 项。", L".");
+        T(L"导入完成：新增 ",
+          L"Import complete: added ");
+    status +=
+        std::to_wstring(imported);
+    status +=
+        T(L" 项，跳过 ",
+          L", skipped ");
+    status +=
+        std::to_wstring(skipped);
+    status +=
+        T(L" 项。",
+          L".");
 
     SetWindowTextW(
         dataStatus_,
