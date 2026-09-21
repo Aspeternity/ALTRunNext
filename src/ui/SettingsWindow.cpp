@@ -1526,14 +1526,20 @@ void SettingsWindow::ApplyLanguage() {
 void SettingsWindow::RefreshFromSettings() {
     if (!hwnd_) return;
 
-    const bool oldSyncing = syncing_;
+    const bool oldSyncing =
+        syncing_;
     syncing_ = true;
 
-    const auto& settings = app_.SettingsData();
+    const auto& settings =
+        app_.SettingsData();
 
     int monitorIndex = 0;
-    if (settings.popupMonitor == "active") monitorIndex = 1;
-    else if (settings.popupMonitor == "primary") monitorIndex = 2;
+    if (settings.popupMonitor == "active") {
+        monitorIndex = 1;
+    } else if (
+        settings.popupMonitor == "primary") {
+        monitorIndex = 2;
+    }
 
     SendMessageW(
         popupMonitor_,
@@ -1541,16 +1547,47 @@ void SettingsWindow::RefreshFromSettings() {
         monitorIndex,
         0);
 
+    int launcherPlacementIndex = 0;
+    if (settings.launcherPlacement ==
+        "center") {
+        launcherPlacementIndex = 1;
+    } else if (
+        settings.launcherPlacement ==
+        "last") {
+        launcherPlacementIndex = 2;
+    }
+
+    SendMessageW(
+        launcherPlacement_,
+        CB_SETCURSEL,
+        launcherPlacementIndex,
+        0);
+
+    SendMessageW(
+        settingsPlacement_,
+        CB_SETCURSEL,
+        settings.settingsPlacement ==
+                "last"
+            ? 1
+            : 0,
+        0);
+
     SendMessageW(
         uiStyle_,
         CB_SETCURSEL,
-        settings.uiStyle == UiStyle::ModernCompact ? 1 : 0,
+        settings.uiStyle ==
+                UiStyle::ModernCompact
+            ? 1
+            : 0,
         0);
 
     SendMessageW(
         language_,
         CB_SETCURSEL,
-        settings.language == Language::EnUS ? 1 : 0,
+        settings.language ==
+                Language::EnUS
+            ? 1
+            : 0,
         0);
 
     SendMessageW(
@@ -1597,13 +1634,15 @@ void SettingsWindow::RefreshFromSettings() {
     RefreshActionDiagnostics();
     RefreshUpdateStatus();
 
-    for (HWND control : std::array<HWND, 15>{
+    for (HWND control :
+         std::array<HWND, 17>{
              startWithWindows_,
              showOnStartup_,
              hideAfterLaunch_,
              clearQueryOnShow_,
              hideOnFocusLost_,
              showTrayIcon_,
+             showResultIcons_,
              pinyinSearch_,
              wildcardMatching_,
              numericQuickLaunch_,
@@ -1612,7 +1651,8 @@ void SettingsWindow::RefreshFromSettings() {
              providerPackaged_,
              providerAppPaths_,
              providerPath_,
-             providerEverything_}) {
+             providerEverything_,
+             updateAutoCheck_}) {
         if (control) {
             InvalidateRect(
                 control,
