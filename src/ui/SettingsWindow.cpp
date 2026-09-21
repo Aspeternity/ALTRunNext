@@ -281,6 +281,11 @@ HWND SettingsWindow::CreateCheckbox(
 }
 
 void SettingsWindow::CreateControls() {
+    brandName_ =
+        CreateStatic(L"ALTRun Next");
+    brandSubtitle_ =
+        CreateStatic(L"Settings");
+
     navGeneral_ =
         CreateButton(
             L"",
@@ -291,25 +296,25 @@ void SettingsWindow::CreateControls() {
             L"",
             kIdNavHotkeys,
             BS_OWNERDRAW);
-    navDiagnostics_ =
+    navProviders_ =
         CreateButton(
             L"",
-            kIdNavDiagnostics,
+            kIdNavProviders,
             BS_OWNERDRAW);
     navAppearance_ =
         CreateButton(
             L"",
             kIdNavAppearance,
             BS_OWNERDRAW);
-    navProviders_ =
-        CreateButton(
-            L"",
-            kIdNavProviders,
-            BS_OWNERDRAW);
     navData_ =
         CreateButton(
             L"",
             kIdNavData,
+            BS_OWNERDRAW);
+    navDiagnostics_ =
+        CreateButton(
+            L"",
+            kIdNavDiagnostics,
             BS_OWNERDRAW);
     navAbout_ =
         CreateButton(
@@ -317,35 +322,56 @@ void SettingsWindow::CreateControls() {
             kIdNavAbout,
             BS_OWNERDRAW);
 
-    pageTitle_ = CreateStatic(L"", SS_LEFT);
-    pageDescription_ = CreateStatic(
-        L"",
-        SS_LEFT | SS_NOPREFIX);
+    pageTitle_ =
+        CreateStatic(
+            L"",
+            SS_LEFT | SS_NOPREFIX);
+    pageDescription_ =
+        CreateStatic(
+            L"",
+            SS_LEFT | SS_NOPREFIX);
 
     CreateGeneralPage();
     CreateHotkeyPage();
-    CreateAppearancePage();
     CreateProviderPage();
+    CreateAppearancePage();
     CreateDataPage();
     CreateDiagnosticsPage();
     CreateAboutPage();
 }
 
 void SettingsWindow::CreateGeneralPage() {
-    generalBehaviorTitle_ = CreateStatic(L"");
+    generalBehaviorTitle_ =
+        CreateStatic(L"");
 
     startWithWindows_ =
-        CreateCheckboxRow(L"", kIdStartWithWindows);
+        CreateCheckboxRow(
+            L"",
+            kIdStartWithWindows);
     showOnStartup_ =
-        CreateCheckboxRow(L"", kIdShowOnStartup);
+        CreateCheckboxRow(
+            L"",
+            kIdShowOnStartup);
     hideAfterLaunch_ =
-        CreateCheckboxRow(L"", kIdHideAfterLaunch);
+        CreateCheckboxRow(
+            L"",
+            kIdHideAfterLaunch);
     clearQueryOnShow_ =
-        CreateCheckboxRow(L"", kIdClearQueryOnShow);
+        CreateCheckboxRow(
+            L"",
+            kIdClearQueryOnShow);
     hideOnFocusLost_ =
-        CreateCheckboxRow(L"", kIdHideOnFocusLost);
+        CreateCheckboxRow(
+            L"",
+            kIdHideOnFocusLost);
     showTrayIcon_ =
-        CreateCheckboxRow(L"", kIdShowTrayIcon);
+        CreateCheckboxRow(
+            L"",
+            kIdShowTrayIcon);
+    showResultIcons_ =
+        CreateCheckboxRow(
+            L"",
+            kIdShowResultIcons);
 
     searchBehaviorTitle_ =
         CreateStatic(L"");
@@ -375,8 +401,10 @@ void SettingsWindow::CreateGeneralPage() {
             0,
             L"COMBOBOX",
             L"",
-            WS_CHILD | WS_VISIBLE | WS_TABSTOP |
-                CBS_DROPDOWNLIST | WS_VSCROLL,
+            WS_CHILD | WS_VISIBLE |
+                WS_TABSTOP |
+                CBS_DROPDOWNLIST |
+                WS_VSCROLL,
             0, 0, 0, 0,
             hwnd_,
             reinterpret_cast<HMENU>(
@@ -385,178 +413,82 @@ void SettingsWindow::CreateGeneralPage() {
             instance_,
             nullptr);
 
-    hotkeySectionTitle_ = CreateStatic(L"");
-    primaryHotkeyLabel_ = CreateStatic(L"");
+    placementSectionTitle_ =
+        CreateStatic(L"");
 
-    hotkeyCtrl_ =
-        CreateCheckbox(L"Ctrl", kIdHotkeyCtrl);
-    hotkeyAlt_ =
-        CreateCheckbox(L"Alt", kIdHotkeyAlt);
-    hotkeyShift_ =
-        CreateCheckbox(L"Shift", kIdHotkeyShift);
-    hotkeyWin_ =
-        CreateCheckbox(L"Win", kIdHotkeyWin);
-
-    hotkeyKey_ = CreateWindowExW(
-        0,
-        L"COMBOBOX",
-        L"",
-        WS_CHILD | WS_VISIBLE | WS_TABSTOP |
-            CBS_DROPDOWNLIST | WS_VSCROLL,
-        0, 0, 0, 0,
-        hwnd_,
-        reinterpret_cast<HMENU>(
-            static_cast<UINT_PTR>(kIdHotkeyKey)),
-        instance_,
-        nullptr);
-
-    auxiliaryHotkeyEnabled_ =
-        CreateCheckbox(
+    popupMonitorLabel_ =
+        CreateStatic(L"");
+    popupMonitorDescription_ =
+        CreateStatic(
             L"",
-            kIdAuxHotkeyEnabled);
-    auxiliaryHotkeyCtrl_ =
-        CreateCheckbox(
-            L"Ctrl",
-            kIdAuxHotkeyCtrl);
-    auxiliaryHotkeyAlt_ =
-        CreateCheckbox(
-            L"Alt",
-            kIdAuxHotkeyAlt);
-    auxiliaryHotkeyShift_ =
-        CreateCheckbox(
-            L"Shift",
-            kIdAuxHotkeyShift);
-    auxiliaryHotkeyWin_ =
-        CreateCheckbox(
-            L"Win",
-            kIdAuxHotkeyWin);
-
-    auxiliaryHotkeyKey_ =
+            SS_LEFT | SS_NOPREFIX);
+    popupMonitor_ =
         CreateWindowExW(
             0,
             L"COMBOBOX",
             L"",
-            WS_CHILD | WS_VISIBLE | WS_TABSTOP |
-                CBS_DROPDOWNLIST | WS_VSCROLL,
+            WS_CHILD | WS_VISIBLE |
+                WS_TABSTOP |
+                CBS_DROPDOWNLIST |
+                WS_VSCROLL,
             0, 0, 0, 0,
             hwnd_,
             reinterpret_cast<HMENU>(
                 static_cast<UINT_PTR>(
-                    kIdAuxHotkeyKey)),
+                    kIdPopupMonitor)),
             instance_,
             nullptr);
 
-    const auto addHotkeyKey =
-        [&](HWND combo,
-            UINT virtualKey) {
-            const std::wstring display =
-                hotkey::KeyDisplayName(
-                    virtualKey);
-
-            const LRESULT index =
-                SendMessageW(
-                    combo,
-                    CB_ADDSTRING,
-                    0,
-                    reinterpret_cast<LPARAM>(
-                        display.c_str()));
-
-            if (index >= 0) {
-                SendMessageW(
-                    combo,
-                    CB_SETITEMDATA,
-                    static_cast<WPARAM>(
-                        index),
-                    static_cast<LPARAM>(
-                        virtualKey));
-            }
-        };
-
-    const auto populateHotkeyCombo =
-        [&](HWND combo) {
-            addHotkeyKey(combo, VK_SPACE);
-            addHotkeyKey(combo, VK_PAUSE);
-
-            for (UINT key = 'A';
-                 key <= 'Z';
-                 ++key) {
-                addHotkeyKey(combo, key);
-            }
-
-            for (UINT key = '0';
-                 key <= '9';
-                 ++key) {
-                addHotkeyKey(combo, key);
-            }
-
-            for (UINT key = VK_F1;
-                 key <= VK_F24;
-                 ++key) {
-                addHotkeyKey(combo, key);
-            }
-
-            for (const UINT key :
-                 std::array<UINT, 12>{
-                     VK_RETURN,
-                     VK_TAB,
-                     VK_ESCAPE,
-                     VK_HOME,
-                     VK_END,
-                     VK_INSERT,
-                     VK_DELETE,
-                     VK_PRIOR,
-                     VK_NEXT,
-                     VK_UP,
-                     VK_DOWN,
-                     VK_LEFT}) {
-                addHotkeyKey(combo, key);
-            }
-
-            addHotkeyKey(combo, VK_RIGHT);
-        };
-
-    populateHotkeyCombo(hotkeyKey_);
-    populateHotkeyCombo(auxiliaryHotkeyKey_);
-
-    hotkeyApply_ =
-        CreateButton(L"", kIdHotkeyApply);
-
-    hotkeyStatus_ = CreateStatic(
-        L"",
-        SS_LEFT | SS_NOPREFIX);
-
-    auxiliaryHotkeyApply_ =
-        CreateButton(
-            L"",
-            kIdAuxHotkeyApply);
-
-    auxiliaryHotkeyStatus_ =
+    launcherPlacementLabel_ =
+        CreateStatic(L"");
+    launcherPlacementDescription_ =
         CreateStatic(
             L"",
             SS_LEFT | SS_NOPREFIX);
+    launcherPlacement_ =
+        CreateWindowExW(
+            0,
+            L"COMBOBOX",
+            L"",
+            WS_CHILD | WS_VISIBLE |
+                WS_TABSTOP |
+                CBS_DROPDOWNLIST |
+                WS_VSCROLL,
+            0, 0, 0, 0,
+            hwnd_,
+            reinterpret_cast<HMENU>(
+                static_cast<UINT_PTR>(
+                    kIdLauncherPlacement)),
+            instance_,
+            nullptr);
 
-    popupSectionTitle_ = CreateStatic(L"");
-    popupMonitorLabel_ = CreateStatic(L"");
-    popupMonitorDescription_ = CreateStatic(
-        L"",
-        SS_LEFT | SS_NOPREFIX);
+    settingsPlacementLabel_ =
+        CreateStatic(L"");
+    settingsPlacementDescription_ =
+        CreateStatic(
+            L"",
+            SS_LEFT | SS_NOPREFIX);
+    settingsPlacement_ =
+        CreateWindowExW(
+            0,
+            L"COMBOBOX",
+            L"",
+            WS_CHILD | WS_VISIBLE |
+                WS_TABSTOP |
+                CBS_DROPDOWNLIST |
+                WS_VSCROLL,
+            0, 0, 0, 0,
+            hwnd_,
+            reinterpret_cast<HMENU>(
+                static_cast<UINT_PTR>(
+                    kIdSettingsPlacement)),
+            instance_,
+            nullptr);
 
-    popupMonitor_ = CreateWindowExW(
-        0,
-        L"COMBOBOX",
-        L"",
-        WS_CHILD | WS_VISIBLE | WS_TABSTOP |
-            CBS_DROPDOWNLIST | WS_VSCROLL,
-        0, 0, 0, 0,
-        hwnd_,
-        reinterpret_cast<HMENU>(
-            static_cast<UINT_PTR>(kIdPopupMonitor)),
-        instance_,
-        nullptr);
-
-    generalNote_ = CreateStatic(
-        L"",
-        SS_LEFT | SS_NOPREFIX);
+    generalNote_ =
+        CreateStatic(
+            L"",
+            SS_LEFT | SS_NOPREFIX);
 
     generalControls_ = {
         generalBehaviorTitle_,
@@ -566,6 +498,7 @@ void SettingsWindow::CreateGeneralPage() {
         clearQueryOnShow_,
         hideOnFocusLost_,
         showTrayIcon_,
+        showResultIcons_,
         searchBehaviorTitle_,
         pinyinSearch_,
         wildcardMatching_,
@@ -573,39 +506,18 @@ void SettingsWindow::CreateGeneralPage() {
         executeSingleResult_,
         numericQuickLaunchOrderLabel_,
         numericQuickLaunchOrder_,
-        popupSectionTitle_,
+        placementSectionTitle_,
         popupMonitorLabel_,
         popupMonitorDescription_,
         popupMonitor_,
+        launcherPlacementLabel_,
+        launcherPlacementDescription_,
+        launcherPlacement_,
+        settingsPlacementLabel_,
+        settingsPlacementDescription_,
+        settingsPlacement_,
         generalNote_,
     };
-
-    legacyHotkeyControls_ = {
-        hotkeySectionTitle_,
-        primaryHotkeyLabel_,
-        hotkeyCtrl_,
-        hotkeyAlt_,
-        hotkeyShift_,
-        hotkeyWin_,
-        hotkeyKey_,
-        hotkeyApply_,
-        hotkeyStatus_,
-        auxiliaryHotkeyEnabled_,
-        auxiliaryHotkeyCtrl_,
-        auxiliaryHotkeyAlt_,
-        auxiliaryHotkeyShift_,
-        auxiliaryHotkeyWin_,
-        auxiliaryHotkeyKey_,
-        auxiliaryHotkeyApply_,
-        auxiliaryHotkeyStatus_,
-    };
-
-    for (HWND control :
-         legacyHotkeyControls_) {
-        ShowWindow(
-            control,
-            SW_HIDE);
-    }
 }
 
 void SettingsWindow::CreateHotkeyPage() {
@@ -726,56 +638,56 @@ void SettingsWindow::CreateDiagnosticsPage() {
 }
 
 void SettingsWindow::CreateAppearancePage() {
-    uiStyleLabel_ = CreateStatic(L"");
+    uiStyleLabel_ =
+        CreateStatic(L"");
 
-    uiStyle_ = CreateWindowExW(
-        0,
-        L"COMBOBOX",
-        L"",
-        WS_CHILD | WS_VISIBLE | WS_TABSTOP |
-            CBS_DROPDOWNLIST | WS_VSCROLL,
-        0, 0, 0, 0,
-        hwnd_,
-        reinterpret_cast<HMENU>(
-            static_cast<UINT_PTR>(kIdUiStyle)),
-        instance_,
-        nullptr);
-
-    languageLabel_ = CreateStatic(L"");
-
-    language_ = CreateWindowExW(
-        0,
-        L"COMBOBOX",
-        L"",
-        WS_CHILD | WS_VISIBLE | WS_TABSTOP |
-            CBS_DROPDOWNLIST | WS_VSCROLL,
-        0, 0, 0, 0,
-        hwnd_,
-        reinterpret_cast<HMENU>(
-            static_cast<UINT_PTR>(kIdLanguage)),
-        instance_,
-        nullptr);
-
-    showResultIcons_ =
-        CreateCheckbox(
+    uiStyle_ =
+        CreateWindowExW(
+            0,
+            L"COMBOBOX",
             L"",
-            kIdShowResultIcons);
+            WS_CHILD | WS_VISIBLE |
+                WS_TABSTOP |
+                CBS_DROPDOWNLIST |
+                WS_VSCROLL,
+            0, 0, 0, 0,
+            hwnd_,
+            reinterpret_cast<HMENU>(
+                static_cast<UINT_PTR>(
+                    kIdUiStyle)),
+            instance_,
+            nullptr);
 
-    resultIconsNote_ = CreateStatic(
-        L"",
-        SS_LEFT | SS_NOPREFIX);
+    languageLabel_ =
+        CreateStatic(L"");
 
-    appearanceNote_ = CreateStatic(
-        L"",
-        SS_LEFT | SS_NOPREFIX);
+    language_ =
+        CreateWindowExW(
+            0,
+            L"COMBOBOX",
+            L"",
+            WS_CHILD | WS_VISIBLE |
+                WS_TABSTOP |
+                CBS_DROPDOWNLIST |
+                WS_VSCROLL,
+            0, 0, 0, 0,
+            hwnd_,
+            reinterpret_cast<HMENU>(
+                static_cast<UINT_PTR>(
+                    kIdLanguage)),
+            instance_,
+            nullptr);
+
+    appearanceNote_ =
+        CreateStatic(
+            L"",
+            SS_LEFT | SS_NOPREFIX);
 
     appearanceControls_ = {
         uiStyleLabel_,
         uiStyle_,
         languageLabel_,
         language_,
-        showResultIcons_,
-        resultIconsNote_,
         appearanceNote_,
     };
 }
@@ -839,33 +751,58 @@ void SettingsWindow::CreateProviderPage() {
 }
 
 void SettingsWindow::CreateDataPage() {
-    dataOpenLabel_ = CreateStatic(L"");
-    dataOpenFolder_ =
-        CreateButton(L"", kIdDataOpenFolder);
+    dataPathLabel_ =
+        CreateStatic(L"");
+    dataPath_ =
+        CreateStatic(
+            L"",
+            SS_LEFT |
+                SS_PATHELLIPSIS |
+                SS_NOPREFIX);
+    openDataFolder_ =
+        CreateButton(
+            L"",
+            kIdOpenDataFolder);
 
-    dataTransferLabel_ = CreateStatic(L"");
+    dataTransferLabel_ =
+        CreateStatic(L"");
     dataImportTsv_ =
-        CreateButton(L"", kIdDataImportTsv);
+        CreateButton(
+            L"",
+            kIdDataImportTsv);
     dataImportLegacy_ =
-        CreateButton(L"", kIdDataImportLegacy);
+        CreateButton(
+            L"",
+            kIdDataImportLegacy);
     dataExport_ =
-        CreateButton(L"", kIdDataExport);
+        CreateButton(
+            L"",
+            kIdDataExport);
 
-    dataMaintenanceLabel_ = CreateStatic(L"");
+    dataMaintenanceLabel_ =
+        CreateStatic(L"");
     dataClearUsage_ =
-        CreateButton(L"", kIdDataClearUsage);
+        CreateButton(
+            L"",
+            kIdDataClearUsage);
     dataRebuildIndex_ =
-        CreateButton(L"", kIdDataRebuildIndex);
+        CreateButton(
+            L"",
+            kIdDataRebuildIndex);
     dataResetSettings_ =
-        CreateButton(L"", kIdDataResetSettings);
+        CreateButton(
+            L"",
+            kIdDataResetSettings);
 
-    dataStatus_ = CreateStatic(
-        L"",
-        SS_LEFT | SS_NOPREFIX);
+    dataStatus_ =
+        CreateStatic(
+            L"",
+            SS_LEFT | SS_NOPREFIX);
 
     dataControls_ = {
-        dataOpenLabel_,
-        dataOpenFolder_,
+        dataPathLabel_,
+        dataPath_,
+        openDataFolder_,
         dataTransferLabel_,
         dataImportTsv_,
         dataImportLegacy_,
@@ -879,16 +816,15 @@ void SettingsWindow::CreateDataPage() {
 }
 
 void SettingsWindow::CreateAboutPage() {
-    aboutName_ = CreateStatic(L"ALTRun Next");
-    aboutVersion_ = CreateStatic(L"");
-    aboutDescription_ = CreateStatic(
-        L"",
-        SS_LEFT | SS_NOPREFIX);
-
-    dataPathLabel_ = CreateStatic(L"");
-    dataPath_ = CreateStatic(
-        L"",
-        SS_LEFT | SS_PATHELLIPSIS | SS_NOPREFIX);
+    aboutName_ =
+        CreateStatic(
+            L"ALTRun Next");
+    aboutVersion_ =
+        CreateStatic(L"");
+    aboutDescription_ =
+        CreateStatic(
+            L"",
+            SS_LEFT | SS_NOPREFIX);
 
     updateSectionTitle_ =
         CreateStatic(L"");
@@ -913,13 +849,15 @@ void SettingsWindow::CreateAboutPage() {
             nullptr);
 
     updateAutoCheck_ =
-        CreateCheckbox(
+        CreateCheckboxRow(
             L"",
             kIdUpdateAutoCheck);
+
     updateStatus_ =
         CreateStatic(
             L"",
             SS_LEFT | SS_NOPREFIX);
+
     updateCheck_ =
         CreateButton(
             L"",
@@ -929,10 +867,10 @@ void SettingsWindow::CreateAboutPage() {
             L"",
             kIdUpdateInstall);
 
-    openDataFolder_ =
-        CreateButton(L"", kIdOpenDataFolder);
     openGitHub_ =
-        CreateButton(L"", kIdOpenGitHub);
+        CreateButton(
+            L"",
+            kIdOpenGitHub);
 
     aboutControls_ = {
         aboutName_,
@@ -945,9 +883,6 @@ void SettingsWindow::CreateAboutPage() {
         updateStatus_,
         updateCheck_,
         updateInstall_,
-        dataPathLabel_,
-        dataPath_,
-        openDataFolder_,
         openGitHub_,
     };
 }
