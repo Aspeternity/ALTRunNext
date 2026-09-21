@@ -4526,161 +4526,358 @@ void SettingsWindow::DrawNavigationButton(
         oldFont);
 }
 
-void SettingsWindow::DrawHotkeyActionItem(
-    const DRAWITEMSTRUCT& item) {
 
-    if (item.itemID ==
-            static_cast<UINT>(-1) ||
-        item.itemID >=
-            hotkeyActionIds_.size()) {
+void SettingsWindow::DrawSwitchGlyph(
+    HDC dc,
+    const RECT& rect,
+    bool checked,
+    bool pressed) {
+
+    const int switchWidth =
+        rect.right -
+        rect.left;
+    const int switchHeight =
+        rect.bottom -
+        rect.top;
+
+    constexpr int kSupersample = 3;
+    const int margin =
+        std::max(1, Scale(2));
+    const int targetWidth =
+        switchWidth +
+        margin * 2;
+    const int targetHeight =
+        switchHeight +
+        margin * 2;
+    const int sourceWidth =
+        targetWidth *
+        kSupersample;
+    const int sourceHeight =
+        targetHeight *
+        kSupersample;
+
+    HDC switchDc =
+        CreateCompatibleDC(dc);
+
+    HBITMAP switchBitmap =
+        switchDc
+            ? CreateCompatibleBitmap(
+                  dc,
+                  sourceWidth,
+                  sourceHeight)
+            : nullptr;
+
+    const COLORREF background =
+        pressed
+            ? kCardPressed
+            : kCardBackground;
+
+    if (switchDc &&
+        switchBitmap) {
+        HGDIOBJ oldBitmap =
+            SelectObject(
+                switchDc,
+                switchBitmap);
+
+        RECT sourceRect{
+            0,
+            0,
+            sourceWidth,
+            sourceHeight,
+        };
+
+        HBRUSH sourceBackground =
+            CreateSolidBrush(
+                background);
+        FillRect(
+            switchDc,
+            &sourceRect,
+            sourceBackground);
+        DeleteObject(
+            sourceBackground);
+
+        const int sourceMargin =
+            margin *
+            kSupersample;
+        const int trackWidth =
+            switchWidth *
+            kSupersample;
+        const int trackHeight =
+            switchHeight *
+            kSupersample;
+
+        HBRUSH trackBrush =
+            CreateSolidBrush(
+                checked
+                    ? kAccent
+                    : RGB(
+                          210,
+                          216,
+                          224));
+
+        HGDIOBJ oldBrush =
+            SelectObject(
+                switchDc,
+                trackBrush);
+        HGDIOBJ oldPen =
+            SelectObject(
+                switchDc,
+                GetStockObject(
+                    NULL_PEN));
+
+        RoundRect(
+            switchDc,
+            sourceMargin,
+            sourceMargin,
+            sourceMargin +
+                trackWidth,
+            sourceMargin +
+                trackHeight,
+            trackHeight,
+            trackHeight);
+
+        const int knobSize =
+            Scale(16) *
+            kSupersample;
+        const int knobInset =
+            Scale(3) *
+            kSupersample;
+        const int knobLeft =
+            checked
+                ? sourceMargin +
+                    trackWidth -
+                    knobInset -
+                    knobSize
+                : sourceMargin +
+                    knobInset;
+
+        HBRUSH knobBrush =
+            CreateSolidBrush(
+                RGB(
+                    255,
+                    255,
+                    255));
+
+        SelectObject(
+            switchDc,
+            knobBrush);
+
+        Ellipse(
+            switchDc,
+            knobLeft,
+            sourceMargin +
+                knobInset,
+            knobLeft +
+                knobSize,
+            sourceMargin +
+                knobInset +
+                knobSize);
+
+        SelectObject(
+            switchDc,
+            oldBrush);
+        SelectObject(
+            switchDc,
+            oldPen);
+        DeleteObject(
+            trackBrush);
+        DeleteObject(
+            knobBrush);
+
+        const int oldStretchMode =
+            SetStretchBltMode(
+                dc,
+                HALFTONE);
+
+        POINT oldBrushOrigin{};
+        SetBrushOrgEx(
+            dc,
+            0,
+            0,
+            &oldBrushOrigin);
+
+        StretchBlt(
+            dc,
+            rect.left - margin,
+            rect.top - margin,
+            targetWidth,
+            targetHeight,
+            switchDc,
+            0,
+            0,
+            sourceWidth,
+            sourceHeight,
+            SRCCOPY);
+
+        SetBrushOrgEx(
+            dc,
+            oldBrushOrigin.x,
+            oldBrushOrigin.y,
+            nullptr);
+        SetStretchBltMode(
+            dc,
+            oldStretchMode);
+
+        SelectObject(
+            switchDc,
+            oldBitmap);
+    } else {
+        HBRUSH trackBrush =
+            CreateSolidBrush(
+                checked
+                    ? kAccent
+                    : RGB(
+                          210,
+                          216,
+                          224));
+
+        HGDIOBJ oldBrush =
+            SelectObject(
+                dc,
+                trackBrush);
+        HGDIOBJ oldPen =
+            SelectObject(
+                dc,
+                GetStockObject(
+                    NULL_PEN));
+
+        RoundRect(
+            dc,
+            rect.left,
+            rect.top,
+            rect.right,
+            rect.bottom,
+            switchHeight,
+            switchHeight);
+
+        const int knobSize =
+            Scale(16);
+        const int knobInset =
+            Scale(3);
+        const int knobLeft =
+            checked
+                ? rect.right -
+                    knobInset -
+                    knobSize
+                : rect.left +
+                    knobInset;
+
+        HBRUSH knobBrush =
+            CreateSolidBrush(
+                RGB(
+                    255,
+                    255,
+                    255));
+
+        SelectObject(
+            dc,
+            knobBrush);
+
+        Ellipse(
+            dc,
+            knobLeft,
+            rect.top +
+                knobInset,
+            knobLeft +
+                knobSize,
+            rect.top +
+                knobInset +
+                knobSize);
+
+        SelectObject(
+            dc,
+            oldBrush);
+        SelectObject(
+            dc,
+            oldPen);
+        DeleteObject(
+            trackBrush);
+        DeleteObject(
+            knobBrush);
+    }
+
+    if (switchBitmap) {
+        DeleteObject(
+            switchBitmap);
+    }
+    if (switchDc) {
+        DeleteDC(
+            switchDc);
+    }
+}
+
+void SettingsWindow::DrawHotkeyToggle(
+    const DRAWITEMSTRUCT& item,
+    std::size_t rowIndex) {
+
+    if (rowIndex >=
+        hotkeyRows_.size()) {
         return;
     }
 
-    RECT rect =
-        item.rcItem;
+    const auto& row =
+        hotkeyRows_[rowIndex];
 
-    const bool selected =
+    const auto binding =
+        EffectiveHotkeyBinding(
+            app_.SettingsData()
+                .hotkeyBindings,
+            row.actionId);
+
+    const bool pressed =
         (item.itemState &
          ODS_SELECTED) != 0;
+    const bool focused =
+        (item.itemState &
+         ODS_FOCUS) != 0;
 
     const COLORREF background =
-        selected
-            ? kPalette.selectionBackground
+        pressed || focused
+            ? kCardPressed
             : kCardBackground;
+
+    RECT itemRect =
+        item.rcItem;
 
     HBRUSH fill =
         CreateSolidBrush(
             background);
     FillRect(
         item.hDC,
-        &rect,
+        &itemRect,
         fill);
     DeleteObject(fill);
 
-    const std::string& actionId =
-        hotkeyActionIds_[
-            item.itemID];
+    const int switchWidth =
+        Scale(40);
+    const int switchHeight =
+        Scale(22);
 
-    const std::wstring title =
-        HotkeyActionLabel(
-            actionId);
-
-    const auto binding =
-        EffectiveHotkeyBinding(
-            app_.SettingsData()
-                .hotkeyBindings,
-            actionId);
-
-    const std::wstring detail =
-        binding.enabled
-            ? FormatHotkeyBinding(
-                  actionId)
-            : T(L"已禁用",
-                L"Disabled");
-
-    SetBkMode(
-        item.hDC,
-        TRANSPARENT);
-
-    HGDIOBJ oldFont =
-        SelectObject(
-            item.hDC,
-            sectionFont_);
-
-    RECT titleRect{
-        rect.left + Scale(12),
-        rect.top + Scale(6),
-        rect.right - Scale(10),
-        rect.top + Scale(28),
+    RECT switchRect{
+        itemRect.left +
+            (itemRect.right -
+             itemRect.left -
+             switchWidth) / 2,
+        itemRect.top +
+            (itemRect.bottom -
+             itemRect.top -
+             switchHeight) / 2,
+        0,
+        0,
     };
 
-    SetTextColor(
+    switchRect.right =
+        switchRect.left +
+        switchWidth;
+    switchRect.bottom =
+        switchRect.top +
+        switchHeight;
+
+    DrawSwitchGlyph(
         item.hDC,
-        kText);
-
-    DrawTextW(
-        item.hDC,
-        title.c_str(),
-        -1,
-        &titleRect,
-        DT_LEFT |
-            DT_SINGLELINE |
-            DT_VCENTER |
-            DT_END_ELLIPSIS |
-            DT_NOPREFIX);
-
-    SelectObject(
-        item.hDC,
-        normalFont_);
-
-    RECT detailRect{
-        titleRect.left,
-        rect.top + Scale(27),
-        titleRect.right,
-        rect.bottom - Scale(5),
-    };
-
-    SetTextColor(
-        item.hDC,
-        kMuted);
-
-    DrawTextW(
-        item.hDC,
-        detail.c_str(),
-        -1,
-        &detailRect,
-        DT_LEFT |
-            DT_SINGLELINE |
-            DT_VCENTER |
-            DT_END_ELLIPSIS |
-            DT_NOPREFIX);
-
-    SelectObject(
-        item.hDC,
-        oldFont);
-
-    if (item.itemID + 1 <
-        hotkeyActionIds_.size()) {
-        HPEN separator =
-            CreatePen(
-                PS_SOLID,
-                1,
-                kBorder);
-
-        HGDIOBJ oldPen =
-            SelectObject(
-                item.hDC,
-                separator);
-
-        MoveToEx(
-            item.hDC,
-            rect.left + Scale(12),
-            rect.bottom - 1,
-            nullptr);
-        LineTo(
-            item.hDC,
-            rect.right - Scale(10),
-            rect.bottom - 1);
-
-        SelectObject(
-            item.hDC,
-            oldPen);
-        DeleteObject(
-            separator);
-    }
-
-    if (item.itemState &
-        ODS_FOCUS) {
-        RECT focus =
-            rect;
-        InflateRect(
-            &focus,
-            -Scale(5),
-            -Scale(4));
-        DrawFocusRect(
-            item.hDC,
-            &focus);
-    }
+        switchRect,
+        binding.enabled,
+        pressed || focused);
 }
 
 void SettingsWindow::DrawActionButton(
@@ -4832,6 +5029,7 @@ void SettingsWindow::DrawActionButton(
 
 
 
+
 void SettingsWindow::DrawGeneralToggle(
     const DRAWITEMSTRUCT& item) {
 
@@ -4869,43 +5067,64 @@ void SettingsWindow::DrawGeneralToggle(
 
     switch (id) {
     case kIdStartWithWindows:
-        title = T(L"开机启动", L"Start with Windows");
+        title =
+            T(L"开机启动",
+              L"Start with Windows");
         break;
     case kIdShowOnStartup:
-        title = T(L"启动时显示启动器", L"Show launcher on startup");
+        title =
+            T(L"启动时显示启动器",
+              L"Show launcher on startup");
         break;
     case kIdHideAfterLaunch:
-        title = T(L"执行后自动隐藏", L"Hide after launch");
+        title =
+            T(L"执行后自动隐藏",
+              L"Hide after launch");
         break;
     case kIdClearQueryOnShow:
-        title = T(L"呼出时清空搜索", L"Clear query on open");
+        title =
+            T(L"呼出时清空搜索",
+              L"Clear query on open");
         break;
     case kIdHideOnFocusLost:
-        title = T(L"失去焦点时隐藏", L"Hide when focus is lost");
+        title =
+            T(L"失去焦点时隐藏",
+              L"Hide when focus is lost");
         break;
     case kIdShowTrayIcon:
-        title = T(L"显示系统托盘图标", L"Show system tray icon");
+        title =
+            T(L"显示系统托盘图标",
+              L"Show system tray icon");
         break;
     case kIdShowResultIcons:
-        title = T(L"显示搜索结果图标", L"Show search result icons");
+        title =
+            T(L"显示搜索结果图标",
+              L"Show search result icons");
         break;
     case kIdPinyinSearch:
-        title = T(L"启用拼音搜索", L"Enable Pinyin search");
+        title =
+            T(L"启用拼音搜索",
+              L"Enable Pinyin search");
         break;
     case kIdWildcardMatching:
-        title = T(L"允许 * / ? 通配符", L"Enable * / ? wildcards");
+        title =
+            T(L"允许 * / ? 通配符",
+              L"Enable * / ? wildcards");
         break;
     case kIdNumericQuickLaunch:
-        title = T(L"数字键快速执行结果", L"Quick launch with number keys");
+        title =
+            T(L"数字键快速执行结果",
+              L"Quick launch with number keys");
         break;
     case kIdExecuteSingleResult:
-        title = T(L"仅剩一个结果时立即执行", L"Execute when one result remains");
-        break;
-    case kIdHotkeyEnabled:
-        title = T(L"启用此快捷键", L"Enable this hotkey");
+        title =
+            T(L"仅剩一个结果时立即执行",
+              L"Execute when one result remains");
         break;
     case kIdProviderStartMenu:
-        title = T(L"开始菜单", L"Start Menu");
+        title =
+            T(L"开始菜单",
+              L"Start Menu");
         break;
     case kIdProviderPackaged:
         title = L"Windows Apps";
@@ -4917,10 +5136,14 @@ void SettingsWindow::DrawGeneralToggle(
         title = L"PATH";
         break;
     case kIdProviderEverything:
-        title = T(L"Everything 文件与文件夹", L"Everything files & folders");
+        title =
+            T(L"Everything 文件与文件夹",
+              L"Everything files & folders");
         break;
     case kIdUpdateAutoCheck:
-        title = T(L"自动检查更新", L"Automatically check for updates");
+        title =
+            T(L"自动检查更新",
+              L"Automatically check for updates");
         break;
     default:
         break;
@@ -4930,247 +5153,29 @@ void SettingsWindow::DrawGeneralToggle(
         Scale(40);
     const int switchHeight =
         Scale(22);
-    const int switchLeft =
+
+    RECT switchRect{
         rect.right -
-        Scale(18) -
-        switchWidth;
-    const int switchTop =
+            Scale(18) -
+            switchWidth,
         rect.top +
-        (rect.bottom -
-         rect.top -
-         switchHeight) / 2;
+            (rect.bottom -
+             rect.top -
+             switchHeight) / 2,
+        rect.right -
+            Scale(18),
+        0,
+    };
 
-    constexpr int kSupersample = 3;
-    const int margin =
-        std::max(1, Scale(2));
-    const int targetWidth =
-        switchWidth + margin * 2;
-    const int targetHeight =
-        switchHeight + margin * 2;
-    const int sourceWidth =
-        targetWidth * kSupersample;
-    const int sourceHeight =
-        targetHeight * kSupersample;
+    switchRect.bottom =
+        switchRect.top +
+        switchHeight;
 
-    HDC switchDc =
-        CreateCompatibleDC(
-            item.hDC);
-    HBITMAP switchBitmap =
-        switchDc
-            ? CreateCompatibleBitmap(
-                  item.hDC,
-                  sourceWidth,
-                  sourceHeight)
-            : nullptr;
-
-    if (switchDc && switchBitmap) {
-        HGDIOBJ oldBitmap =
-            SelectObject(
-                switchDc,
-                switchBitmap);
-
-        RECT sourceRect{
-            0,
-            0,
-            sourceWidth,
-            sourceHeight,
-        };
-
-        HBRUSH sourceBackground =
-            CreateSolidBrush(
-                rowColor);
-        FillRect(
-            switchDc,
-            &sourceRect,
-            sourceBackground);
-        DeleteObject(
-            sourceBackground);
-
-        const int sourceMargin =
-            margin * kSupersample;
-        const int trackWidth =
-            switchWidth * kSupersample;
-        const int trackHeight =
-            switchHeight * kSupersample;
-
-        HBRUSH trackBrush =
-            CreateSolidBrush(
-                checked
-                    ? kAccent
-                    : RGB(210, 216, 224));
-
-        HGDIOBJ oldBrush =
-            SelectObject(
-                switchDc,
-                trackBrush);
-        HGDIOBJ oldPen =
-            SelectObject(
-                switchDc,
-                GetStockObject(NULL_PEN));
-
-        RoundRect(
-            switchDc,
-            sourceMargin,
-            sourceMargin,
-            sourceMargin + trackWidth,
-            sourceMargin + trackHeight,
-            trackHeight,
-            trackHeight);
-
-        const int knobSize =
-            Scale(16) *
-            kSupersample;
-        const int knobInset =
-            Scale(3) *
-            kSupersample;
-        const int knobLeft =
-            checked
-                ? sourceMargin +
-                    trackWidth -
-                    knobInset -
-                    knobSize
-                : sourceMargin +
-                    knobInset;
-
-        HBRUSH knobBrush =
-            CreateSolidBrush(
-                RGB(255, 255, 255));
-
-        SelectObject(
-            switchDc,
-            knobBrush);
-
-        Ellipse(
-            switchDc,
-            knobLeft,
-            sourceMargin +
-                knobInset,
-            knobLeft +
-                knobSize,
-            sourceMargin +
-                knobInset +
-                knobSize);
-
-        SelectObject(
-            switchDc,
-            oldBrush);
-        SelectObject(
-            switchDc,
-            oldPen);
-        DeleteObject(
-            trackBrush);
-        DeleteObject(
-            knobBrush);
-
-        const int oldStretchMode =
-            SetStretchBltMode(
-                item.hDC,
-                HALFTONE);
-        POINT oldBrushOrigin{};
-        SetBrushOrgEx(
-            item.hDC,
-            0,
-            0,
-            &oldBrushOrigin);
-
-        StretchBlt(
-            item.hDC,
-            switchLeft - margin,
-            switchTop - margin,
-            targetWidth,
-            targetHeight,
-            switchDc,
-            0,
-            0,
-            sourceWidth,
-            sourceHeight,
-            SRCCOPY);
-
-        SetBrushOrgEx(
-            item.hDC,
-            oldBrushOrigin.x,
-            oldBrushOrigin.y,
-            nullptr);
-        SetStretchBltMode(
-            item.hDC,
-            oldStretchMode);
-
-        SelectObject(
-            switchDc,
-            oldBitmap);
-    } else {
-        HBRUSH trackBrush =
-            CreateSolidBrush(
-                checked
-                    ? kAccent
-                    : RGB(210, 216, 224));
-        HGDIOBJ oldBrush =
-            SelectObject(
-                item.hDC,
-                trackBrush);
-        HGDIOBJ oldPen =
-            SelectObject(
-                item.hDC,
-                GetStockObject(NULL_PEN));
-
-        RoundRect(
-            item.hDC,
-            switchLeft,
-            switchTop,
-            switchLeft + switchWidth,
-            switchTop + switchHeight,
-            switchHeight,
-            switchHeight);
-
-        const int knobSize =
-            Scale(16);
-        const int knobInset =
-            Scale(3);
-        const int knobLeft =
-            checked
-                ? switchLeft +
-                    switchWidth -
-                    knobInset -
-                    knobSize
-                : switchLeft +
-                    knobInset;
-
-        HBRUSH knobBrush =
-            CreateSolidBrush(
-                RGB(255, 255, 255));
-        SelectObject(
-            item.hDC,
-            knobBrush);
-
-        Ellipse(
-            item.hDC,
-            knobLeft,
-            switchTop + knobInset,
-            knobLeft + knobSize,
-            switchTop +
-                knobInset +
-                knobSize);
-
-        SelectObject(
-            item.hDC,
-            oldBrush);
-        SelectObject(
-            item.hDC,
-            oldPen);
-        DeleteObject(
-            trackBrush);
-        DeleteObject(
-            knobBrush);
-    }
-
-    if (switchBitmap) {
-        DeleteObject(
-            switchBitmap);
-    }
-    if (switchDc) {
-        DeleteDC(
-            switchDc);
-    }
+    DrawSwitchGlyph(
+        item.hDC,
+        switchRect,
+        checked,
+        pressed);
 
     SetBkMode(
         item.hDC,
@@ -5185,9 +5190,11 @@ void SettingsWindow::DrawGeneralToggle(
             normalFont_);
 
     RECT titleRect{
-        rect.left + Scale(18),
+        rect.left +
+            Scale(18),
         rect.top,
-        switchLeft - Scale(16),
+        switchRect.left -
+            Scale(16),
         rect.bottom,
     };
 
@@ -5207,11 +5214,14 @@ void SettingsWindow::DrawGeneralToggle(
         oldFont);
 
     const bool lastRow =
-        id == kIdShowResultIcons ||
-        id == kIdProviderPath ||
-        id == kIdProviderEverything ||
-        id == kIdUpdateAutoCheck ||
-        id == kIdHotkeyEnabled;
+        id ==
+            kIdShowResultIcons ||
+        id ==
+            kIdProviderPath ||
+        id ==
+            kIdProviderEverything ||
+        id ==
+            kIdUpdateAutoCheck;
 
     if (!lastRow) {
         HPEN separator =
@@ -5227,12 +5237,14 @@ void SettingsWindow::DrawGeneralToggle(
 
         MoveToEx(
             item.hDC,
-            rect.left + Scale(18),
+            rect.left +
+                Scale(18),
             rect.bottom - 1,
             nullptr);
         LineTo(
             item.hDC,
-            rect.right - Scale(18),
+            rect.right -
+                Scale(18),
             rect.bottom - 1);
 
         SelectObject(
@@ -5245,10 +5257,14 @@ void SettingsWindow::DrawGeneralToggle(
     if (item.itemState &
         ODS_FOCUS) {
         RECT focusBar{
-            rect.left + Scale(5),
-            rect.top + Scale(12),
-            rect.left + Scale(7),
-            rect.bottom - Scale(12),
+            rect.left +
+                Scale(5),
+            rect.top +
+                Scale(12),
+            rect.left +
+                Scale(7),
+            rect.bottom -
+                Scale(12),
         };
 
         HBRUSH focusBrush =
