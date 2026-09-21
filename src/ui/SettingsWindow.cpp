@@ -924,15 +924,7 @@ void SettingsWindow::ApplyFonts() {
         settingsPlacementDescription_,
         settingsPlacement_,
         generalNote_,
-        hotkeyActionList_,
-        hotkeyEditorDescription_,
-        hotkeyScope_,
-        hotkeyEnabled_,
-        hotkeyCapture_,
-        hotkeyResetCurrent_,
         hotkeyResetAll_,
-        hotkeyPageStatus_,
-        hotkeyPageNote_,
         providerStartMenu_,
         providerPackaged_,
         providerAppPaths_,
@@ -950,7 +942,6 @@ void SettingsWindow::ApplyFonts() {
         dataPath_,
         openDataFolder_,
         dataImportTsv_,
-        dataImportLegacy_,
         dataExport_,
         dataClearUsage_,
         dataRebuildIndex_,
@@ -967,14 +958,6 @@ void SettingsWindow::ApplyFonts() {
         openGitHub_,
     };
 
-    if (hotkeyActionList_) {
-        SendMessageW(
-            hotkeyActionList_,
-            LB_SETITEMHEIGHT,
-            0,
-            Scale(52));
-    }
-
     for (HWND control :
          normalControls) {
         if (control) {
@@ -987,12 +970,41 @@ void SettingsWindow::ApplyFonts() {
         }
     }
 
+    for (const auto& row :
+         hotkeyRows_) {
+        for (HWND control :
+             std::array<HWND, 4>{
+                 row.capture,
+                 row.enabled,
+                 row.reset,
+                 row.status}) {
+            if (control) {
+                SendMessageW(
+                    control,
+                    WM_SETFONT,
+                    reinterpret_cast<WPARAM>(
+                        normalFont_),
+                    TRUE);
+            }
+        }
+
+        if (row.title) {
+            SendMessageW(
+                row.title,
+                WM_SETFONT,
+                reinterpret_cast<WPARAM>(
+                    sectionFont_),
+                TRUE);
+        }
+    }
+
     for (HWND control :
-         std::array<HWND, 13>{
+         std::array<HWND, 14>{
              generalBehaviorTitle_,
              searchBehaviorTitle_,
              placementSectionTitle_,
-             hotkeyEditorTitle_,
+             hotkeyGlobalTitle_,
+             hotkeyLauncherTitle_,
              providerSectionTitle_,
              providerFilesTitle_,
              appearanceLauncherTitle_,
@@ -1226,20 +1238,17 @@ void SettingsWindow::ApplyLanguage() {
         generalNote_,
         L"");
     SetWindowTextW(
-        hotkeyEnabled_,
-        T(L"启用此快捷键",
-          L"Enable this hotkey"));
+        hotkeyGlobalTitle_,
+        T(L"全局快捷键",
+          L"Global hotkeys"));
     SetWindowTextW(
-        hotkeyResetCurrent_,
-        T(L"恢复此项默认值",
-          L"Reset this binding"));
+        hotkeyLauncherTitle_,
+        T(L"启动器内快捷键",
+          L"Launcher hotkeys"));
     SetWindowTextW(
         hotkeyResetAll_,
         T(L"恢复全部默认快捷键",
           L"Reset all hotkeys"));
-    SetWindowTextW(
-        hotkeyPageNote_,
-        L"");
     SetWindowTextW(
         providerSectionTitle_,
         T(L"应用来源",
@@ -1340,16 +1349,12 @@ void SettingsWindow::ApplyLanguage() {
           L"Import & export"));
     SetWindowTextW(
         dataImportTsv_,
-        T(L"导入 TSV",
-          L"Import TSV"));
-    SetWindowTextW(
-        dataImportLegacy_,
-        T(L"导入旧版 AltRun",
-          L"Import legacy AltRun"));
+        T(L"导入快捷项…",
+          L"Import shortcuts…"));
     SetWindowTextW(
         dataExport_,
-        T(L"导出快捷项",
-          L"Export shortcuts"));
+        T(L"导出快捷项…",
+          L"Export shortcuts…"));
 
     SetWindowTextW(
         dataMaintenanceLabel_,
