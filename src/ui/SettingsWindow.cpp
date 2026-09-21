@@ -1088,35 +1088,53 @@ void SettingsWindow::ApplyFonts() {
 void SettingsWindow::ApplyLanguage() {
     if (!hwnd_) return;
 
-    const bool oldSyncing = syncing_;
+    const bool oldSyncing =
+        syncing_;
     syncing_ = true;
 
     SetWindowTextW(
         hwnd_,
-        T(L"ALTRun Next 设置", L"ALTRun Next Settings"));
+        T(L"ALTRun Next 设置",
+          L"ALTRun Next Settings"));
+    SetWindowTextW(
+        brandName_,
+        L"ALTRun Next");
+    SetWindowTextW(
+        brandSubtitle_,
+        T(L"设置", L"Settings"));
 
     SetWindowTextW(
         generalBehaviorTitle_,
-        T(L"启动器行为", L"Launcher behavior"));
+        T(L"启动器行为",
+          L"Launcher behavior"));
     SetWindowTextW(
         startWithWindows_,
-        T(L"开机启动", L"Start with Windows"));
+        T(L"开机启动",
+          L"Start with Windows"));
     SetWindowTextW(
         showOnStartup_,
         T(L"启动时显示启动器",
           L"Show launcher on startup"));
     SetWindowTextW(
         hideAfterLaunch_,
-        T(L"执行后自动隐藏", L"Hide after launch"));
+        T(L"执行后自动隐藏",
+          L"Hide after launch"));
     SetWindowTextW(
         clearQueryOnShow_,
-        T(L"呼出时清空搜索", L"Clear query on open"));
+        T(L"呼出时清空搜索",
+          L"Clear query on open"));
     SetWindowTextW(
         hideOnFocusLost_,
-        T(L"失去焦点时隐藏", L"Hide when focus is lost"));
+        T(L"失去焦点时隐藏",
+          L"Hide when focus is lost"));
     SetWindowTextW(
         showTrayIcon_,
-        T(L"显示系统托盘图标", L"Show system tray icon"));
+        T(L"显示系统托盘图标",
+          L"Show system tray icon"));
+    SetWindowTextW(
+        showResultIcons_,
+        T(L"显示搜索结果图标",
+          L"Show search result icons"));
 
     SetWindowTextW(
         searchBehaviorTitle_,
@@ -1145,57 +1163,113 @@ void SettingsWindow::ApplyLanguage() {
 
     SendMessageW(
         numericQuickLaunchOrder_,
-        CB_RESETCONTENT,
-        0,
-        0);
+        CB_RESETCONTENT, 0, 0);
     SendMessageW(
         numericQuickLaunchOrder_,
-        CB_ADDSTRING,
-        0,
+        CB_ADDSTRING, 0,
         reinterpret_cast<LPARAM>(
             L"1–9, 0"));
     SendMessageW(
         numericQuickLaunchOrder_,
-        CB_ADDSTRING,
-        0,
+        CB_ADDSTRING, 0,
         reinterpret_cast<LPARAM>(
             L"0–9"));
 
     SetWindowTextW(
-        hotkeySectionTitle_,
-        T(L"全局热键",
-          L"Global hotkeys"));
-    SetWindowTextW(
-        primaryHotkeyLabel_,
-        T(L"主热键",
-          L"Primary"));
-    SetWindowTextW(
-        hotkeyApply_,
-        T(L"应用",
-          L"Apply"));
-    SetWindowTextW(
-        auxiliaryHotkeyEnabled_,
-        T(L"启用辅助热键",
-          L"Enable auxiliary hotkey"));
-    SetWindowTextW(
-        auxiliaryHotkeyApply_,
-        T(L"应用",
-          L"Apply"));
-
-    SetWindowTextW(
-        popupSectionTitle_,
-        T(L"呼出位置", L"Launcher placement"));
+        placementSectionTitle_,
+        T(L"窗口位置",
+          L"Window placement"));
     SetWindowTextW(
         popupMonitorLabel_,
-        T(L"显示器", L"Monitor"));
+        T(L"Launcher 目标显示器",
+          L"Launcher monitor"));
     SetWindowTextW(
         popupMonitorDescription_,
-        T(L"选择启动器每次呼出时使用哪一块屏幕。",
+        T(L"决定 Launcher 呼出时使用哪一块屏幕。",
           L"Choose which display the launcher uses when it opens."));
+
+    SendMessageW(
+        popupMonitor_,
+        CB_RESETCONTENT, 0, 0);
+    SendMessageW(
+        popupMonitor_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"当前鼠标所在显示器",
+              L"Monitor containing the mouse")));
+    SendMessageW(
+        popupMonitor_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"当前活动窗口所在显示器",
+              L"Monitor containing the active window")));
+    SendMessageW(
+        popupMonitor_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"主显示器",
+              L"Primary monitor")));
+
+    SetWindowTextW(
+        launcherPlacementLabel_,
+        T(L"Launcher 出现位置",
+          L"Launcher position"));
+    SetWindowTextW(
+        launcherPlacementDescription_,
+        T(L"选择靠上、屏幕居中或恢复上次拖动后的坐标。",
+          L"Open near the top, centered, or at the last manually moved position."));
+
+    SendMessageW(
+        launcherPlacement_,
+        CB_RESETCONTENT, 0, 0);
+    SendMessageW(
+        launcherPlacement_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"靠近屏幕上方",
+              L"Near top of screen")));
+    SendMessageW(
+        launcherPlacement_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"屏幕居中",
+              L"Center on screen")));
+    SendMessageW(
+        launcherPlacement_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"上次位置",
+              L"Last position")));
+
+    SetWindowTextW(
+        settingsPlacementLabel_,
+        T(L"设置窗口出现位置",
+          L"Settings window position"));
+    SetWindowTextW(
+        settingsPlacementDescription_,
+        T(L"每次重新打开设置时居中，或恢复上次拖动后的坐标。",
+          L"Center the Settings window when reopened, or restore its last moved position."));
+
+    SendMessageW(
+        settingsPlacement_,
+        CB_RESETCONTENT, 0, 0);
+    SendMessageW(
+        settingsPlacement_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"屏幕居中",
+              L"Center on screen")));
+    SendMessageW(
+        settingsPlacement_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"上次位置",
+              L"Last position")));
+
     SetWindowTextW(
         generalNote_,
-        T(L"热键已集中到“快捷键”页面管理；这里仅保留启动器行为、搜索方式和呼出位置。",
-          L"Hotkeys are managed centrally on the Hotkeys page; this page now focuses on launcher behavior, search and placement."));
+        T(L"窗口位置与搜索行为会立即保存；“上次位置”会自动限制在当前可用屏幕范围内。",
+          L"Placement and search behavior are saved immediately. Last positions are clamped to the currently available displays."));
 
     SetWindowTextW(
         hotkeyEnabled_,
@@ -1211,117 +1285,26 @@ void SettingsWindow::ApplyLanguage() {
           L"Reset all hotkeys"));
     SetWindowTextW(
         hotkeyPageNote_,
-        T(L"点击快捷键按钮后直接按下新的组合键；Esc 取消。全局热键只有在 Windows 注册成功后才会保存，内部热键会检查与其他动作以及基础导航键的冲突。",
-          L"Click the binding button, then press the new key combination; Esc cancels. Global bindings are saved only after Windows registers them, while launcher bindings are checked against actions and reserved navigation keys."));
-
-    SendMessageW(popupMonitor_, CB_RESETCONTENT, 0, 0);
-    SendMessageW(
-        popupMonitor_,
-        CB_ADDSTRING,
-        0,
-        reinterpret_cast<LPARAM>(
-            T(L"当前鼠标所在显示器", L"Monitor containing the mouse")));
-    SendMessageW(
-        popupMonitor_,
-        CB_ADDSTRING,
-        0,
-        reinterpret_cast<LPARAM>(
-            T(L"当前活动窗口所在显示器", L"Monitor containing the active window")));
-    SendMessageW(
-        popupMonitor_,
-        CB_ADDSTRING,
-        0,
-        reinterpret_cast<LPARAM>(
-            T(L"主显示器", L"Primary monitor")));
-
-    SetWindowTextW(
-        uiStyleLabel_,
-        T(L"启动器样式", L"Launcher style"));
-
-    SendMessageW(uiStyle_, CB_RESETCONTENT, 0, 0);
-    SendMessageW(
-        uiStyle_,
-        CB_ADDSTRING,
-        0,
-        reinterpret_cast<LPARAM>(L"Classic ALTRun"));
-    SendMessageW(
-        uiStyle_,
-        CB_ADDSTRING,
-        0,
-        reinterpret_cast<LPARAM>(L"Modern Compact"));
-
-    SetWindowTextW(
-        languageLabel_,
-        T(L"界面语言", L"Interface language"));
-
-    SendMessageW(language_, CB_RESETCONTENT, 0, 0);
-    SendMessageW(
-        language_,
-        CB_ADDSTRING,
-        0,
-        reinterpret_cast<LPARAM>(L"简体中文"));
-    SendMessageW(
-        language_,
-        CB_ADDSTRING,
-        0,
-        reinterpret_cast<LPARAM>(L"English"));
-
-    SetWindowTextW(
-        showResultIcons_,
-        T(L"显示搜索结果图标",
-          L"Show search result icons"));
-
-    SetWindowTextW(
-        resultIconsNote_,
-        T(L"关闭时不会解析或缓存 Windows Shell 图标，可减少连续搜索时的前端开销。",
-          L"When disabled, Windows Shell icons are not resolved or cached, reducing front-end work while typing."));
-
-    SetWindowTextW(
-        appearanceNote_,
-        T(L"外观、语言和结果图标设置会立即应用，并写入 data/settings.json。",
-          L"Appearance, language and result-icon changes apply immediately and are saved to data/settings.json."));
-
-    SetWindowTextW(
-        diagnosticsMemoryTitle_,
-        T(L"进程内存",
-          L"Process memory"));
-    SetWindowTextW(
-        diagnosticsSearchTitle_,
-        T(L"搜索数据与后台",
-          L"Search data & background"));
-
-    SetWindowTextW(
-        actionsWindowsTitle_,
-        T(L"Windows 导航与上下文",
-          L"Windows navigation & context"));
-    SetWindowTextW(
-        actionsClipboardTitle_,
-        T(L"剪贴板与文本",
-          L"Clipboard & text"));
-    SetWindowTextW(
-        actionsWebTitle_,
-        T(L"网页与 URL",
-          L"Web & URL"));
-    SetWindowTextW(
-        actionsNote_,
-        T(L"此页每秒刷新一次运行时快照，不提供行为开关，也不会主动裁剪工作集。Working Set / Private Bytes 与任务管理器“内存”列的统计口径可能不同。",
-          L"This page refreshes runtime snapshots once per second, provides no behavior toggles and never trims the working set. Working Set / Private Bytes can differ from Task Manager's Memory column."));
+        T(L"选择左侧动作后，可直接更改快捷键；Esc 取消捕获。Windows 全局热键只有注册成功后才会保存。",
+          L"Select an action on the left, then change its binding directly; Esc cancels capture. Windows-global bindings are saved only after registration succeeds."));
 
     SetWindowTextW(
         providerSectionTitle_,
-        T(L"搜索来源", L"Search sources"));
+        T(L"应用来源",
+          L"Application sources"));
     SetWindowTextW(
         providerStartMenu_,
-        T(L"开始菜单", L"Start Menu"));
+        T(L"开始菜单",
+          L"Start Menu"));
     SetWindowTextW(
         providerPackaged_,
-        T(L"Windows Apps", L"Windows Apps"));
+        L"Windows Apps");
     SetWindowTextW(
         providerAppPaths_,
-        T(L"App Paths", L"App Paths"));
+        L"App Paths");
     SetWindowTextW(
         providerPath_,
-        T(L"PATH", L"PATH"));
+        L"PATH");
     SetWindowTextW(
         providerEverything_,
         T(L"Everything 文件与文件夹",
@@ -1336,118 +1319,188 @@ void SettingsWindow::ApplyLanguage() {
           L"Recheck"));
     SetWindowTextW(
         providerNote_,
-        T(L"Everything 通过本机 IPC 实时查询。ALTRun Next 不预捆绑 Everything：优先复用本机已有标准版；自己管理的便携版使用 Everything Service 完成 NTFS 索引，并在后台运行且隐藏托盘图标。正常退出 ALTRun Next 时只关闭托管客户端，Everything Service 保留运行；关闭此搜索源时，如果 Service 属于 ALTRun Next，会同时停止并禁用其开机自启，重新启用时恢复。外部 Everything 不会被停止或改配置。",
-          L"Everything is queried live over local IPC. ALTRun Next does not bundle Everything: existing standard copies are preferred; its managed portable copy uses the Everything Service for NTFS indexing and runs in the background with the tray icon hidden. Normal ALTRun Next exit stops only the managed client and keeps the service warm. Disabling this source also stops an ALTRun-owned service and disables its boot startup; re-enabling restores it. External Everything installations are never stopped or reconfigured."));
+        T(L"Everything 使用本机 IPC 实时查询。ALTRun Next 会优先复用已有标准版；只有自己管理的便携版才会管理其 Service 生命周期。",
+          L"Everything is queried live over local IPC. Existing standard copies are preferred; ALTRun Next manages service lifecycle only for its own portable copy."));
 
     SetWindowTextW(
-        dataOpenLabel_,
-        T(L"数据目录", L"Data directory"));
+        uiStyleLabel_,
+        T(L"启动器样式",
+          L"Launcher style"));
+    SendMessageW(
+        uiStyle_,
+        CB_RESETCONTENT, 0, 0);
+    SendMessageW(
+        uiStyle_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            L"Classic ALTRun"));
+    SendMessageW(
+        uiStyle_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            L"Modern Compact"));
+
     SetWindowTextW(
-        dataOpenFolder_,
-        T(L"打开数据目录", L"Open data folder"));
+        languageLabel_,
+        T(L"界面语言",
+          L"Interface language"));
+    SendMessageW(
+        language_,
+        CB_RESETCONTENT, 0, 0);
+    SendMessageW(
+        language_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            L"简体中文"));
+    SendMessageW(
+        language_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            L"English"));
+    SetWindowTextW(
+        appearanceNote_,
+        T(L"启动器样式和界面语言会立即应用。结果图标已移到“常规 → 启动器行为”。",
+          L"Launcher style and interface language apply immediately. Result icons are now under General → Launcher behavior."));
+
+    SetWindowTextW(
+        dataPathLabel_,
+        T(L"数据目录",
+          L"Data directory"));
+    SetWindowTextW(
+        dataPath_,
+        app_.DataDirectory().c_str());
+    SetWindowTextW(
+        openDataFolder_,
+        T(L"打开目录",
+          L"Open folder"));
 
     SetWindowTextW(
         dataTransferLabel_,
-        T(L"导入 / 导出", L"Import / Export"));
+        T(L"导入与导出",
+          L"Import & export"));
     SetWindowTextW(
         dataImportTsv_,
-        T(L"导入 ALTRun Next TSV", L"Import ALTRun Next TSV"));
+        T(L"导入 TSV",
+          L"Import TSV"));
     SetWindowTextW(
         dataImportLegacy_,
-        T(L"导入旧版 ALTRun（Beta）", L"Import legacy ALTRun (Beta)"));
+        T(L"导入旧版 AltRun",
+          L"Import legacy AltRun"));
     SetWindowTextW(
         dataExport_,
-        T(L"导出快捷项 TSV", L"Export shortcuts TSV"));
+        T(L"导出快捷项",
+          L"Export shortcuts"));
 
     SetWindowTextW(
         dataMaintenanceLabel_,
-        T(L"维护", L"Maintenance"));
+        T(L"维护",
+          L"Maintenance"));
     SetWindowTextW(
         dataClearUsage_,
-        T(L"清空使用历史", L"Clear usage history"));
+        T(L"清除使用历史",
+          L"Clear usage history"));
     SetWindowTextW(
         dataRebuildIndex_,
-        T(L"重建程序索引", L"Rebuild program index"));
+        T(L"重新建立程序索引",
+          L"Rebuild program index"));
     SetWindowTextW(
         dataResetSettings_,
-        T(L"恢复默认设置", L"Restore default settings"));
-
-    std::wstring versionText =
-        T(L"版本 ", L"Version ");
-    versionText += kVersionWide;
+        T(L"恢复默认设置",
+          L"Reset settings"));
 
     SetWindowTextW(
+        diagnosticsMemoryTitle_,
+        T(L"进程内存",
+          L"Process memory"));
+    SetWindowTextW(
+        diagnosticsSearchTitle_,
+        T(L"搜索数据与后台",
+          L"Search data & background"));
+    SetWindowTextW(
+        actionsWindowsTitle_,
+        T(L"Windows 导航与上下文",
+          L"Windows navigation & context"));
+    SetWindowTextW(
+        actionsClipboardTitle_,
+        T(L"剪贴板与文本",
+          L"Clipboard & text"));
+    SetWindowTextW(
+        actionsWebTitle_,
+        T(L"网页与 URL",
+          L"Web & URL"));
+    SetWindowTextW(
+        actionsNote_,
+        T(L"诊断数据每秒刷新一次，仅用于观察运行状态，不会主动修改或裁剪进程。",
+          L"Diagnostics refresh once per second for observation only and never modify or trim the process."));
+
+    SetWindowTextW(
+        aboutName_,
+        L"ALTRun Next");
+
+    std::wstring version =
+        L"v";
+    version.append(
+        kVersion.begin(),
+        kVersion.end());
+    SetWindowTextW(
         aboutVersion_,
-        versionText.c_str());
+        version.c_str());
 
     SetWindowTextW(
         aboutDescription_,
-        T(L"轻量级、键盘优先的 Windows 快捷启动器。\nv0.7 将快捷项提升为独立核心管理功能。",
-          L"A lightweight, keyboard-first Windows launcher.\nv0.7 promotes shortcuts into a first-class management workflow."));
+        T(L"轻量、快速、键盘优先的 Windows 启动器。",
+          L"A lightweight, fast, keyboard-first Windows launcher."));
 
     SetWindowTextW(
         updateSectionTitle_,
-        T(L"更新", L"Updates"));
+        T(L"更新",
+          L"Updates"));
     SetWindowTextW(
         updateChannelLabel_,
-        T(L"更新通道", L"Update channel"));
+        T(L"更新通道",
+          L"Update channel"));
 
     const int oldUpdateChannel =
-        std::max(
-            0,
-            static_cast<int>(
-                SendMessageW(
-                    updateChannel_,
-                    CB_GETCURSEL,
-                    0,
-                    0)));
+        static_cast<int>(
+            SendMessageW(
+                updateChannel_,
+                CB_GETCURSEL,
+                0,
+                0));
 
     SendMessageW(
         updateChannel_,
-        CB_RESETCONTENT,
-        0,
-        0);
+        CB_RESETCONTENT, 0, 0);
     SendMessageW(
         updateChannel_,
-        CB_ADDSTRING,
-        0,
+        CB_ADDSTRING, 0,
         reinterpret_cast<LPARAM>(
             T(L"稳定版", L"Stable")));
     SendMessageW(
         updateChannel_,
-        CB_ADDSTRING,
-        0,
+        CB_ADDSTRING, 0,
         reinterpret_cast<LPARAM>(
             T(L"开发版", L"Development")));
     SendMessageW(
         updateChannel_,
         CB_SETCURSEL,
-        oldUpdateChannel,
+        oldUpdateChannel >= 0
+            ? oldUpdateChannel
+            : 0,
         0);
 
     SetWindowTextW(
         updateAutoCheck_,
-        T(L"自动检查更新（最多每天一次）",
-          L"Automatically check for updates (at most once per day)"));
+        T(L"自动检查更新",
+          L"Automatically check for updates"));
     SetWindowTextW(
         updateCheck_,
-        T(L"检查更新", L"Check for updates"));
+        T(L"检查更新",
+          L"Check for updates"));
     SetWindowTextW(
         updateInstall_,
-        T(L"下载并安装", L"Download and install"));
-
-    SetWindowTextW(
-        dataPathLabel_,
-        T(L"数据目录", L"Data directory"));
-
-    SetWindowTextW(
-        dataPath_,
-        app_.DataDirectory().c_str());
-
-    SetWindowTextW(
-        openDataFolder_,
-        T(L"打开数据目录", L"Open data folder"));
-
+        T(L"下载并安装",
+          L"Download and install"));
     SetWindowTextW(
         openGitHub_,
         L"GitHub");
@@ -1464,8 +1517,10 @@ void SettingsWindow::ApplyLanguage() {
         hwnd_,
         nullptr,
         nullptr,
-        RDW_INVALIDATE | RDW_ERASE |
-            RDW_ALLCHILDREN | RDW_UPDATENOW);
+        RDW_INVALIDATE |
+            RDW_ERASE |
+            RDW_ALLCHILDREN |
+            RDW_UPDATENOW);
 }
 
 void SettingsWindow::RefreshFromSettings() {
