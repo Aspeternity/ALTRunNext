@@ -264,13 +264,6 @@ private:
         const wchar_t* text,
         UINT id);
 
-    HWND CreateEdit(
-        UINT id,
-        DWORD style =
-            ES_AUTOHSCROLL);
-
-    [[nodiscard]] std::wstring
-    ControlText(HWND control) const;
     [[nodiscard]] bool
     ToggleChecked(UINT id) const;
     [[nodiscard]]
