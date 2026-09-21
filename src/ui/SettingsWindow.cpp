@@ -3728,14 +3728,8 @@ void SettingsWindow::Layout() {
         const int labelX =
             metrics.placement.left +
             Scale(18);
-        const int placementWidth =
-            metrics.placement.right -
-            metrics.placement.left;
         const int comboWidth =
-            std::clamp(
-                placementWidth * 46 / 100,
-                Scale(180),
-                Scale(250));
+            Scale(220);
         const int comboX =
             metrics.placement.right -
             comboWidth -
@@ -3789,105 +3783,147 @@ void SettingsWindow::Layout() {
         }
     }
 
+
     if (page_ == Page::Hotkeys) {
-        const int top =
-            Scale(116);
-        const int gap =
-            Scale(18);
-        const int listWidth =
+        const int width =
             std::min(
-                Scale(285),
-                std::max(
-                    Scale(230),
-                    contentWidth * 38 / 100));
-        const int editorX =
-            contentLeft +
-            listWidth +
-            gap;
-        const int editorWidth =
-            std::max(
-                Scale(300),
-                contentRight -
-                    editorX);
+                contentWidth,
+                Scale(560));
+        const int cardLeft =
+            contentLeft;
+        const int cardRight =
+            contentLeft + width;
+        const int rowHeight =
+            Scale(72);
+        const int captureWidth =
+            Scale(166);
+        const int toggleWidth =
+            Scale(48);
+        const int controlGap =
+            Scale(10);
+        const int inner =
+            Scale(18);
 
         MoveWindow(
-            hotkeyActionList_,
-            contentLeft + Scale(12),
-            top + Scale(12),
-            listWidth - Scale(24),
-            Scale(376),
-            TRUE);
-
-        MoveWindow(
-            hotkeyEditorTitle_,
-            editorX + Scale(18),
-            top + Scale(18),
-            editorWidth - Scale(36),
-            Scale(30),
-            TRUE);
-
-        MoveWindow(
-            hotkeyEditorDescription_,
-            editorX + Scale(18),
-            top + Scale(52),
-            editorWidth - Scale(36),
-            Scale(30),
-            TRUE);
-
-        MoveWindow(
-            hotkeyScope_,
-            editorX + Scale(18),
-            top + Scale(88),
-            editorWidth - Scale(36),
+            hotkeyGlobalTitle_,
+            contentLeft,
+            Scale(108),
+            width,
             Scale(26),
             TRUE);
 
         MoveWindow(
-            hotkeyEnabled_,
-            editorX + Scale(1),
-            top + Scale(122),
-            editorWidth - Scale(2),
-            Scale(
-                settings_layout::
-                    kToggleRowLogical),
+            hotkeyLauncherTitle_,
+            contentLeft,
+            Scale(306),
+            width,
+            Scale(26),
             TRUE);
 
-        MoveWindow(
-            hotkeyCapture_,
-            editorX + Scale(18),
-            top + Scale(188),
-            std::min(
-                Scale(220),
-                editorWidth - Scale(36)),
-            Scale(36),
-            TRUE);
+        for (std::size_t i = 0;
+             i < hotkeyRows_.size();
+             ++i) {
+            auto& row =
+                hotkeyRows_[i];
 
-        MoveWindow(
-            hotkeyResetCurrent_,
-            editorX + Scale(18),
-            top + Scale(234),
-            std::min(
-                Scale(220),
-                editorWidth - Scale(36)),
-            Scale(36),
-            TRUE);
+            const auto* action =
+                FindHotkeyAction(
+                    row.actionId);
 
-        MoveWindow(
-            hotkeyPageStatus_,
-            editorX + Scale(18),
-            top + Scale(282),
-            editorWidth - Scale(36),
-            Scale(44),
-            TRUE);
+            if (!action) {
+                continue;
+            }
+
+            const bool global =
+                action->scope ==
+                    HotkeyScope::Global;
+
+            const std::size_t groupIndex =
+                global
+                    ? i
+                    : i - 2;
+
+            const int top =
+                (global
+                    ? Scale(140)
+                    : Scale(338)) +
+                static_cast<int>(
+                    groupIndex) *
+                    rowHeight;
+
+            const int toggleX =
+                cardRight -
+                inner -
+                toggleWidth;
+
+            const int captureX =
+                row.enabled
+                    ? toggleX -
+                        controlGap -
+                        captureWidth
+                    : cardRight -
+                        inner -
+                        captureWidth;
+
+            MoveWindow(
+                row.title,
+                cardLeft + inner,
+                top + Scale(11),
+                std::max(
+                    Scale(150),
+                    captureX -
+                        cardLeft -
+                        inner -
+                        Scale(14)),
+                Scale(28),
+                TRUE);
+
+            MoveWindow(
+                row.capture,
+                captureX,
+                top + Scale(10),
+                captureWidth,
+                Scale(34),
+                TRUE);
+
+            if (row.enabled) {
+                MoveWindow(
+                    row.enabled,
+                    toggleX,
+                    top + Scale(11),
+                    toggleWidth,
+                    Scale(32),
+                    TRUE);
+            }
+
+            MoveWindow(
+                row.status,
+                cardLeft + inner,
+                top + Scale(46),
+                std::max(
+                    Scale(160),
+                    captureX -
+                        cardLeft -
+                        inner -
+                        Scale(12)),
+                Scale(20),
+                TRUE);
+
+            MoveWindow(
+                row.reset,
+                captureX,
+                top + Scale(47),
+                Scale(78),
+                Scale(20),
+                TRUE);
+        }
 
         MoveWindow(
             hotkeyResetAll_,
-            editorX + Scale(18),
-            top + Scale(340),
-            std::min(
-                Scale(240),
-                editorWidth - Scale(36)),
-            Scale(36),
+            contentLeft,
+            Scale(570),
+            Scale(184),
+            Scale(34),
             TRUE);
     }
 
@@ -3981,11 +4017,21 @@ void SettingsWindow::Layout() {
             TRUE);
     }
 
+
     if (page_ == Page::Appearance) {
         const int width =
             std::min(
                 contentWidth,
-                Scale(680));
+                Scale(560));
+        const int inner =
+            Scale(18);
+        const int comboWidth =
+            Scale(200);
+        const int comboX =
+            contentLeft +
+            width -
+            inner -
+            comboWidth;
 
         MoveWindow(
             appearanceLauncherTitle_,
@@ -3997,17 +4043,21 @@ void SettingsWindow::Layout() {
 
         MoveWindow(
             uiStyleLabel_,
-            contentLeft + Scale(18),
-            Scale(158),
-            Scale(220),
+            contentLeft + inner,
+            Scale(157),
+            std::max(
+                Scale(160),
+                comboX -
+                    contentLeft -
+                    inner -
+                    Scale(16)),
             Scale(24),
             TRUE);
         MoveWindow(
             uiStyle_,
-            contentLeft + width -
-                Scale(308),
-            Scale(149),
-            Scale(290),
+            comboX,
+            Scale(153),
+            comboWidth,
             Scale(180),
             TRUE);
 
@@ -4021,26 +4071,35 @@ void SettingsWindow::Layout() {
 
         MoveWindow(
             languageLabel_,
-            contentLeft + Scale(18),
-            Scale(282),
-            Scale(220),
+            contentLeft + inner,
+            Scale(281),
+            std::max(
+                Scale(160),
+                comboX -
+                    contentLeft -
+                    inner -
+                    Scale(16)),
             Scale(24),
             TRUE);
         MoveWindow(
             language_,
-            contentLeft + width -
-                Scale(308),
-            Scale(273),
-            Scale(290),
+            comboX,
+            Scale(277),
+            comboWidth,
             Scale(180),
             TRUE);
     }
+
 
     if (page_ == Page::Data) {
         const int width =
             std::min(
                 contentWidth,
-                Scale(720));
+                Scale(560));
+        const int inner =
+            Scale(18);
+        const int gap =
+            Scale(12);
 
         MoveWindow(
             dataPathLabel_,
@@ -4049,19 +4108,27 @@ void SettingsWindow::Layout() {
             width,
             Scale(26),
             TRUE);
+
+        const int openWidth =
+            Scale(144);
+
         MoveWindow(
             dataPath_,
-            contentLeft + Scale(18),
+            contentLeft + inner,
             Scale(158),
-            width - Scale(220),
+            width -
+                inner * 3 -
+                openWidth,
             Scale(24),
             TRUE);
         MoveWindow(
             openDataFolder_,
-            contentLeft + width -
-                Scale(174),
+            contentLeft +
+                width -
+                inner -
+                openWidth,
             Scale(152),
-            Scale(156),
+            openWidth,
             Scale(34),
             TRUE);
 
@@ -4072,25 +4139,27 @@ void SettingsWindow::Layout() {
             width,
             Scale(26),
             TRUE);
+
+        const int transferWidth =
+            (width -
+             inner * 2 -
+             gap) / 2;
+
         MoveWindow(
             dataImportTsv_,
-            contentLeft + Scale(18),
+            contentLeft + inner,
             Scale(278),
-            Scale(170),
-            Scale(34),
-            TRUE);
-        MoveWindow(
-            dataImportLegacy_,
-            contentLeft + Scale(200),
-            Scale(278),
-            Scale(190),
+            transferWidth,
             Scale(34),
             TRUE);
         MoveWindow(
             dataExport_,
-            contentLeft + Scale(402),
+            contentLeft +
+                inner +
+                transferWidth +
+                gap,
             Scale(278),
-            Scale(170),
+            transferWidth,
             Scale(34),
             TRUE);
 
@@ -4101,25 +4170,39 @@ void SettingsWindow::Layout() {
             width,
             Scale(26),
             TRUE);
+
+        const int maintenanceWidth =
+            (width -
+             inner * 2 -
+             gap * 2) / 3;
+        const int maintenanceTop =
+            Scale(406);
+
         MoveWindow(
             dataClearUsage_,
-            contentLeft + Scale(18),
-            Scale(406),
-            Scale(170),
+            contentLeft + inner,
+            maintenanceTop,
+            maintenanceWidth,
             Scale(34),
             TRUE);
         MoveWindow(
             dataRebuildIndex_,
-            contentLeft + Scale(200),
-            Scale(406),
-            Scale(190),
+            contentLeft +
+                inner +
+                maintenanceWidth +
+                gap,
+            maintenanceTop,
+            maintenanceWidth,
             Scale(34),
             TRUE);
         MoveWindow(
             dataResetSettings_,
-            contentLeft + Scale(402),
-            Scale(406),
-            Scale(170),
+            contentLeft +
+                inner +
+                (maintenanceWidth +
+                 gap) * 2,
+            maintenanceTop,
+            maintenanceWidth,
             Scale(34),
             TRUE);
 
