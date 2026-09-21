@@ -2562,7 +2562,7 @@ void SettingsWindow::ShowPage(Page page) {
         page == Page::About);
 
     for (HWND control :
-         std::array<HWND, 10>{
+         std::array<HWND, 9>{
              pageDescription_,
              popupMonitorDescription_,
              launcherPlacementDescription_,
@@ -2571,7 +2571,6 @@ void SettingsWindow::ShowPage(Page page) {
              hotkeyPageNote_,
              providerNote_,
              appearanceNote_,
-             actionsNote_,
              aboutDescription_}) {
         if (control) {
             ShowWindow(
@@ -6334,7 +6333,6 @@ LRESULT SettingsWindow::HandleMessage(
             control == hotkeyScope_ ||
             control == hotkeyPageStatus_ ||
             control == hotkeyPageNote_ ||
-            control == actionsNote_ ||
             control == providerStatus_ ||
             control == providerNote_ ||
             control == appearanceNote_ ||
