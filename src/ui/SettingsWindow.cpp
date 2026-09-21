@@ -1042,12 +1042,15 @@ void SettingsWindow::ApplyFonts() {
     }
 
     for (HWND control :
-         std::array<HWND, 13>{
+         std::array<HWND, 18>{
              generalBehaviorTitle_,
              searchBehaviorTitle_,
              placementSectionTitle_,
              hotkeyEditorTitle_,
              providerSectionTitle_,
+             providerFilesTitle_,
+             appearanceLauncherTitle_,
+             appearanceAppTitle_,
              dataPathLabel_,
              dataTransferLabel_,
              dataMaintenanceLabel_,
@@ -1055,7 +1058,9 @@ void SettingsWindow::ApplyFonts() {
              diagnosticsSearchTitle_,
              actionsWindowsTitle_,
              actionsClipboardTitle_,
-             actionsWebTitle_}) {
+             actionsWebTitle_,
+             updateSectionTitle_,
+             aboutProjectTitle_}) {
         if (control) {
             SendMessageW(
                 control,
@@ -1064,15 +1069,6 @@ void SettingsWindow::ApplyFonts() {
                     sectionFont_),
                 TRUE);
         }
-    }
-
-    if (updateSectionTitle_) {
-        SendMessageW(
-            updateSectionTitle_,
-            WM_SETFONT,
-            reinterpret_cast<WPARAM>(
-                sectionFont_),
-            TRUE);
     }
 
     if (pageTitle_) {
@@ -1307,6 +1303,10 @@ void SettingsWindow::ApplyLanguage() {
         T(L"应用来源",
           L"Application sources"));
     SetWindowTextW(
+        providerFilesTitle_,
+        T(L"文件与文件夹",
+          L"Files & folders"));
+    SetWindowTextW(
         providerStartMenu_,
         T(L"开始菜单",
           L"Start Menu"));
@@ -1337,6 +1337,10 @@ void SettingsWindow::ApplyLanguage() {
           L"Everything is queried live over local IPC. Existing standard copies are preferred; ALTRun Next manages service lifecycle only for its own portable copy."));
 
     SetWindowTextW(
+        appearanceLauncherTitle_,
+        T(L"启动器",
+          L"Launcher"));
+    SetWindowTextW(
         uiStyleLabel_,
         T(L"启动器样式",
           L"Launcher style"));
@@ -1354,6 +1358,10 @@ void SettingsWindow::ApplyLanguage() {
         reinterpret_cast<LPARAM>(
             L"Modern Compact"));
 
+    SetWindowTextW(
+        appearanceAppTitle_,
+        T(L"应用",
+          L"Application"));
     SetWindowTextW(
         languageLabel_,
         T(L"界面语言",
@@ -1469,6 +1477,10 @@ void SettingsWindow::ApplyLanguage() {
         updateSectionTitle_,
         T(L"更新",
           L"Updates"));
+    SetWindowTextW(
+        aboutProjectTitle_,
+        T(L"项目",
+          L"Project"));
     SetWindowTextW(
         updateChannelLabel_,
         T(L"更新通道",
