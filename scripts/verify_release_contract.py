@@ -180,6 +180,16 @@ if version == "0.8.0-alpha.1":
         if token not in settings_h or token not in settings_cpp:
             fail(f"v0.8 alpha.1 lost active Settings helper during legacy cleanup: {token}")
 
+    show_page_start = settings_cpp.find("void SettingsWindow::ShowPage")
+    show_page_end = settings_cpp.find("void SettingsWindow::RefreshHotkeyControls", show_page_start)
+    show_page = settings_cpp[show_page_start:show_page_end]
+    if show_page_start < 0 or show_page_end < 0:
+        fail("v0.8 alpha.1 Settings ShowPage block is missing")
+    if "if (\n        page == Page::Hotkeys)" not in show_page:
+        fail("v0.8 alpha.1 Settings ShowPage lost Hotkeys first refresh branch")
+    if "\nelse if (\n        page == Page::Hotkeys)" in show_page:
+        fail("v0.8 alpha.1 Settings ShowPage retained orphan Hotkeys else-if")
+
     app_cpp = read("src/app/App.cpp")
     if "->RefreshCommands()" in app_cpp:
         fail("v0.8 alpha.1 kept the obsolete Settings shortcut refresh hook")
