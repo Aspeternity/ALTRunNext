@@ -5145,7 +5145,8 @@ RECT SettingsWindow::PageCardRect(
 void SettingsWindow::DrawNavigationButton(
     const DRAWITEMSTRUCT& item) {
 
-    RECT rect = item.rcItem;
+    RECT rect =
+        item.rcItem;
 
     bool selected = false;
 
@@ -5158,21 +5159,21 @@ void SettingsWindow::DrawNavigationButton(
         selected =
             page_ == Page::Hotkeys;
         break;
-    case kIdNavDiagnostics:
+    case kIdNavProviders:
         selected =
-            page_ == Page::Diagnostics;
+            page_ == Page::Providers;
         break;
     case kIdNavAppearance:
         selected =
             page_ == Page::Appearance;
         break;
-    case kIdNavProviders:
-        selected =
-            page_ == Page::Providers;
-        break;
     case kIdNavData:
         selected =
             page_ == Page::Data;
+        break;
+    case kIdNavDiagnostics:
+        selected =
+            page_ == Page::Diagnostics;
         break;
     case kIdNavAbout:
         selected =
@@ -5186,36 +5187,73 @@ void SettingsWindow::DrawNavigationButton(
         (item.itemState &
          ODS_SELECTED) != 0;
 
+    RECT surface = rect;
+    InflateRect(
+        &surface,
+        -Scale(2),
+        -Scale(1));
+
     const COLORREF background =
         pressed
             ? kCardPressed
             : selected
-                ? RGB(232, 241, 250)
+                ? kPalette
+                      .selectionBackground
                 : kSidebarBackground;
 
     HBRUSH fill =
-        CreateSolidBrush(background);
-    FillRect(
+        CreateSolidBrush(
+            background);
+    HPEN pen =
+        CreatePen(
+            PS_SOLID,
+            1,
+            background);
+
+    HGDIOBJ oldBrush =
+        SelectObject(
+            item.hDC,
+            fill);
+    HGDIOBJ oldPen =
+        SelectObject(
+            item.hDC,
+            pen);
+
+    RoundRect(
         item.hDC,
-        &rect,
-        fill);
+        surface.left,
+        surface.top,
+        surface.right,
+        surface.bottom,
+        Scale(7),
+        Scale(7));
+
+    SelectObject(
+        item.hDC,
+        oldBrush);
+    SelectObject(
+        item.hDC,
+        oldPen);
     DeleteObject(fill);
+    DeleteObject(pen);
 
     if (selected) {
         RECT accent{
-            rect.left,
-            rect.top + Scale(5),
-            rect.left + Scale(4),
-            rect.bottom - Scale(5),
+            surface.left,
+            surface.top + Scale(7),
+            surface.left + Scale(3),
+            surface.bottom - Scale(7),
         };
 
         HBRUSH accentBrush =
-            CreateSolidBrush(kAccent);
+            CreateSolidBrush(
+                kAccent);
         FillRect(
             item.hDC,
             &accent,
             accentBrush);
-        DeleteObject(accentBrush);
+        DeleteObject(
+            accentBrush);
     }
 
     wchar_t textBuffer[96]{};
@@ -5223,7 +5261,8 @@ void SettingsWindow::DrawNavigationButton(
         item.hwndItem,
         textBuffer,
         static_cast<int>(
-            std::size(textBuffer)));
+            std::size(
+                textBuffer)));
 
     SetBkMode(
         item.hDC,
@@ -5240,10 +5279,10 @@ void SettingsWindow::DrawNavigationButton(
                 : normalFont_);
 
     RECT textRect{
-        rect.left + Scale(18),
-        rect.top,
-        rect.right - Scale(12),
-        rect.bottom,
+        surface.left + Scale(16),
+        surface.top,
+        surface.right - Scale(12),
+        surface.bottom,
     };
 
     DrawTextW(
@@ -5263,11 +5302,159 @@ void SettingsWindow::DrawNavigationButton(
 
     if (item.itemState &
         ODS_FOCUS) {
-        RECT focus = rect;
+        RECT focus =
+            surface;
         InflateRect(
             &focus,
-            -Scale(6),
+            -Scale(7),
             -Scale(5));
+        DrawFocusRect(
+            item.hDC,
+            &focus);
+    }
+}
+
+void SettingsWindow::DrawActionButton(
+    const DRAWITEMSTRUCT& item) {
+
+    RECT rect =
+        item.rcItem;
+
+    const bool disabled =
+        (item.itemState &
+         ODS_DISABLED) != 0;
+    const bool pressed =
+        (item.itemState &
+         ODS_SELECTED) != 0;
+
+    const bool primary =
+        item.CtlID ==
+            kIdUpdateInstall;
+    const bool danger =
+        item.CtlID ==
+            kIdDataResetSettings;
+
+    COLORREF fillColor =
+        pressed
+            ? kCardPressed
+            : RGB(255, 255, 255);
+    COLORREF borderColor =
+        kBorder;
+    COLORREF textColor =
+        disabled
+            ? RGB(155, 162, 171)
+            : kText;
+
+    if (primary && !disabled) {
+        fillColor =
+            pressed
+                ? RGB(0, 99, 177)
+                : kAccent;
+        borderColor =
+            fillColor;
+        textColor =
+            RGB(255, 255, 255);
+    } else if (
+        danger &&
+        !disabled) {
+        textColor =
+            RGB(190, 45, 45);
+        borderColor =
+            RGB(226, 185, 185);
+    }
+
+    RECT surface =
+        rect;
+    InflateRect(
+        &surface,
+        -1,
+        -1);
+
+    HBRUSH fill =
+        CreateSolidBrush(
+            fillColor);
+    HPEN pen =
+        CreatePen(
+            PS_SOLID,
+            1,
+            borderColor);
+
+    HGDIOBJ oldBrush =
+        SelectObject(
+            item.hDC,
+            fill);
+    HGDIOBJ oldPen =
+        SelectObject(
+            item.hDC,
+            pen);
+
+    RoundRect(
+        item.hDC,
+        surface.left,
+        surface.top,
+        surface.right,
+        surface.bottom,
+        Scale(6),
+        Scale(6));
+
+    SelectObject(
+        item.hDC,
+        oldBrush);
+    SelectObject(
+        item.hDC,
+        oldPen);
+    DeleteObject(fill);
+    DeleteObject(pen);
+
+    wchar_t buffer[160]{};
+    GetWindowTextW(
+        item.hwndItem,
+        buffer,
+        static_cast<int>(
+            std::size(buffer)));
+
+    SetBkMode(
+        item.hDC,
+        TRANSPARENT);
+    SetTextColor(
+        item.hDC,
+        textColor);
+
+    HGDIOBJ oldFont =
+        SelectObject(
+            item.hDC,
+            normalFont_);
+
+    RECT textRect =
+        surface;
+    InflateRect(
+        &textRect,
+        -Scale(10),
+        0);
+
+    DrawTextW(
+        item.hDC,
+        buffer,
+        -1,
+        &textRect,
+        DT_CENTER |
+            DT_VCENTER |
+            DT_SINGLELINE |
+            DT_END_ELLIPSIS |
+            DT_NOPREFIX);
+
+    SelectObject(
+        item.hDC,
+        oldFont);
+
+    if (item.itemState &
+        ODS_FOCUS) {
+        RECT focus =
+            surface;
+        InflateRect(
+            &focus,
+            -Scale(5),
+            -Scale(4));
         DrawFocusRect(
             item.hDC,
             &focus);
@@ -5277,104 +5464,32 @@ void SettingsWindow::DrawNavigationButton(
 void SettingsWindow::DrawGeneralToggle(
     const DRAWITEMSTRUCT& item) {
 
-    RECT rect = item.rcItem;
+    RECT rect =
+        item.rcItem;
 
-    const COLORREF rowBackground =
-        (item.itemState & ODS_SELECTED)
-            ? kCardPressed
-            : kCardBackground;
+    const bool pressed =
+        (item.itemState &
+         ODS_SELECTED) != 0;
 
     HBRUSH rowBrush =
-        CreateSolidBrush(rowBackground);
-    FillRect(item.hDC, &rect, rowBrush);
-    DeleteObject(rowBrush);
+        CreateSolidBrush(
+            pressed
+                ? kCardPressed
+                : kCardBackground);
+
+    FillRect(
+        item.hDC,
+        &rect,
+        rowBrush);
+    DeleteObject(
+        rowBrush);
 
     const UINT id =
-        static_cast<UINT>(item.CtlID);
+        static_cast<UINT>(
+            item.CtlID);
+
     const bool checked =
         ToggleChecked(id);
-
-    const int boxSize = Scale(20);
-    const int boxLeft =
-        rect.left + Scale(18);
-    const int boxTop =
-        rect.top +
-        (rect.bottom - rect.top - boxSize) / 2;
-
-    RECT box{
-        boxLeft,
-        boxTop,
-        boxLeft + boxSize,
-        boxTop + boxSize,
-    };
-
-    HBRUSH boxBrush =
-        CreateSolidBrush(
-            checked
-                ? kAccent
-                : RGB(255, 255, 255));
-
-    HPEN boxPen =
-        CreatePen(
-            PS_SOLID,
-            std::max(1, Scale(1)),
-            checked
-                ? kAccent
-                : RGB(166, 174, 184));
-
-    HGDIOBJ oldBrush =
-        SelectObject(item.hDC, boxBrush);
-    HGDIOBJ oldPen =
-        SelectObject(item.hDC, boxPen);
-
-    RoundRect(
-        item.hDC,
-        box.left,
-        box.top,
-        box.right,
-        box.bottom,
-        Scale(5),
-        Scale(5));
-
-    SelectObject(item.hDC, oldBrush);
-    SelectObject(item.hDC, oldPen);
-    DeleteObject(boxBrush);
-    DeleteObject(boxPen);
-
-    if (checked) {
-        HPEN checkPen =
-            CreatePen(
-                PS_SOLID,
-                std::max(2, Scale(2)),
-                RGB(255, 255, 255));
-
-        oldPen =
-            SelectObject(
-                item.hDC,
-                checkPen);
-
-        MoveToEx(
-            item.hDC,
-            box.left + Scale(5),
-            box.top + Scale(10),
-            nullptr);
-
-        LineTo(
-            item.hDC,
-            box.left + Scale(9),
-            box.top + Scale(14));
-
-        LineTo(
-            item.hDC,
-            box.left + Scale(16),
-            box.top + Scale(6));
-
-        SelectObject(
-            item.hDC,
-            oldPen);
-
-        DeleteObject(checkPen);
-    }
 
     const wchar_t* title = L"";
     const wchar_t* description = L"";
@@ -5386,179 +5501,299 @@ void SettingsWindow::DrawGeneralToggle(
             L"Start with Windows");
         description = T(
             L"登录 Windows 后自动启动 ALTRun Next。",
-            L"Launch ALTRun Next automatically after signing in to Windows.");
+            L"Launch ALTRun Next automatically after signing in.");
         break;
-
     case kIdShowOnStartup:
         title = T(
             L"启动时显示启动器",
             L"Show launcher on startup");
         description = T(
             L"程序启动后立即显示 Launcher；默认保持后台静默启动。",
-            L"Show the launcher when the app starts; the default remains silent background startup.");
+            L"Show the launcher when the app starts; otherwise start silently.");
         break;
-
     case kIdHideAfterLaunch:
         title = T(
             L"执行后自动隐藏",
             L"Hide after launch");
         description = T(
-            L"成功启动快捷项后自动收起启动器。",
-            L"Automatically close the launcher after a command starts.");
+            L"成功执行结果后自动收起 Launcher。",
+            L"Hide the launcher after a result is executed successfully.");
         break;
-
     case kIdClearQueryOnShow:
         title = T(
             L"呼出时清空搜索",
             L"Clear query on open");
         description = T(
-            L"每次呼出启动器时从空白搜索开始。",
-            L"Start with an empty search every time the launcher opens.");
+            L"每次呼出 Launcher 时从空白搜索开始。",
+            L"Start with an empty query every time the launcher opens.");
         break;
-
     case kIdHideOnFocusLost:
         title = T(
             L"失去焦点时隐藏",
             L"Hide when focus is lost");
         description = T(
-            L"切换到其他窗口时自动收起启动器。",
-            L"Hide the launcher automatically when another window is focused.");
+            L"切换到其他窗口时自动收起 Launcher。",
+            L"Hide the launcher when another window receives focus.");
         break;
-
     case kIdShowTrayIcon:
         title = T(
             L"显示系统托盘图标",
             L"Show system tray icon");
         description = T(
-            L"保留托盘入口，用于打开设置、重新加载或退出。",
-            L"Keep the tray entry for Settings, reload and exit actions.");
+            L"保留托盘入口，用于设置、重新加载和退出。",
+            L"Keep the tray entry for Settings, reload and exit.");
         break;
-
+    case kIdShowResultIcons:
+        title = T(
+            L"显示搜索结果图标",
+            L"Show search result icons");
+        description = T(
+            L"关闭时不解析或缓存 Shell 图标，连续搜索会更轻。",
+            L"Disable Shell icon resolution and caching for lighter continuous search.");
+        break;
     case kIdPinyinSearch:
         title = T(
             L"启用拼音搜索",
             L"Enable Pinyin search");
         description = T(
-            L"使用全拼、首字母和混合拼音匹配中文；关闭后不会加载 cpp-pinyin，可减少不需要的内存占用。",
-            L"Match Chinese with full, initial and hybrid Pinyin; when disabled, cpp-pinyin stays unloaded to avoid unnecessary memory use.");
+            L"支持全拼、首字母和混合拼音匹配中文。",
+            L"Match Chinese using full, initial and mixed Pinyin.");
         break;
-
     case kIdWildcardMatching:
         title = T(
             L"允许 * / ? 通配符",
             L"Enable * / ? wildcards");
         description = T(
-            L"查询包含 * 或 ? 时使用 glob 匹配；普通搜索仍使用模糊和拼音匹配。",
-            L"Use glob matching when the query contains * or ?; normal fuzzy and pinyin search stays unchanged.");
+            L"查询包含通配符时使用 glob 匹配。",
+            L"Use glob matching when the query contains wildcard characters.");
         break;
-
     case kIdNumericQuickLaunch:
         title = T(
             L"数字键快速执行结果",
             L"Quick launch with number keys");
         description = T(
-            L"Classic 下数字键直接执行对应结果；启用后数字不会输入搜索框。",
-            L"In Classic mode, number keys launch the matching result instead of typing digits into the query.");
+            L"Classic 下数字键直接执行对应结果。",
+            L"In Classic mode, number keys execute matching results.");
         break;
-
     case kIdExecuteSingleResult:
         title = T(
             L"仅剩一个结果时立即执行",
             L"Execute immediately when one result remains");
         description = T(
             L"非空查询只剩唯一结果时立即启动；默认关闭以避免误触。",
-            L"Launch immediately when a non-empty query narrows to one result; off by default to avoid accidents.");
+            L"Launch when a non-empty query narrows to one result; off by default.");
         break;
-
     case kIdProviderStartMenu:
         title = T(
             L"开始菜单",
             L"Start Menu");
         description = T(
             L"发现当前用户和所有用户开始菜单中的快捷方式与程序。",
-            L"Discover shortcuts and programs from the current-user and all-users Start Menu.");
+            L"Discover shortcuts and programs from Windows Start Menu locations.");
         break;
-
     case kIdProviderPackaged:
-        title = T(
-            L"Windows Apps",
-            L"Windows Apps");
+        title = L"Windows Apps";
         description = T(
             L"发现 Microsoft Store、UWP 和 MSIX 应用。",
             L"Discover Microsoft Store, UWP and MSIX applications.");
         break;
-
     case kIdProviderAppPaths:
         title = L"App Paths";
         description = T(
-            L"从 Windows 注册表的 App Paths 中发现传统桌面程序。",
-            L"Discover traditional desktop apps from the Windows App Paths registry.");
+            L"从注册表 App Paths 发现传统桌面程序。",
+            L"Discover traditional desktop applications from the App Paths registry.");
         break;
-
     case kIdProviderPath:
         title = L"PATH";
         description = T(
-            L"发现 PATH 环境变量目录中的 EXE、COM、BAT 和 CMD。",
-            L"Discover EXE, COM, BAT and CMD files exposed through the PATH environment variable.");
+            L"发现 PATH 中的 EXE、COM、BAT 和 CMD。",
+            L"Discover EXE, COM, BAT and CMD files exposed through PATH.");
         break;
-
     case kIdProviderEverything:
         title = T(
             L"Everything 文件与文件夹",
             L"Everything files & folders");
         description = T(
-            L"通过正在运行的标准版 Everything IPC 实时搜索文件和文件夹；Lite 版没有 IPC。",
-            L"Search files and folders live through a running standard Everything IPC instance; Everything Lite has no IPC.");
+            L"通过标准版 Everything IPC 实时搜索文件和文件夹。",
+            L"Search files and folders live through standard Everything IPC.");
         break;
-
+    case kIdUpdateAutoCheck:
+        title = T(
+            L"自动检查更新",
+            L"Automatically check for updates");
+        description = T(
+            L"后台最多每天检查一次当前更新通道。",
+            L"Check the selected update channel in the background at most once per day.");
+        break;
     default:
         break;
     }
 
-    SetBkMode(item.hDC, TRANSPARENT);
+    const int switchWidth =
+        Scale(40);
+    const int switchHeight =
+        Scale(22);
+    const int switchLeft =
+        rect.right -
+        Scale(18) -
+        switchWidth;
+    const int switchTop =
+        rect.top +
+        (rect.bottom -
+         rect.top -
+         switchHeight) / 2;
 
-    RECT titleRect{
-        box.right + Scale(14),
-        rect.top + Scale(6),
-        rect.right - Scale(16),
-        rect.top + Scale(27),
+    RECT track{
+        switchLeft,
+        switchTop,
+        switchLeft + switchWidth,
+        switchTop + switchHeight,
     };
+
+    const COLORREF trackColor =
+        checked
+            ? kAccent
+            : RGB(214, 219, 226);
+
+    HBRUSH trackBrush =
+        CreateSolidBrush(
+            trackColor);
+    HPEN trackPen =
+        CreatePen(
+            PS_SOLID,
+            1,
+            checked
+                ? kAccent
+                : RGB(184, 191, 201));
+
+    HGDIOBJ oldBrush =
+        SelectObject(
+            item.hDC,
+            trackBrush);
+    HGDIOBJ oldPen =
+        SelectObject(
+            item.hDC,
+            trackPen);
+
+    RoundRect(
+        item.hDC,
+        track.left,
+        track.top,
+        track.right,
+        track.bottom,
+        switchHeight,
+        switchHeight);
+
+    SelectObject(
+        item.hDC,
+        oldBrush);
+    SelectObject(
+        item.hDC,
+        oldPen);
+    DeleteObject(
+        trackBrush);
+    DeleteObject(
+        trackPen);
+
+    const int knobSize =
+        Scale(16);
+    const int knobInset =
+        Scale(3);
+    const int knobLeft =
+        checked
+            ? track.right -
+                knobInset -
+                knobSize
+            : track.left +
+                knobInset;
+
+    HBRUSH knobBrush =
+        CreateSolidBrush(
+            RGB(255, 255, 255));
+    HPEN knobPen =
+        CreatePen(
+            PS_SOLID,
+            1,
+            RGB(255, 255, 255));
+
+    oldBrush =
+        SelectObject(
+            item.hDC,
+            knobBrush);
+    oldPen =
+        SelectObject(
+            item.hDC,
+            knobPen);
+
+    Ellipse(
+        item.hDC,
+        knobLeft,
+        track.top + knobInset,
+        knobLeft + knobSize,
+        track.top +
+            knobInset +
+            knobSize);
+
+    SelectObject(
+        item.hDC,
+        oldBrush);
+    SelectObject(
+        item.hDC,
+        oldPen);
+    DeleteObject(
+        knobBrush);
+    DeleteObject(
+        knobPen);
+
+    SetBkMode(
+        item.hDC,
+        TRANSPARENT);
 
     HGDIOBJ oldFont =
         SelectObject(
             item.hDC,
-            sectionFont_);
+            normalFont_);
 
-    SetTextColor(item.hDC, kText);
+    RECT titleRect{
+        rect.left + Scale(18),
+        rect.top + Scale(9),
+        switchLeft - Scale(16),
+        rect.top + Scale(31),
+    };
 
+    SetTextColor(
+        item.hDC,
+        kText);
     DrawTextW(
         item.hDC,
         title,
         -1,
         &titleRect,
-        DT_LEFT | DT_SINGLELINE |
-            DT_VCENTER | DT_NOPREFIX);
+        DT_LEFT |
+            DT_SINGLELINE |
+            DT_VCENTER |
+            DT_END_ELLIPSIS |
+            DT_NOPREFIX);
 
     RECT descriptionRect{
         titleRect.left,
-        rect.top + Scale(29),
+        rect.top + Scale(32),
         titleRect.right,
         rect.bottom - Scale(6),
     };
 
-    SelectObject(
+    SetTextColor(
         item.hDC,
-        normalFont_);
-
-    SetTextColor(item.hDC, kMuted);
-
+        kMuted);
     DrawTextW(
         item.hDC,
         description,
         -1,
         &descriptionRect,
-        DT_LEFT | DT_SINGLELINE |
-            DT_VCENTER | DT_END_ELLIPSIS |
+        DT_LEFT |
+            DT_SINGLELINE |
+            DT_VCENTER |
+            DT_END_ELLIPSIS |
             DT_NOPREFIX);
 
     SelectObject(
@@ -5566,8 +5801,10 @@ void SettingsWindow::DrawGeneralToggle(
         oldFont);
 
     const bool lastRow =
-        id == kIdShowTrayIcon ||
-        id == kIdProviderEverything;
+        id == kIdShowResultIcons ||
+        id == kIdProviderPath ||
+        id == kIdProviderEverything ||
+        id == kIdUpdateAutoCheck;
 
     if (!lastRow) {
         HPEN separator =
@@ -5583,27 +5820,29 @@ void SettingsWindow::DrawGeneralToggle(
 
         MoveToEx(
             item.hDC,
-            rect.left + Scale(52),
+            rect.left + Scale(18),
             rect.bottom - 1,
             nullptr);
 
         LineTo(
             item.hDC,
-            rect.right - Scale(14),
+            rect.right - Scale(18),
             rect.bottom - 1);
 
         SelectObject(
             item.hDC,
             oldPen);
-
-        DeleteObject(separator);
+        DeleteObject(
+            separator);
     }
 
-    if (item.itemState & ODS_FOCUS) {
-        RECT focus = rect;
+    if (item.itemState &
+        ODS_FOCUS) {
+        RECT focus =
+            rect;
         InflateRect(
             &focus,
-            -Scale(6),
+            -Scale(7),
             -Scale(5));
         DrawFocusRect(
             item.hDC,
