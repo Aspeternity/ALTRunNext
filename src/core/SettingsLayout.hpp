@@ -1,13 +1,18 @@
 #pragma once
 
+#include "../ui/UiMetrics.hpp"
+
 namespace altrun::settings_layout {
 
 inline constexpr int
-    kContentLeftInsetLogical = 38;
+    kContentLeftInsetLogical =
+        ui::kSettingsContentLeftInsetLogical;
 inline constexpr int
-    kContentRightInsetLogical = 34;
+    kContentRightInsetLogical =
+        ui::kSettingsContentRightInsetLogical;
 inline constexpr int
-    kToggleRowLogical = 54;
+    kToggleRowLogical =
+        ui::kSettingsToggleRowLogical;
 
 struct Rect {
     int left{};
