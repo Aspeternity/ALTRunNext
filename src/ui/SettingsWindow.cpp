@@ -3668,6 +3668,19 @@ void SettingsWindow::ToggleGeneralSetting(UINT id) {
         }
         return;
 
+    case kIdShowResultIcons:
+        if (!app_.SetShowResultIcons(
+                !settings.showResultIcons)) {
+            MessageBoxW(
+                hwnd_,
+                T(L"无法保存搜索结果图标设置。",
+                  L"Unable to save the result-icon setting."),
+                L"ALTRun Next",
+                MB_OK | MB_ICONERROR);
+            RefreshFromSettings();
+        }
+        return;
+
     case kIdHideAfterLaunch:
         hideAfterLaunch = !hideAfterLaunch;
         break;
@@ -3760,43 +3773,100 @@ void SettingsWindow::ToggleProviderSetting(
 void SettingsWindow::ApplyMonitorControl() {
     if (syncing_) return;
 
-    const auto settings = app_.SettingsData();
+    const auto settings =
+        app_.SettingsData();
 
     const int monitorIndex =
-        static_cast<int>(SendMessageW(
-            popupMonitor_,
-            CB_GETCURSEL,
-            0,
-            0));
+        static_cast<int>(
+            SendMessageW(
+                popupMonitor_,
+                CB_GETCURSEL,
+                0,
+                0));
 
-    std::string popupMonitor = "cursor";
-    if (monitorIndex == 1) popupMonitor = "active";
-    else if (monitorIndex == 2) popupMonitor = "primary";
+    std::string popupMonitor =
+        "cursor";
+
+    if (monitorIndex == 1) {
+        popupMonitor = "active";
+    } else if (monitorIndex == 2) {
+        popupMonitor = "primary";
+    }
 
     app_.SetGeneralSettings(
         settings.hideAfterLaunch,
         settings.clearQueryOnShow,
         settings.hideOnFocusLost,
         settings.showTrayIcon,
-        std::move(popupMonitor));
+        std::move(
+            popupMonitor));
+}
+
+void SettingsWindow::ApplyWindowPlacementControls() {
+    if (syncing_) return;
+
+    const int launcherIndex =
+        static_cast<int>(
+            SendMessageW(
+                launcherPlacement_,
+                CB_GETCURSEL,
+                0,
+                0));
+
+    const int settingsIndex =
+        static_cast<int>(
+            SendMessageW(
+                settingsPlacement_,
+                CB_GETCURSEL,
+                0,
+                0));
+
+    std::string launcherMode =
+        "top";
+
+    if (launcherIndex == 1) {
+        launcherMode = "center";
+    } else if (launcherIndex == 2) {
+        launcherMode = "last";
+    }
+
+    const std::string settingsMode =
+        settingsIndex == 1
+            ? "last"
+            : "center";
+
+    if (!app_.SetWindowPlacementSettings(
+            std::move(
+                launcherMode),
+            settingsMode)) {
+        MessageBoxW(
+            hwnd_,
+            T(L"无法保存窗口位置设置。",
+              L"Unable to save window placement settings."),
+            L"ALTRun Next",
+            MB_OK | MB_ICONERROR);
+        RefreshFromSettings();
+    }
 }
 
 void SettingsWindow::ApplyAppearanceControls() {
     if (syncing_) return;
 
     const int styleIndex =
-        static_cast<int>(SendMessageW(
-            uiStyle_,
-            CB_GETCURSEL,
-            0,
-            0));
+        static_cast<int>(
+            SendMessageW(
+                uiStyle_,
+                CB_GETCURSEL,
+                0,
+                0));
 
     const int languageIndex =
-        static_cast<int>(SendMessageW(
-            language_,
-            CB_GETCURSEL,
-            0,
-            0));
+        static_cast<int>(
+            SendMessageW(
+                language_,
+                CB_GETCURSEL,
+                0,
+                0));
 
     const UiStyle style =
         styleIndex == 1
@@ -3808,34 +3878,14 @@ void SettingsWindow::ApplyAppearanceControls() {
             ? Language::EnUS
             : Language::ZhCN;
 
-    const bool showResultIcons =
-        SendMessageW(
-            showResultIcons_,
-            BM_GETCHECK,
-            0,
-            0) == BST_CHECKED;
-
-    if (style != app_.SettingsData().uiStyle) {
+    if (style !=
+        app_.SettingsData().uiStyle) {
         app_.SetUiStyle(style);
     }
 
-    if (language != app_.SettingsData().language) {
+    if (language !=
+        app_.SettingsData().language) {
         app_.SetLanguage(language);
-    }
-
-    if (showResultIcons !=
-        app_.SettingsData()
-            .showResultIcons) {
-        if (!app_.SetShowResultIcons(
-                showResultIcons)) {
-            MessageBoxW(
-                hwnd_,
-                T(L"无法保存搜索结果图标设置。",
-                  L"Unable to save the result-icon setting."),
-                L"ALTRun Next",
-                MB_OK | MB_ICONERROR);
-            RefreshFromSettings();
-        }
     }
 }
 
@@ -3866,6 +3916,10 @@ bool SettingsWindow::ToggleChecked(
         return settings.hideOnFocusLost;
     case kIdShowTrayIcon:
         return settings.showTrayIcon;
+    case kIdShowResultIcons:
+        return settings.showResultIcons;
+    case kIdUpdateAutoCheck:
+        return settings.autoCheckUpdates;
     case kIdPinyinSearch:
         return settings.pinyinSearch;
     case kIdWildcardMatching:
