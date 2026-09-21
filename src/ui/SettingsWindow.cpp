@@ -4327,8 +4327,6 @@ void SettingsWindow::Layout() {
             Scale(34),
             TRUE);
     }
-
-    }
 }
 
 RECT SettingsWindow::ProviderCardRect() const {
