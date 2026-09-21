@@ -120,7 +120,8 @@ if version == "0.8.0-alpha.2.3":
         "notify == BN_CLICKED",
         "notify == BN_DOUBLECLICKED",
         "const bool focused =",
-        "focused\\n                    ? kCardPressed",
+        ": focused",
+        "? kCardPressed",
     ):
         if token not in settings_cpp:
             fail(f"v0.8 alpha.2.3 interaction contract missing: {token}")
