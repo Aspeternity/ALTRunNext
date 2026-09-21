@@ -1,5 +1,8 @@
 #include "SettingsWindow.hpp"
 
+#include "UiTheme.hpp"
+#include "UiTypography.hpp"
+
 #include "../app/App.hpp"
 #include "../core/HotkeyRegistry.hpp"
 #include "../core/LauncherActionPolicy.hpp"
@@ -29,14 +32,24 @@ namespace {
 constexpr wchar_t kSettingsClass[] = L"ALTRunNext.Settings";
 constexpr wchar_t kSettingsTitle[] = L"ALTRun Next Settings";
 
-constexpr COLORREF kWindowBackground = RGB(255, 255, 255);
-constexpr COLORREF kSidebarBackground = RGB(246, 247, 249);
-constexpr COLORREF kCardBackground = RGB(249, 250, 252);
-constexpr COLORREF kCardPressed = RGB(243, 246, 249);
-constexpr COLORREF kBorder = RGB(225, 229, 235);
-constexpr COLORREF kText = RGB(31, 41, 55);
-constexpr COLORREF kMuted = RGB(100, 107, 116);
-constexpr COLORREF kAccent = RGB(0, 120, 212);
+constexpr const auto& kPalette =
+    ui::kApplicationPalette;
+constexpr COLORREF kWindowBackground =
+    kPalette.windowBackground;
+constexpr COLORREF kSidebarBackground =
+    kPalette.sidebarBackground;
+constexpr COLORREF kCardBackground =
+    kPalette.cardBackground;
+constexpr COLORREF kCardPressed =
+    kPalette.pressedBackground;
+constexpr COLORREF kBorder =
+    kPalette.frame;
+constexpr COLORREF kText =
+    kPalette.text;
+constexpr COLORREF kMuted =
+    kPalette.mutedText;
+constexpr COLORREF kAccent =
+    kPalette.accent;
 
 std::wstring TrimWide(std::wstring_view value) {
     std::size_t first = 0;
@@ -168,10 +181,9 @@ const wchar_t* SettingsWindow::T(
 }
 
 int SettingsWindow::Scale(int value) const {
-    return settings_layout::
-        Scale(
-            value,
-            dpi_);
+    return ui::Scale(
+        value,
+        dpi_);
 }
 
 bool SettingsWindow::Create() {
@@ -1033,58 +1045,36 @@ void SettingsWindow::ApplyFonts() {
         sectionFont_ = nullptr;
     }
 
-    const wchar_t* face =
-        app_.SettingsData().language == Language::ZhCN
-            ? L"Microsoft YaHei UI"
-            : L"Segoe UI";
+    const auto language =
+        app_.SettingsData().language;
 
-    normalFont_ = CreateFontW(
-        -MulDiv(10, static_cast<int>(dpi_), 72),
-        0, 0, 0,
-        FW_NORMAL,
-        FALSE, FALSE, FALSE,
-        DEFAULT_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY,
-        DEFAULT_PITCH | FF_DONTCARE,
-        face);
+    normalFont_ =
+        ui::CreateFontHandle(
+            ui::ApplicationFontSpec(
+                language,
+                ui::UiFontRole::Body),
+            dpi_);
 
-    sectionFont_ = CreateFontW(
-        -MulDiv(11, static_cast<int>(dpi_), 72),
-        0, 0, 0,
-        FW_SEMIBOLD,
-        FALSE, FALSE, FALSE,
-        DEFAULT_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY,
-        DEFAULT_PITCH | FF_DONTCARE,
-        face);
+    sectionFont_ =
+        ui::CreateFontHandle(
+            ui::ApplicationFontSpec(
+                language,
+                ui::UiFontRole::SectionTitle),
+            dpi_);
 
-    titleFont_ = CreateFontW(
-        -MulDiv(18, static_cast<int>(dpi_), 72),
-        0, 0, 0,
-        FW_SEMIBOLD,
-        FALSE, FALSE, FALSE,
-        DEFAULT_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY,
-        DEFAULT_PITCH | FF_DONTCARE,
-        face);
+    titleFont_ =
+        ui::CreateFontHandle(
+            ui::ApplicationFontSpec(
+                language,
+                ui::UiFontRole::PageTitle),
+            dpi_);
 
-    appNameFont_ = CreateFontW(
-        -MulDiv(22, static_cast<int>(dpi_), 72),
-        0, 0, 0,
-        FW_SEMIBOLD,
-        FALSE, FALSE, FALSE,
-        DEFAULT_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY,
-        DEFAULT_PITCH | FF_DONTCARE,
-        face);
+    appNameFont_ =
+        ui::CreateFontHandle(
+            ui::ApplicationFontSpec(
+                language,
+                ui::UiFontRole::AppTitle),
+            dpi_);
 
     std::vector<HWND> normalControls{
         navGeneral_,
