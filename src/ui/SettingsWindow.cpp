@@ -914,21 +914,18 @@ void SettingsWindow::ApplyFonts() {
                 language,
                 ui::UiFontRole::Body),
             dpi_);
-
     sectionFont_ =
         ui::CreateFontHandle(
             ui::ApplicationFontSpec(
                 language,
                 ui::UiFontRole::SectionTitle),
             dpi_);
-
     titleFont_ =
         ui::CreateFontHandle(
             ui::ApplicationFontSpec(
                 language,
                 ui::UiFontRole::PageTitle),
             dpi_);
-
     appNameFont_ =
         ui::CreateFontHandle(
             ui::ApplicationFontSpec(
@@ -936,34 +933,39 @@ void SettingsWindow::ApplyFonts() {
                 ui::UiFontRole::AppTitle),
             dpi_);
 
-    std::vector<HWND> normalControls{
+    const std::vector<HWND> normalControls{
         navGeneral_,
         navHotkeys_,
-        navDiagnostics_,
-        navAppearance_,
         navProviders_,
+        navAppearance_,
         navData_,
+        navDiagnostics_,
         navAbout_,
+        brandSubtitle_,
         pageDescription_,
-        searchBehaviorTitle_,
+        startWithWindows_,
+        showOnStartup_,
+        hideAfterLaunch_,
+        clearQueryOnShow_,
+        hideOnFocusLost_,
+        showTrayIcon_,
+        showResultIcons_,
+        pinyinSearch_,
+        wildcardMatching_,
+        numericQuickLaunch_,
+        executeSingleResult_,
         numericQuickLaunchOrderLabel_,
         numericQuickLaunchOrder_,
-        primaryHotkeyLabel_,
-        hotkeyCtrl_,
-        hotkeyAlt_,
-        hotkeyShift_,
-        hotkeyWin_,
-        hotkeyKey_,
-        hotkeyApply_,
-        hotkeyStatus_,
-        auxiliaryHotkeyEnabled_,
-        auxiliaryHotkeyCtrl_,
-        auxiliaryHotkeyAlt_,
-        auxiliaryHotkeyShift_,
-        auxiliaryHotkeyWin_,
-        auxiliaryHotkeyKey_,
-        auxiliaryHotkeyApply_,
-        auxiliaryHotkeyStatus_,
+        popupMonitorLabel_,
+        popupMonitorDescription_,
+        popupMonitor_,
+        launcherPlacementLabel_,
+        launcherPlacementDescription_,
+        launcherPlacement_,
+        settingsPlacementLabel_,
+        settingsPlacementDescription_,
+        settingsPlacement_,
+        generalNote_,
         hotkeyActionList_,
         hotkeyEditorDescription_,
         hotkeyScope_,
@@ -973,23 +975,6 @@ void SettingsWindow::ApplyFonts() {
         hotkeyResetAll_,
         hotkeyPageStatus_,
         hotkeyPageNote_,
-        diagnosticsMemoryStatus_,
-        diagnosticsSearchStatus_,
-        actionsWindowsStatus_,
-        actionsClipboardStatus_,
-        actionsWebStatus_,
-        actionsNote_,
-        popupMonitorLabel_,
-        popupMonitorDescription_,
-        popupMonitor_,
-        generalNote_,
-        uiStyleLabel_,
-        uiStyle_,
-        languageLabel_,
-        language_,
-        showResultIcons_,
-        resultIconsNote_,
-        appearanceNote_,
         providerStartMenu_,
         providerPackaged_,
         providerAppPaths_,
@@ -999,17 +984,26 @@ void SettingsWindow::ApplyFonts() {
         providerGetEverything_,
         providerRecheckEverything_,
         providerNote_,
-        dataOpenLabel_,
-        dataOpenFolder_,
-        dataTransferLabel_,
+        uiStyleLabel_,
+        uiStyle_,
+        languageLabel_,
+        language_,
+        appearanceNote_,
+        dataPath_,
+        openDataFolder_,
         dataImportTsv_,
         dataImportLegacy_,
         dataExport_,
-        dataMaintenanceLabel_,
         dataClearUsage_,
         dataRebuildIndex_,
         dataResetSettings_,
         dataStatus_,
+        diagnosticsMemoryStatus_,
+        diagnosticsSearchStatus_,
+        actionsWindowsStatus_,
+        actionsClipboardStatus_,
+        actionsWebStatus_,
+        actionsNote_,
         aboutVersion_,
         aboutDescription_,
         updateChannelLabel_,
@@ -1018,83 +1012,74 @@ void SettingsWindow::ApplyFonts() {
         updateStatus_,
         updateCheck_,
         updateInstall_,
-        dataPathLabel_,
-        dataPath_,
-        openDataFolder_,
         openGitHub_,
     };
 
-    for (HWND control : normalControls) {
+    for (HWND control :
+         normalControls) {
         if (control) {
             SendMessageW(
                 control,
                 WM_SETFONT,
-                reinterpret_cast<WPARAM>(normalFont_),
+                reinterpret_cast<WPARAM>(
+                    normalFont_),
                 TRUE);
         }
     }
 
-    for (HWND control : std::array<HWND, 16>{
+    for (HWND control :
+         std::array<HWND, 13>{
              generalBehaviorTitle_,
              searchBehaviorTitle_,
-             hotkeySectionTitle_,
+             placementSectionTitle_,
              hotkeyEditorTitle_,
+             providerSectionTitle_,
+             dataPathLabel_,
+             dataTransferLabel_,
+             dataMaintenanceLabel_,
              diagnosticsMemoryTitle_,
              diagnosticsSearchTitle_,
              actionsWindowsTitle_,
              actionsClipboardTitle_,
-             actionsWebTitle_,
-             popupSectionTitle_,
-             providerSectionTitle_,
-             updateSectionTitle_,
-             dataOpenLabel_,
-             dataTransferLabel_,
-             dataMaintenanceLabel_}) {
+             actionsWebTitle_}) {
         if (control) {
             SendMessageW(
                 control,
                 WM_SETFONT,
-                reinterpret_cast<WPARAM>(sectionFont_),
+                reinterpret_cast<WPARAM>(
+                    sectionFont_),
                 TRUE);
         }
+    }
+
+    if (updateSectionTitle_) {
+        SendMessageW(
+            updateSectionTitle_,
+            WM_SETFONT,
+            reinterpret_cast<WPARAM>(
+                sectionFont_),
+            TRUE);
     }
 
     if (pageTitle_) {
         SendMessageW(
             pageTitle_,
             WM_SETFONT,
-            reinterpret_cast<WPARAM>(titleFont_),
+            reinterpret_cast<WPARAM>(
+                titleFont_),
             TRUE);
     }
 
-    if (aboutName_) {
-        SendMessageW(
-            aboutName_,
-            WM_SETFONT,
-            reinterpret_cast<WPARAM>(appNameFont_),
-            TRUE);
-    }
-
-    for (HWND control : std::array<HWND, 14>{
-             startWithWindows_,
-             showOnStartup_,
-             hideAfterLaunch_,
-             clearQueryOnShow_,
-             hideOnFocusLost_,
-             showTrayIcon_,
-             wildcardMatching_,
-             numericQuickLaunch_,
-             executeSingleResult_,
-             providerStartMenu_,
-             providerPackaged_,
-             providerAppPaths_,
-             providerPath_,
-             providerEverything_}) {
+    for (HWND control :
+         std::array<HWND, 2>{
+             brandName_,
+             aboutName_}) {
         if (control) {
             SendMessageW(
                 control,
                 WM_SETFONT,
-                reinterpret_cast<WPARAM>(normalFont_),
+                reinterpret_cast<WPARAM>(
+                    appNameFont_),
                 TRUE);
         }
     }
