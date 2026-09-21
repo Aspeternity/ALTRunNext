@@ -168,6 +168,18 @@ if version == "0.8.0-alpha.1":
         if token in settings_h or token in settings_cpp:
             fail(f"v0.8 alpha.1 resurrected legacy Settings Command UI: {token}")
 
+    for token in (
+        "RefreshProviderStatus",
+        "RefreshActionDiagnostics",
+        "AcquireEverything",
+        "RecheckEverything",
+        "RefreshDataCompatibilityStatus",
+        "RefreshUpdateStatus",
+        "ApplyUpdateSettings",
+    ):
+        if token not in settings_h or token not in settings_cpp:
+            fail(f"v0.8 alpha.1 lost active Settings helper during legacy cleanup: {token}")
+
     app_cpp = read("src/app/App.cpp")
     if "->RefreshCommands()" in app_cpp:
         fail("v0.8 alpha.1 kept the obsolete Settings shortcut refresh hook")
