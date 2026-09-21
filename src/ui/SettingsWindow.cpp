@@ -6350,41 +6350,16 @@ LRESULT SettingsWindow::HandleMessage(
                 PlacementCardRect());
         } else if (
             page_ == Page::Hotkeys) {
-
-            const int contentRight =
-                client.right -
-                Scale(
-                    settings_layout::
-                        kContentRightInsetLogical);
-            const int contentWidth =
-                contentRight -
-                contentLeft;
-            const int gap =
-                Scale(18);
-            const int listWidth =
-                std::min(
-                    Scale(285),
-                    std::max(
-                        Scale(230),
-                        contentWidth *
-                            38 / 100));
-
-            drawCard({
-                contentLeft,
-                Scale(116),
-                contentLeft +
-                    listWidth,
-                Scale(516),
-            });
-
-            drawCard({
-                contentLeft +
-                    listWidth +
-                    gap,
-                Scale(116),
-                contentRight,
-                Scale(516),
-            });
+            drawCard(
+                PageCardRect(
+                    140,
+                    144,
+                    560));
+            drawCard(
+                PageCardRect(
+                    338,
+                    216,
+                    560));
         } else if (
             page_ == Page::Providers) {
             drawCard(
@@ -6400,29 +6375,29 @@ LRESULT SettingsWindow::HandleMessage(
                 PageCardRect(
                     140,
                     58,
-                    680));
+                    560));
             drawCard(
                 PageCardRect(
                     264,
                     58,
-                    680));
+                    560));
         } else if (
             page_ == Page::Data) {
             drawCard(
                 PageCardRect(
                     140,
                     60,
-                    720));
+                    560));
             drawCard(
                 PageCardRect(
                     264,
                     64,
-                    720));
+                    560));
             drawCard(
                 PageCardRect(
                     392,
                     64,
-                    720));
+                    560));
         } else if (
             page_ == Page::About) {
             drawCard(
@@ -6475,6 +6450,26 @@ LRESULT SettingsWindow::HandleMessage(
             control == brandName_ ||
             control == brandSubtitle_;
 
+        const bool hotkeyCardStatic =
+            std::any_of(
+                hotkeyRows_.begin(),
+                hotkeyRows_.end(),
+                [&](const HotkeyRowControls& row) {
+                    return control ==
+                            row.title ||
+                        control ==
+                            row.status;
+                });
+
+        const bool hotkeyMutedStatic =
+            std::any_of(
+                hotkeyRows_.begin(),
+                hotkeyRows_.end(),
+                [&](const HotkeyRowControls& row) {
+                    return control ==
+                        row.status;
+                });
+
         const bool cardStatic =
             control ==
                 numericQuickLaunchOrderLabel_ ||
@@ -6483,11 +6478,7 @@ LRESULT SettingsWindow::HandleMessage(
                 launcherPlacementLabel_ ||
             control ==
                 settingsPlacementLabel_ ||
-            control == hotkeyEditorTitle_ ||
-            control ==
-                hotkeyEditorDescription_ ||
-            control == hotkeyScope_ ||
-            control == hotkeyPageStatus_ ||
+            hotkeyCardStatic ||
             control == providerStatus_ ||
             control == uiStyleLabel_ ||
             control == languageLabel_ ||
@@ -6518,11 +6509,7 @@ LRESULT SettingsWindow::HandleMessage(
             control ==
                 settingsPlacementDescription_ ||
             control == generalNote_ ||
-            control ==
-                hotkeyEditorDescription_ ||
-            control == hotkeyScope_ ||
-            control == hotkeyPageStatus_ ||
-            control == hotkeyPageNote_ ||
+            hotkeyMutedStatic ||
             control == providerStatus_ ||
             control == providerNote_ ||
             control == appearanceNote_ ||
