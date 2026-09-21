@@ -2079,8 +2079,10 @@ if version in ("0.7.0-alpha.2", "0.7.0-alpha.2.1", "0.7.0-alpha.2.2", "0.7.0-alp
                 "AssertSchema6Migration",
                 "schema6-to-schema7",
                 "MigratedFromSchemaVersion() ==",
-                "UpdateChannel::Development",
+                "DefaultUpdateChannelForVersion(kVersion)",
+                "ExpectedDefaultUpdateChannelName",
                 '"development"',
+                '"stable"',
             ):
                 if token not in upgrade_matrix:
                     fail(f"v0.7 alpha.9 schema-6 -> 7 migration coverage missing: {token}")
