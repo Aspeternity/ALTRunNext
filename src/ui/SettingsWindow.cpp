@@ -5996,8 +5996,8 @@ void SettingsWindow::ApplyUpdateSettings() {
             : UpdateChannel::Stable;
 
     const bool autoCheck =
-        IsChecked(
-            updateAutoCheck_);
+        app_.SettingsData()
+            .autoCheckUpdates;
 
     if (!app_.SetUpdateSettings(
             autoCheck,
