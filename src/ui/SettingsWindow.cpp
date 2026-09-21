@@ -1844,7 +1844,8 @@ void SettingsWindow::RefreshHotkeyPage() {
 
         ShowWindow(
             row.reset,
-            modified
+            page_ == Page::Hotkeys &&
+                    modified
                 ? SW_SHOW
                 : SW_HIDE);
 
@@ -1875,9 +1876,10 @@ void SettingsWindow::RefreshHotkeyPage() {
 
         ShowWindow(
             row.status,
-            status.empty()
-                ? SW_HIDE
-                : SW_SHOW);
+            page_ == Page::Hotkeys &&
+                    !status.empty()
+                ? SW_SHOW
+                : SW_HIDE);
     }
 
     syncing_ = oldSyncing;
