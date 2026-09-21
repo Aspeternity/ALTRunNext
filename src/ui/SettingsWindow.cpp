@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <iomanip>
 #include <iterator>
+#include <optional>
 #include <sstream>
 #include <string>
 
