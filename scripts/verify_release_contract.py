@@ -2099,7 +2099,9 @@ if version in ("0.7.0-alpha.2", "0.7.0-alpha.2.1", "0.7.0-alpha.2.2", "0.7.0-alp
                 "schemaVersion -ne 7",
                 "update-state.json",
                 "update.autoCheck",
-                'update.channel -ne "development"',
+                "$expectedUpdateChannel",
+                '"development"',
+                '"stable"',
             ):
                 if token not in runtime_smoke:
                     fail(f"v0.7 alpha.9 packaged runtime update migration gate missing: {token}")
