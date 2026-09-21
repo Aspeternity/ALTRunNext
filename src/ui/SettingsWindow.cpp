@@ -3740,6 +3740,7 @@ RECT SettingsWindow::PlacementCardRect() const {
     };
 }
 
+
 void SettingsWindow::Layout() {
     if (!hwnd_) return;
 
@@ -3768,16 +3769,16 @@ void SettingsWindow::Layout() {
     MoveWindow(
         brandName_,
         sidebarMargin,
-        Scale(18),
+        Scale(14),
         navWidth,
-        Scale(32),
+        Scale(34),
         TRUE);
     MoveWindow(
         brandSubtitle_,
-        sidebarMargin,
-        Scale(49),
-        navWidth,
-        Scale(22),
+        sidebarMargin + Scale(28),
+        Scale(47),
+        navWidth - Scale(28),
+        Scale(30),
         TRUE);
 
     std::array<HWND, 6> primaryNav{
@@ -3790,7 +3791,7 @@ void SettingsWindow::Layout() {
     };
 
     const int navTop =
-        Scale(88);
+        Scale(96);
 
     for (std::size_t i = 0;
          i < primaryNav.size();
@@ -3850,19 +3851,12 @@ void SettingsWindow::Layout() {
     MoveWindow(
         pageTitle_,
         contentLeft,
-        Scale(26) -
+        Scale(
+            settings_layout::
+                kPageTitleTopLogical) -
             pageScroll,
         contentWidth,
-        Scale(42),
-        TRUE);
-
-    MoveWindow(
-        pageDescription_,
-        contentLeft,
-        Scale(70) -
-            pageScroll,
-        contentWidth,
-        Scale(38),
+        Scale(40),
         TRUE);
 
     if (page_ == Page::General) {
@@ -3876,7 +3870,7 @@ void SettingsWindow::Layout() {
             metrics.behaviorTitleTop,
             metrics.behavior.right -
                 metrics.behavior.left,
-            Scale(28),
+            Scale(26),
             TRUE);
 
         MoveWindow(
@@ -3885,7 +3879,7 @@ void SettingsWindow::Layout() {
             metrics.searchTitleTop,
             metrics.search.right -
                 metrics.search.left,
-            Scale(28),
+            Scale(26),
             TRUE);
 
         const int toggleHeight =
@@ -3965,7 +3959,7 @@ void SettingsWindow::Layout() {
             metrics.search.left +
                 Scale(18),
             orderTop +
-                Scale(19),
+                Scale(13),
             Scale(150),
             Scale(24),
             TRUE);
@@ -3975,7 +3969,7 @@ void SettingsWindow::Layout() {
             metrics.search.right -
                 Scale(168),
             orderTop +
-                Scale(14),
+                Scale(9),
             Scale(150),
             Scale(180),
             TRUE);
@@ -3986,7 +3980,7 @@ void SettingsWindow::Layout() {
             metrics.placementTitleTop,
             metrics.placement.right -
                 metrics.placement.left,
-            Scale(28),
+            Scale(26),
             TRUE);
 
         const int rowHeight =
@@ -4008,27 +4002,20 @@ void SettingsWindow::Layout() {
             comboWidth -
             Scale(18);
 
-        struct PlacementRow {
-            HWND label;
-            HWND description;
-            HWND combo;
-        };
-
-        const std::array<PlacementRow, 3>
+        const std::array<
+            std::pair<HWND, HWND>,
+            3>
             placementRows{{
                 {
                     popupMonitorLabel_,
-                    popupMonitorDescription_,
                     popupMonitor_,
                 },
                 {
                     launcherPlacementLabel_,
-                    launcherPlacementDescription_,
                     launcherPlacement_,
                 },
                 {
                     settingsPlacementLabel_,
-                    settingsPlacementDescription_,
                     settingsPlacement_,
                 },
             }};
@@ -4042,11 +4029,11 @@ void SettingsWindow::Layout() {
                     rowHeight;
 
             MoveWindow(
-                placementRows[i].label,
+                placementRows[i].first,
                 labelX,
-                top + Scale(10),
+                top + Scale(15),
                 std::max(
-                    Scale(180),
+                    Scale(150),
                     comboX -
                         labelX -
                         Scale(16)),
@@ -4054,39 +4041,18 @@ void SettingsWindow::Layout() {
                 TRUE);
 
             MoveWindow(
-                placementRows[i].description,
-                labelX,
-                top + Scale(34),
-                std::max(
-                    Scale(180),
-                    comboX -
-                        labelX -
-                        Scale(16)),
-                Scale(24),
-                TRUE);
-
-            MoveWindow(
-                placementRows[i].combo,
+                placementRows[i].second,
                 comboX,
-                top + Scale(18),
+                top + Scale(10),
                 comboWidth,
-                Scale(220),
+                Scale(180),
                 TRUE);
         }
-
-        MoveWindow(
-            generalNote_,
-            metrics.placement.left,
-            metrics.noteTop,
-            metrics.placement.right -
-                metrics.placement.left,
-            Scale(36),
-            TRUE);
     }
 
     if (page_ == Page::Hotkeys) {
         const int top =
-            Scale(150);
+            Scale(116);
         const int gap =
             Scale(18);
         const int listWidth =
@@ -4110,7 +4076,7 @@ void SettingsWindow::Layout() {
             contentLeft + Scale(12),
             top + Scale(12),
             listWidth - Scale(24),
-            Scale(390),
+            Scale(376),
             TRUE);
 
         MoveWindow(
@@ -4124,31 +4090,33 @@ void SettingsWindow::Layout() {
         MoveWindow(
             hotkeyEditorDescription_,
             editorX + Scale(18),
-            top + Scale(54),
+            top + Scale(52),
             editorWidth - Scale(36),
-            Scale(54),
+            Scale(30),
             TRUE);
 
         MoveWindow(
             hotkeyScope_,
             editorX + Scale(18),
-            top + Scale(112),
+            top + Scale(88),
             editorWidth - Scale(36),
             Scale(26),
             TRUE);
 
         MoveWindow(
             hotkeyEnabled_,
-            editorX + Scale(18),
-            top + Scale(150),
-            editorWidth - Scale(36),
-            Scale(28),
+            editorX + Scale(1),
+            top + Scale(122),
+            editorWidth - Scale(2),
+            Scale(
+                settings_layout::
+                    kToggleRowLogical),
             TRUE);
 
         MoveWindow(
             hotkeyCapture_,
             editorX + Scale(18),
-            top + Scale(194),
+            top + Scale(188),
             std::min(
                 Scale(220),
                 editorWidth - Scale(36)),
@@ -4158,7 +4126,7 @@ void SettingsWindow::Layout() {
         MoveWindow(
             hotkeyResetCurrent_,
             editorX + Scale(18),
-            top + Scale(244),
+            top + Scale(234),
             std::min(
                 Scale(220),
                 editorWidth - Scale(36)),
@@ -4168,27 +4136,19 @@ void SettingsWindow::Layout() {
         MoveWindow(
             hotkeyPageStatus_,
             editorX + Scale(18),
-            top + Scale(294),
+            top + Scale(282),
             editorWidth - Scale(36),
-            Scale(64),
+            Scale(44),
             TRUE);
 
         MoveWindow(
             hotkeyResetAll_,
             editorX + Scale(18),
-            top + Scale(372),
+            top + Scale(340),
             std::min(
                 Scale(240),
                 editorWidth - Scale(36)),
             Scale(36),
-            TRUE);
-
-        MoveWindow(
-            hotkeyPageNote_,
-            contentLeft,
-            top + Scale(430),
-            contentWidth,
-            Scale(58),
             TRUE);
     }
 
@@ -4201,9 +4161,9 @@ void SettingsWindow::Layout() {
         MoveWindow(
             providerSectionTitle_,
             contentLeft,
-            Scale(138),
+            Scale(108),
             width,
-            Scale(28),
+            Scale(26),
             TRUE);
 
         const RECT appCard =
@@ -4238,27 +4198,21 @@ void SettingsWindow::Layout() {
                 TRUE);
         }
 
-        const int filesTitleTop =
-            170 +
-            settings_layout::
-                kToggleRowLogical * 4 +
-            22;
-
         MoveWindow(
             providerFilesTitle_,
             contentLeft,
-            Scale(filesTitleTop),
+            Scale(362),
             width,
-            Scale(28),
+            Scale(26),
             TRUE);
 
         const int filesTop =
-            filesTitleTop + 32;
+            Scale(394);
 
         MoveWindow(
             providerEverything_,
             contentLeft + Scale(1),
-            Scale(filesTop + 1),
+            filesTop + Scale(1),
             width - Scale(2),
             rowHeight,
             TRUE);
@@ -4266,19 +4220,15 @@ void SettingsWindow::Layout() {
         MoveWindow(
             providerStatus_,
             contentLeft + Scale(18),
-            Scale(
-                filesTop +
-                settings_layout::
-                    kToggleRowLogical +
-                12),
+            filesTop + Scale(62),
             width - Scale(36),
-            Scale(96),
+            Scale(42),
             TRUE);
 
         MoveWindow(
             providerGetEverything_,
             contentLeft + Scale(18),
-            Scale(filesTop + 174),
+            filesTop + Scale(116),
             Scale(210),
             Scale(34),
             TRUE);
@@ -4286,17 +4236,9 @@ void SettingsWindow::Layout() {
         MoveWindow(
             providerRecheckEverything_,
             contentLeft + Scale(240),
-            Scale(filesTop + 174),
+            filesTop + Scale(116),
             Scale(128),
             Scale(34),
-            TRUE);
-
-        MoveWindow(
-            providerNote_,
-            contentLeft + Scale(18),
-            Scale(filesTop + 220),
-            width - Scale(36),
-            Scale(60),
             TRUE);
     }
 
@@ -4309,57 +4251,49 @@ void SettingsWindow::Layout() {
         MoveWindow(
             appearanceLauncherTitle_,
             contentLeft,
-            Scale(138),
+            Scale(108),
             width,
-            Scale(28),
+            Scale(26),
             TRUE);
 
         MoveWindow(
             uiStyleLabel_,
             contentLeft + Scale(18),
-            Scale(192),
+            Scale(158),
             Scale(220),
-            Scale(26),
+            Scale(24),
             TRUE);
         MoveWindow(
             uiStyle_,
             contentLeft + width -
                 Scale(308),
-            Scale(183),
+            Scale(149),
             Scale(290),
-            Scale(220),
+            Scale(180),
             TRUE);
 
         MoveWindow(
             appearanceAppTitle_,
             contentLeft,
-            Scale(270),
+            Scale(232),
             width,
-            Scale(28),
+            Scale(26),
             TRUE);
 
         MoveWindow(
             languageLabel_,
             contentLeft + Scale(18),
-            Scale(324),
+            Scale(282),
             Scale(220),
-            Scale(26),
+            Scale(24),
             TRUE);
         MoveWindow(
             language_,
             contentLeft + width -
                 Scale(308),
-            Scale(315),
+            Scale(273),
             Scale(290),
-            Scale(220),
-            TRUE);
-
-        MoveWindow(
-            appearanceNote_,
-            contentLeft,
-            Scale(398),
-            width,
-            Scale(54),
+            Scale(180),
             TRUE);
     }
 
@@ -4372,90 +4306,90 @@ void SettingsWindow::Layout() {
         MoveWindow(
             dataPathLabel_,
             contentLeft,
-            Scale(138),
+            Scale(108),
             width,
-            Scale(28),
+            Scale(26),
             TRUE);
         MoveWindow(
             dataPath_,
             contentLeft + Scale(18),
-            Scale(190),
+            Scale(158),
             width - Scale(220),
-            Scale(28),
+            Scale(24),
             TRUE);
         MoveWindow(
             openDataFolder_,
             contentLeft + width -
                 Scale(174),
-            Scale(181),
+            Scale(152),
             Scale(156),
-            Scale(36),
+            Scale(34),
             TRUE);
 
         MoveWindow(
             dataTransferLabel_,
             contentLeft,
-            Scale(280),
+            Scale(232),
             width,
-            Scale(28),
+            Scale(26),
             TRUE);
         MoveWindow(
             dataImportTsv_,
             contentLeft + Scale(18),
-            Scale(330),
+            Scale(278),
             Scale(170),
-            Scale(36),
+            Scale(34),
             TRUE);
         MoveWindow(
             dataImportLegacy_,
             contentLeft + Scale(200),
-            Scale(330),
+            Scale(278),
             Scale(190),
-            Scale(36),
+            Scale(34),
             TRUE);
         MoveWindow(
             dataExport_,
             contentLeft + Scale(402),
-            Scale(330),
+            Scale(278),
             Scale(170),
-            Scale(36),
+            Scale(34),
             TRUE);
 
         MoveWindow(
             dataMaintenanceLabel_,
             contentLeft,
-            Scale(420),
+            Scale(360),
             width,
-            Scale(28),
+            Scale(26),
             TRUE);
         MoveWindow(
             dataClearUsage_,
             contentLeft + Scale(18),
-            Scale(470),
+            Scale(406),
             Scale(170),
-            Scale(36),
+            Scale(34),
             TRUE);
         MoveWindow(
             dataRebuildIndex_,
             contentLeft + Scale(200),
-            Scale(470),
+            Scale(406),
             Scale(190),
-            Scale(36),
+            Scale(34),
             TRUE);
         MoveWindow(
             dataResetSettings_,
             contentLeft + Scale(402),
-            Scale(470),
+            Scale(406),
             Scale(170),
-            Scale(36),
+            Scale(34),
             TRUE);
 
         MoveWindow(
             dataStatus_,
             contentLeft,
-            Scale(552),
+            Scale(478),
             width,
-            Scale(74),
+            Scale(54),
             TRUE);
     }
 
@@ -4472,14 +4406,14 @@ void SettingsWindow::Layout() {
         MoveWindow(
             diagnosticsMemoryTitle_,
             contentLeft + Scale(18),
-            Scale(164),
+            Scale(132),
             column - Scale(36),
             Scale(24),
             TRUE);
         MoveWindow(
             diagnosticsMemoryStatus_,
             contentLeft + Scale(18),
-            Scale(194),
+            Scale(162),
             column - Scale(36),
             Scale(70),
             TRUE);
@@ -4488,7 +4422,7 @@ void SettingsWindow::Layout() {
             diagnosticsSearchTitle_,
             contentLeft + column +
                 gap + Scale(18),
-            Scale(164),
+            Scale(132),
             column - Scale(36),
             Scale(24),
             TRUE);
@@ -4496,65 +4430,54 @@ void SettingsWindow::Layout() {
             diagnosticsSearchStatus_,
             contentLeft + column +
                 gap + Scale(18),
-            Scale(194),
+            Scale(162),
             column - Scale(36),
-            Scale(78),
+            Scale(74),
             TRUE);
-
-        const int actionTop =
-            310;
 
         MoveWindow(
             actionsWindowsTitle_,
             contentLeft + Scale(18),
-            Scale(actionTop + 14),
+            Scale(284),
             width - Scale(36),
             Scale(24),
             TRUE);
         MoveWindow(
             actionsWindowsStatus_,
             contentLeft + Scale(18),
-            Scale(actionTop + 44),
+            Scale(314),
             width - Scale(36),
-            Scale(105),
+            Scale(122),
             TRUE);
 
         MoveWindow(
             actionsClipboardTitle_,
             contentLeft + Scale(18),
-            Scale(actionTop + 180),
+            Scale(484),
             width - Scale(36),
             Scale(24),
             TRUE);
         MoveWindow(
             actionsClipboardStatus_,
             contentLeft + Scale(18),
-            Scale(actionTop + 210),
+            Scale(514),
             width - Scale(36),
-            Scale(48),
+            Scale(38),
             TRUE);
 
         MoveWindow(
             actionsWebTitle_,
             contentLeft + Scale(18),
-            Scale(actionTop + 288),
+            Scale(592),
             width - Scale(36),
             Scale(24),
             TRUE);
         MoveWindow(
             actionsWebStatus_,
             contentLeft + Scale(18),
-            Scale(actionTop + 318),
+            Scale(622),
             width - Scale(36),
-            Scale(48),
-            TRUE);
-
-        MoveWindow(
-            actionsNote_,
-            contentLeft,
-            Scale(actionTop + 390),
-            width,
-            Scale(48),
+            Scale(38),
             TRUE);
     }
 
@@ -4567,53 +4490,46 @@ void SettingsWindow::Layout() {
         MoveWindow(
             aboutName_,
             contentLeft,
-            Scale(136),
+            Scale(108),
             width,
             Scale(42),
             TRUE);
         MoveWindow(
             aboutVersion_,
             contentLeft,
-            Scale(182),
+            Scale(150),
             width,
             Scale(26),
-            TRUE);
-        MoveWindow(
-            aboutDescription_,
-            contentLeft,
-            Scale(214),
-            width,
-            Scale(40),
             TRUE);
 
         MoveWindow(
             updateSectionTitle_,
             contentLeft,
-            Scale(282),
+            Scale(206),
             width,
-            Scale(28),
+            Scale(26),
             TRUE);
 
         MoveWindow(
             updateChannelLabel_,
             contentLeft + Scale(18),
-            Scale(334),
+            Scale(258),
             Scale(160),
-            Scale(26),
+            Scale(24),
             TRUE);
         MoveWindow(
             updateChannel_,
             contentLeft + width -
                 Scale(236),
-            Scale(325),
+            Scale(249),
             Scale(218),
-            Scale(220),
+            Scale(180),
             TRUE);
 
         MoveWindow(
             updateAutoCheck_,
             contentLeft + Scale(1),
-            Scale(376),
+            Scale(294),
             width - Scale(2),
             Scale(
                 settings_layout::
@@ -4623,46 +4539,46 @@ void SettingsWindow::Layout() {
         MoveWindow(
             updateStatus_,
             contentLeft + Scale(18),
-            Scale(448),
+            Scale(354),
             width - Scale(36),
-            Scale(50),
+            Scale(52),
             TRUE);
 
         MoveWindow(
             updateCheck_,
             contentLeft + Scale(18),
-            Scale(506),
+            Scale(420),
             Scale(150),
-            Scale(36),
+            Scale(34),
             TRUE);
         MoveWindow(
             updateInstall_,
             contentLeft + Scale(180),
-            Scale(506),
+            Scale(420),
             Scale(180),
-            Scale(36),
+            Scale(34),
             TRUE);
 
         MoveWindow(
             aboutProjectTitle_,
             contentLeft,
-            Scale(576),
+            Scale(510),
             width,
-            Scale(28),
+            Scale(26),
             TRUE);
         MoveWindow(
             openGitHub_,
             contentLeft + Scale(18),
-            Scale(622),
+            Scale(560),
             Scale(150),
-            Scale(36),
+            Scale(34),
             TRUE);
     }
 }
 
 RECT SettingsWindow::ProviderCardRect() const {
     return PageCardRect(
-        170,
+        140,
         settings_layout::
             kToggleRowLogical * 4,
         720);
@@ -5187,6 +5103,7 @@ void SettingsWindow::DrawActionButton(
     }
 }
 
+
 void SettingsWindow::DrawGeneralToggle(
     const DRAWITEMSTRUCT& item) {
 
@@ -5218,147 +5135,68 @@ void SettingsWindow::DrawGeneralToggle(
         ToggleChecked(id);
 
     const wchar_t* title = L"";
-    const wchar_t* description = L"";
 
     switch (id) {
     case kIdStartWithWindows:
-        title = T(
-            L"开机启动",
-            L"Start with Windows");
-        description = T(
-            L"登录 Windows 后自动启动 ALTRun Next。",
-            L"Launch ALTRun Next automatically after signing in.");
+        title = T(L"开机启动", L"Start with Windows");
         break;
     case kIdShowOnStartup:
-        title = T(
-            L"启动时显示启动器",
-            L"Show launcher on startup");
-        description = T(
-            L"程序启动后立即显示 Launcher；默认保持后台静默启动。",
-            L"Show the launcher when the app starts; otherwise start silently.");
+        title = T(L"启动时显示启动器", L"Show launcher on startup");
         break;
     case kIdHideAfterLaunch:
-        title = T(
-            L"执行后自动隐藏",
-            L"Hide after launch");
-        description = T(
-            L"成功执行结果后自动收起 Launcher。",
-            L"Hide the launcher after a result is executed successfully.");
+        title = T(L"执行后自动隐藏", L"Hide after launch");
         break;
     case kIdClearQueryOnShow:
-        title = T(
-            L"呼出时清空搜索",
-            L"Clear query on open");
-        description = T(
-            L"每次呼出 Launcher 时从空白搜索开始。",
-            L"Start with an empty query every time the launcher opens.");
+        title = T(L"呼出时清空搜索", L"Clear query on open");
         break;
     case kIdHideOnFocusLost:
-        title = T(
-            L"失去焦点时隐藏",
-            L"Hide when focus is lost");
-        description = T(
-            L"切换到其他窗口时自动收起 Launcher。",
-            L"Hide the launcher when another window receives focus.");
+        title = T(L"失去焦点时隐藏", L"Hide when focus is lost");
         break;
     case kIdShowTrayIcon:
-        title = T(
-            L"显示系统托盘图标",
-            L"Show system tray icon");
-        description = T(
-            L"保留托盘入口，用于设置、重新加载和退出。",
-            L"Keep the tray entry for Settings, reload and exit.");
+        title = T(L"显示系统托盘图标", L"Show system tray icon");
         break;
     case kIdShowResultIcons:
-        title = T(
-            L"显示搜索结果图标",
-            L"Show search result icons");
-        description = T(
-            L"关闭时不解析或缓存 Shell 图标，连续搜索会更轻。",
-            L"Disable Shell icon resolution and caching for lighter continuous search.");
+        title = T(L"显示搜索结果图标", L"Show search result icons");
         break;
     case kIdPinyinSearch:
-        title = T(
-            L"启用拼音搜索",
-            L"Enable Pinyin search");
-        description = T(
-            L"支持全拼、首字母和混合拼音匹配中文。",
-            L"Match Chinese using full, initial and mixed Pinyin.");
+        title = T(L"启用拼音搜索", L"Enable Pinyin search");
         break;
     case kIdWildcardMatching:
-        title = T(
-            L"允许 * / ? 通配符",
-            L"Enable * / ? wildcards");
-        description = T(
-            L"查询包含通配符时使用 glob 匹配。",
-            L"Use glob matching when the query contains wildcard characters.");
+        title = T(L"允许 * / ? 通配符", L"Enable * / ? wildcards");
         break;
     case kIdNumericQuickLaunch:
-        title = T(
-            L"数字键快速执行结果",
-            L"Quick launch with number keys");
-        description = T(
-            L"Classic 下数字键直接执行对应结果。",
-            L"In Classic mode, number keys execute matching results.");
+        title = T(L"数字键快速执行结果", L"Quick launch with number keys");
         break;
     case kIdExecuteSingleResult:
-        title = T(
-            L"仅剩一个结果时立即执行",
-            L"Execute immediately when one result remains");
-        description = T(
-            L"非空查询只剩唯一结果时立即启动；默认关闭以避免误触。",
-            L"Launch when a non-empty query narrows to one result; off by default.");
+        title = T(L"仅剩一个结果时立即执行", L"Execute when one result remains");
+        break;
+    case kIdHotkeyEnabled:
+        title = T(L"启用此快捷键", L"Enable this hotkey");
         break;
     case kIdProviderStartMenu:
-        title = T(
-            L"开始菜单",
-            L"Start Menu");
-        description = T(
-            L"发现当前用户和所有用户开始菜单中的快捷方式与程序。",
-            L"Discover shortcuts and programs from Windows Start Menu locations.");
+        title = T(L"开始菜单", L"Start Menu");
         break;
     case kIdProviderPackaged:
         title = L"Windows Apps";
-        description = T(
-            L"发现 Microsoft Store、UWP 和 MSIX 应用。",
-            L"Discover Microsoft Store, UWP and MSIX applications.");
         break;
     case kIdProviderAppPaths:
         title = L"App Paths";
-        description = T(
-            L"从注册表 App Paths 发现传统桌面程序。",
-            L"Discover traditional desktop applications from the App Paths registry.");
         break;
     case kIdProviderPath:
         title = L"PATH";
-        description = T(
-            L"发现 PATH 中的 EXE、COM、BAT 和 CMD。",
-            L"Discover EXE, COM, BAT and CMD files exposed through PATH.");
         break;
     case kIdProviderEverything:
-        title = T(
-            L"Everything 文件与文件夹",
-            L"Everything files & folders");
-        description = T(
-            L"通过标准版 Everything IPC 实时搜索文件和文件夹。",
-            L"Search files and folders live through standard Everything IPC.");
+        title = T(L"Everything 文件与文件夹", L"Everything files & folders");
         break;
     case kIdUpdateAutoCheck:
-        title = T(
-            L"自动检查更新",
-            L"Automatically check for updates");
-        description = T(
-            L"后台最多每天检查一次当前更新通道。",
-            L"Check the selected update channel in the background at most once per day.");
+        title = T(L"自动检查更新", L"Automatically check for updates");
         break;
     default:
         break;
     }
 
-    const int switchWidth =
-        Scale(40);
-    const int switchHeight =
-        Scale(22);
+    const int switchWidth = Scale(40);
+    const int switchHeight = Scale(22);
     const int switchLeft =
         rect.right -
         Scale(18) -
@@ -5376,14 +5214,11 @@ void SettingsWindow::DrawGeneralToggle(
         switchTop + switchHeight,
     };
 
-    const COLORREF trackColor =
-        checked
-            ? kAccent
-            : RGB(214, 219, 226);
-
     HBRUSH trackBrush =
         CreateSolidBrush(
-            trackColor);
+            checked
+                ? kAccent
+                : RGB(214, 219, 226));
     HPEN trackPen =
         CreatePen(
             PS_SOLID,
@@ -5410,21 +5245,13 @@ void SettingsWindow::DrawGeneralToggle(
         switchHeight,
         switchHeight);
 
-    SelectObject(
-        item.hDC,
-        oldBrush);
-    SelectObject(
-        item.hDC,
-        oldPen);
-    DeleteObject(
-        trackBrush);
-    DeleteObject(
-        trackPen);
+    SelectObject(item.hDC, oldBrush);
+    SelectObject(item.hDC, oldPen);
+    DeleteObject(trackBrush);
+    DeleteObject(trackPen);
 
-    const int knobSize =
-        Scale(16);
-    const int knobInset =
-        Scale(3);
+    const int knobSize = Scale(16);
+    const int knobInset = Scale(3);
     const int knobLeft =
         checked
             ? track.right -
@@ -5460,20 +5287,17 @@ void SettingsWindow::DrawGeneralToggle(
             knobInset +
             knobSize);
 
-    SelectObject(
-        item.hDC,
-        oldBrush);
-    SelectObject(
-        item.hDC,
-        oldPen);
-    DeleteObject(
-        knobBrush);
-    DeleteObject(
-        knobPen);
+    SelectObject(item.hDC, oldBrush);
+    SelectObject(item.hDC, oldPen);
+    DeleteObject(knobBrush);
+    DeleteObject(knobPen);
 
     SetBkMode(
         item.hDC,
         TRANSPARENT);
+    SetTextColor(
+        item.hDC,
+        kText);
 
     HGDIOBJ oldFont =
         SelectObject(
@@ -5482,40 +5306,16 @@ void SettingsWindow::DrawGeneralToggle(
 
     RECT titleRect{
         rect.left + Scale(18),
-        rect.top + Scale(9),
+        rect.top,
         switchLeft - Scale(16),
-        rect.top + Scale(31),
+        rect.bottom,
     };
 
-    SetTextColor(
-        item.hDC,
-        kText);
     DrawTextW(
         item.hDC,
         title,
         -1,
         &titleRect,
-        DT_LEFT |
-            DT_SINGLELINE |
-            DT_VCENTER |
-            DT_END_ELLIPSIS |
-            DT_NOPREFIX);
-
-    RECT descriptionRect{
-        titleRect.left,
-        rect.top + Scale(32),
-        titleRect.right,
-        rect.bottom - Scale(6),
-    };
-
-    SetTextColor(
-        item.hDC,
-        kMuted);
-    DrawTextW(
-        item.hDC,
-        description,
-        -1,
-        &descriptionRect,
         DT_LEFT |
             DT_SINGLELINE |
             DT_VCENTER |
@@ -5530,7 +5330,8 @@ void SettingsWindow::DrawGeneralToggle(
         id == kIdShowResultIcons ||
         id == kIdProviderPath ||
         id == kIdProviderEverything ||
-        id == kIdUpdateAutoCheck;
+        id == kIdUpdateAutoCheck ||
+        id == kIdHotkeyEnabled;
 
     if (!lastRow) {
         HPEN separator =
@@ -5549,7 +5350,6 @@ void SettingsWindow::DrawGeneralToggle(
             rect.left + Scale(18),
             rect.bottom - 1,
             nullptr);
-
         LineTo(
             item.hDC,
             rect.right - Scale(18),
@@ -5564,8 +5364,7 @@ void SettingsWindow::DrawGeneralToggle(
 
     if (item.itemState &
         ODS_FOCUS) {
-        RECT focus =
-            rect;
+        RECT focus = rect;
         InflateRect(
             &focus,
             -Scale(7),
@@ -6366,6 +6165,7 @@ LRESULT SettingsWindow::HandleMessage(
             item->CtlID == kIdHideOnFocusLost ||
             item->CtlID == kIdShowTrayIcon ||
             item->CtlID == kIdShowResultIcons ||
+            item->CtlID == kIdHotkeyEnabled ||
             item->CtlID == kIdPinyinSearch ||
             item->CtlID == kIdWildcardMatching ||
             item->CtlID == kIdNumericQuickLaunch ||
