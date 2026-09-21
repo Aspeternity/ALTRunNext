@@ -1075,13 +1075,11 @@ bool App::TestCommand(
 
 bool App::ImportUserCommands(
     const std::filesystem::path& path,
-    bool legacyMode,
     std::size_t* imported,
     std::size_t* skipped) {
 
     if (!commandStore_.ImportUserCommands(
             path,
-            legacyMode,
             imported,
             skipped)) {
         return false;
