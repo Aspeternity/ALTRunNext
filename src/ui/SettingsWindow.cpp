@@ -500,84 +500,93 @@ void SettingsWindow::CreateGeneralPage() {
     };
 }
 
+
 void SettingsWindow::CreateHotkeyPage() {
-    hotkeyActionList_ =
-        CreateWindowExW(
-            0,
-            L"LISTBOX",
-            L"",
-            WS_CHILD | WS_VISIBLE |
-                WS_TABSTOP | WS_VSCROLL |
-                LBS_NOTIFY |
-                LBS_OWNERDRAWFIXED |
-                LBS_HASSTRINGS |
-                LBS_NOINTEGRALHEIGHT,
-            0, 0, 0, 0,
-            hwnd_,
-            reinterpret_cast<HMENU>(
-                static_cast<UINT_PTR>(
-                    kIdHotkeyActionList)),
-            instance_,
-            nullptr);
+    hotkeyGlobalTitle_ =
+        CreateStatic(L"");
+    hotkeyLauncherTitle_ =
+        CreateStatic(L"");
 
-    hotkeyEditorTitle_ =
-        CreateStatic(
-            L"",
-            SS_LEFT | SS_NOPREFIX);
-    hotkeyEditorDescription_ =
-        CreateStatic(
-            L"",
-            SS_LEFT | SS_NOPREFIX);
-    hotkeyScope_ =
-        CreateStatic(
-            L"",
-            SS_LEFT | SS_NOPREFIX);
+    hotkeyRows_.clear();
+    hotkeyRows_.reserve(
+        HotkeyActionRegistry().size());
 
-    hotkeyEnabled_ =
-        CreateCheckboxRow(
-            L"",
-            kIdHotkeyEnabled);
+    std::size_t index = 0;
 
-    hotkeyCapture_ =
-        CreateButton(
-            L"",
-            kIdHotkeyCapture);
+    for (const auto& action :
+         HotkeyActionRegistry()) {
+        HotkeyRowControls row;
+        row.actionId = action.id;
 
-    hotkeyResetCurrent_ =
-        CreateButton(
-            L"",
-            kIdHotkeyResetCurrent);
+        row.title =
+            CreateStatic(
+                L"",
+                SS_LEFT |
+                    SS_NOPREFIX);
+
+        row.capture =
+            CreateButton(
+                L"",
+                kIdHotkeyCaptureBase +
+                    static_cast<UINT>(
+                        index));
+
+        if (!action.required) {
+            row.enabled =
+                CreateButton(
+                    L"",
+                    kIdHotkeyEnabledBase +
+                        static_cast<UINT>(
+                            index),
+                    BS_OWNERDRAW);
+        }
+
+        row.reset =
+            CreateButton(
+                L"",
+                kIdHotkeyResetBase +
+                    static_cast<UINT>(
+                        index));
+
+        row.status =
+            CreateStatic(
+                L"",
+                SS_LEFT |
+                    SS_NOPREFIX);
+
+        hotkeyRows_.push_back(
+            std::move(row));
+
+        ++index;
+    }
 
     hotkeyResetAll_ =
         CreateButton(
             L"",
             kIdHotkeyResetAll);
 
-    hotkeyPageStatus_ =
-        CreateStatic(
-            L"",
-            SS_LEFT | SS_NOPREFIX);
-
-    hotkeyPageNote_ =
-        CreateStatic(
-            L"",
-            SS_LEFT | SS_NOPREFIX);
-
     hotkeyControls_ = {
-        hotkeyActionList_,
-        hotkeyEditorTitle_,
-        hotkeyEditorDescription_,
-        hotkeyScope_,
-        hotkeyEnabled_,
-        hotkeyCapture_,
-        hotkeyResetCurrent_,
+        hotkeyGlobalTitle_,
+        hotkeyLauncherTitle_,
         hotkeyResetAll_,
-        hotkeyPageStatus_,
-        hotkeyPageNote_,
     };
+
+    for (const auto& row :
+         hotkeyRows_) {
+        hotkeyControls_.push_back(
+            row.title);
+        hotkeyControls_.push_back(
+            row.capture);
+        if (row.enabled) {
+            hotkeyControls_.push_back(
+                row.enabled);
+        }
+        hotkeyControls_.push_back(
+            row.reset);
+        hotkeyControls_.push_back(
+            row.status);
+    }
 }
-
-
 
 void SettingsWindow::CreateAppearancePage() {
     appearanceLauncherTitle_ =
@@ -723,10 +732,6 @@ void SettingsWindow::CreateDataPage() {
         CreateButton(
             L"",
             kIdDataImportTsv);
-    dataImportLegacy_ =
-        CreateButton(
-            L"",
-            kIdDataImportLegacy);
     dataExport_ =
         CreateButton(
             L"",
@@ -758,7 +763,6 @@ void SettingsWindow::CreateDataPage() {
         openDataFolder_,
         dataTransferLabel_,
         dataImportTsv_,
-        dataImportLegacy_,
         dataExport_,
         dataMaintenanceLabel_,
         dataClearUsage_,
