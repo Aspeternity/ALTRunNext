@@ -2057,6 +2057,10 @@ void LauncherWindow::ApplyGeneralSettings() {
     } else {
         RemoveTrayIcon();
     }
+
+    if (IsWindowVisible(hwnd_)) {
+        Reposition();
+    }
 }
 
 void LauncherWindow::ShowResultContextMenu(
@@ -2733,21 +2737,38 @@ LRESULT LauncherWindow::HandleMessage(
     UINT message, WPARAM wParam, LPARAM lParam) {
 
     switch (message) {
-    case WM_NCHITTEST:
-        if (!IsModern()) {
-            POINT point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-            ScreenToClient(hwnd_, &point);
+    case WM_NCHITTEST: {
+        POINT point{
+            GET_X_LPARAM(lParam),
+            GET_Y_LPARAM(lParam),
+        };
+        ScreenToClient(
+            hwnd_,
+            &point);
 
-            const RECT close = ClassicCloseRect();
-            if (PtInRect(&close, point)) {
+        if (!IsModern()) {
+            const RECT close =
+                ClassicCloseRect();
+
+            if (PtInRect(
+                    &close,
+                    point)) {
                 return HTCLIENT;
             }
 
-            if (point.y >= 0 && point.y < DpiScale(30)) {
+            if (point.y >= 0 &&
+                point.y < DpiScale(30)) {
                 return HTCAPTION;
             }
+        } else if (
+            point.y >= 0 &&
+            point.y < DpiScale(10)) {
+            // Modern Compact intentionally keeps only a very small drag
+            // strip so the input remains the primary interaction target.
+            return HTCAPTION;
         }
         break;
+    }
 
     case WM_LBUTTONUP:
         if (!IsModern()) {
