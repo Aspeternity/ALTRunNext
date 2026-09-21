@@ -6415,6 +6415,11 @@ LRESULT SettingsWindow::HandleMessage(
                 PlacementCardRect());
         } else if (
             page_ == Page::Hotkeys) {
+            const int contentRight =
+                client.right -
+                Scale(
+                    settings_layout::
+                        kContentRightInsetLogical);
             const int rowHeight =
                 Scale(72);
             const int globalCount =
