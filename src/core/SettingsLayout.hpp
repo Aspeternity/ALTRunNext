@@ -50,7 +50,7 @@ BuildGeneralLayout(
     int clientWidth,
     unsigned dpi,
     int scrollOffset,
-    int sidebarWidthLogical = 190) noexcept;
+    int sidebarWidthLogical = ui::kSettingsSidebarWidthLogical) noexcept;
 
 [[nodiscard]] int MaxScrollOffset(
     const GeneralLayoutMetrics& fullLayout,
