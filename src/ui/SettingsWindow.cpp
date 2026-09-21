@@ -638,6 +638,9 @@ void SettingsWindow::CreateDiagnosticsPage() {
 }
 
 void SettingsWindow::CreateAppearancePage() {
+    appearanceLauncherTitle_ =
+        CreateStatic(L"");
+
     uiStyleLabel_ =
         CreateStatic(L"");
 
@@ -657,6 +660,9 @@ void SettingsWindow::CreateAppearancePage() {
                     kIdUiStyle)),
             instance_,
             nullptr);
+
+    appearanceAppTitle_ =
+        CreateStatic(L"");
 
     languageLabel_ =
         CreateStatic(L"");
@@ -684,8 +690,10 @@ void SettingsWindow::CreateAppearancePage() {
             SS_LEFT | SS_NOPREFIX);
 
     appearanceControls_ = {
+        appearanceLauncherTitle_,
         uiStyleLabel_,
         uiStyle_,
+        appearanceAppTitle_,
         languageLabel_,
         language_,
         appearanceNote_,
@@ -694,6 +702,8 @@ void SettingsWindow::CreateAppearancePage() {
 
 void SettingsWindow::CreateProviderPage() {
     providerSectionTitle_ =
+        CreateStatic(L"");
+    providerFilesTitle_ =
         CreateStatic(L"");
 
     providerStartMenu_ =
@@ -738,6 +748,7 @@ void SettingsWindow::CreateProviderPage() {
 
     providerControls_ = {
         providerSectionTitle_,
+        providerFilesTitle_,
         providerStartMenu_,
         providerPackaged_,
         providerAppPaths_,
@@ -828,6 +839,8 @@ void SettingsWindow::CreateAboutPage() {
 
     updateSectionTitle_ =
         CreateStatic(L"");
+    aboutProjectTitle_ =
+        CreateStatic(L"");
     updateChannelLabel_ =
         CreateStatic(L"");
 
@@ -877,6 +890,7 @@ void SettingsWindow::CreateAboutPage() {
         aboutVersion_,
         aboutDescription_,
         updateSectionTitle_,
+        aboutProjectTitle_,
         updateChannelLabel_,
         updateChannel_,
         updateAutoCheck_,
