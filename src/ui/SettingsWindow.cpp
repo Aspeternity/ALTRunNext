@@ -523,12 +523,14 @@ void SettingsWindow::CreateGeneralPage() {
 void SettingsWindow::CreateHotkeyPage() {
     hotkeyActionList_ =
         CreateWindowExW(
-            WS_EX_CLIENTEDGE,
+            0,
             L"LISTBOX",
             L"",
             WS_CHILD | WS_VISIBLE |
                 WS_TABSTOP | WS_VSCROLL |
                 LBS_NOTIFY |
+                LBS_OWNERDRAWFIXED |
+                LBS_HASSTRINGS |
                 LBS_NOINTEGRALHEIGHT,
             0, 0, 0, 0,
             hwnd_,
@@ -1028,6 +1030,14 @@ void SettingsWindow::ApplyFonts() {
         updateInstall_,
         openGitHub_,
     };
+
+    if (hotkeyActionList_) {
+        SendMessageW(
+            hotkeyActionList_,
+            LB_SETITEMHEIGHT,
+            0,
+            Scale(52));
+    }
 
     for (HWND control :
          normalControls) {
@@ -1839,22 +1849,9 @@ void SettingsWindow::RefreshHotkeyPage() {
 
     for (const auto& action :
          HotkeyActionRegistry()) {
-        std::wstring label =
+        const std::wstring label =
             HotkeyActionLabel(
                 action.id);
-
-        const auto binding =
-            EffectiveHotkeyBinding(
-                app_.SettingsData()
-                    .hotkeyBindings,
-                action.id);
-
-        label += L"    ";
-        label += binding.enabled
-            ? FormatHotkeyBinding(
-                  action.id)
-            : T(L"（已禁用）",
-                L"(disabled)");
 
         const LRESULT index =
             SendMessageW(
