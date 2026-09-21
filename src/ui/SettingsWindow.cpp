@@ -5,7 +5,6 @@
 
 #include "../app/App.hpp"
 #include "../core/HotkeyRegistry.hpp"
-#include "../core/LauncherActionPolicy.hpp"
 #include "../platform/Hotkey.hpp"
 #include "Version.hpp"
 
@@ -130,7 +129,9 @@ bool SettingsWindow::Create() {
         WS_EX_APPWINDOW,
         kSettingsClass,
         kSettingsTitle,
-        WS_OVERLAPPEDWINDOW |
+        WS_CAPTION |
+            WS_SYSMENU |
+            WS_MINIMIZEBOX |
             WS_CLIPCHILDREN |
             WS_VSCROLL,
         CW_USEDEFAULT,
@@ -151,7 +152,7 @@ bool SettingsWindow::Create() {
     RECT desiredWindow{
         0,
         0,
-        Scale(1080),
+        Scale(820),
         Scale(720),
     };
 
@@ -261,9 +262,13 @@ HWND SettingsWindow::CreateCheckbox(
 
 void SettingsWindow::CreateControls() {
     brandName_ =
-        CreateStatic(L"ALTRun");
+        CreateStatic(
+            L"ALTRun",
+            SS_CENTER | SS_NOPREFIX);
     brandSubtitle_ =
-        CreateStatic(L"Next");
+        CreateStatic(
+            L"Next",
+            SS_CENTER | SS_NOPREFIX);
 
     navGeneral_ =
         CreateButton(
@@ -290,11 +295,6 @@ void SettingsWindow::CreateControls() {
             L"",
             kIdNavData,
             BS_OWNERDRAW);
-    navDiagnostics_ =
-        CreateButton(
-            L"",
-            kIdNavDiagnostics,
-            BS_OWNERDRAW);
     navAbout_ =
         CreateButton(
             L"",
@@ -315,7 +315,6 @@ void SettingsWindow::CreateControls() {
     CreateProviderPage();
     CreateAppearancePage();
     CreateDataPage();
-    CreateDiagnosticsPage();
     CreateAboutPage();
 }
 
@@ -576,47 +575,7 @@ void SettingsWindow::CreateHotkeyPage() {
     };
 }
 
-void SettingsWindow::CreateDiagnosticsPage() {
-    diagnosticsMemoryTitle_ =
-        CreateStatic(L"");
-    diagnosticsMemoryStatus_ =
-        CreateStatic(
-            L"",
-            SS_LEFT | SS_NOPREFIX);
 
-    diagnosticsSearchTitle_ =
-        CreateStatic(L"");
-    diagnosticsSearchStatus_ =
-        CreateStatic(
-            L"",
-            SS_LEFT | SS_NOPREFIX);
-
-    actionsWindowsTitle_ = CreateStatic(L"");
-    actionsWindowsStatus_ =
-        CreateStatic(L"", SS_LEFT | SS_NOPREFIX);
-    actionsClipboardTitle_ = CreateStatic(L"");
-    actionsClipboardStatus_ =
-        CreateStatic(L"", SS_LEFT | SS_NOPREFIX);
-    actionsWebTitle_ = CreateStatic(L"");
-    actionsWebStatus_ =
-        CreateStatic(L"", SS_LEFT | SS_NOPREFIX);
-    actionsNote_ =
-        CreateStatic(L"", SS_LEFT | SS_NOPREFIX);
-
-    diagnosticsControls_ = {
-        diagnosticsMemoryTitle_,
-        diagnosticsMemoryStatus_,
-        diagnosticsSearchTitle_,
-        diagnosticsSearchStatus_,
-        actionsWindowsTitle_,
-        actionsWindowsStatus_,
-        actionsClipboardTitle_,
-        actionsClipboardStatus_,
-        actionsWebTitle_,
-        actionsWebStatus_,
-        actionsNote_,
-    };
-}
 
 void SettingsWindow::CreateAppearancePage() {
     appearanceLauncherTitle_ =
@@ -934,7 +893,6 @@ void SettingsWindow::ApplyFonts() {
         navProviders_,
         navAppearance_,
         navData_,
-        navDiagnostics_,
         navAbout_,
         pageDescription_,
         startWithWindows_,
@@ -992,12 +950,6 @@ void SettingsWindow::ApplyFonts() {
         dataRebuildIndex_,
         dataResetSettings_,
         dataStatus_,
-        diagnosticsMemoryStatus_,
-        diagnosticsSearchStatus_,
-        actionsWindowsStatus_,
-        actionsClipboardStatus_,
-        actionsWebStatus_,
-        actionsNote_,
         aboutVersion_,
         aboutDescription_,
         updateChannelLabel_,
@@ -1030,7 +982,7 @@ void SettingsWindow::ApplyFonts() {
     }
 
     for (HWND control :
-         std::array<HWND, 18>{
+         std::array<HWND, 13>{
              generalBehaviorTitle_,
              searchBehaviorTitle_,
              placementSectionTitle_,
@@ -1042,11 +994,6 @@ void SettingsWindow::ApplyFonts() {
              dataPathLabel_,
              dataTransferLabel_,
              dataMaintenanceLabel_,
-             diagnosticsMemoryTitle_,
-             diagnosticsSearchTitle_,
-             actionsWindowsTitle_,
-             actionsClipboardTitle_,
-             actionsWebTitle_,
              updateSectionTitle_,
              aboutProjectTitle_}) {
         if (control) {
@@ -1192,6 +1139,29 @@ void SettingsWindow::ApplyLanguage() {
     SetWindowTextW(
         popupMonitorDescription_,
         L"");
+
+    SendMessageW(
+        popupMonitor_,
+        CB_RESETCONTENT, 0, 0);
+    SendMessageW(
+        popupMonitor_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"当前鼠标所在显示器",
+              L"Monitor containing the mouse")));
+    SendMessageW(
+        popupMonitor_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"当前活动窗口所在显示器",
+              L"Monitor containing the active window")));
+    SendMessageW(
+        popupMonitor_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"主显示器",
+              L"Primary monitor")));
+
     SetWindowTextW(
         launcherPlacementLabel_,
         T(L"Launcher 出现位置",
@@ -1199,6 +1169,29 @@ void SettingsWindow::ApplyLanguage() {
     SetWindowTextW(
         launcherPlacementDescription_,
         L"");
+
+    SendMessageW(
+        launcherPlacement_,
+        CB_RESETCONTENT, 0, 0);
+    SendMessageW(
+        launcherPlacement_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"靠近屏幕上方",
+              L"Near top of screen")));
+    SendMessageW(
+        launcherPlacement_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"屏幕居中",
+              L"Center on screen")));
+    SendMessageW(
+        launcherPlacement_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"上次位置",
+              L"Last position")));
+
     SetWindowTextW(
         settingsPlacementLabel_,
         T(L"设置窗口出现位置",
@@ -1206,6 +1199,23 @@ void SettingsWindow::ApplyLanguage() {
     SetWindowTextW(
         settingsPlacementDescription_,
         L"");
+
+    SendMessageW(
+        settingsPlacement_,
+        CB_RESETCONTENT, 0, 0);
+    SendMessageW(
+        settingsPlacement_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"屏幕居中",
+              L"Center on screen")));
+    SendMessageW(
+        settingsPlacement_,
+        CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(
+            T(L"上次位置",
+              L"Last position")));
+
     SetWindowTextW(
         generalNote_,
         L"");
@@ -1352,29 +1362,6 @@ void SettingsWindow::ApplyLanguage() {
         T(L"恢复默认设置",
           L"Reset settings"));
 
-    SetWindowTextW(
-        diagnosticsMemoryTitle_,
-        T(L"进程内存",
-          L"Process memory"));
-    SetWindowTextW(
-        diagnosticsSearchTitle_,
-        T(L"搜索数据与后台",
-          L"Search data & background"));
-    SetWindowTextW(
-        actionsWindowsTitle_,
-        T(L"Windows 导航与上下文",
-          L"Windows navigation & context"));
-    SetWindowTextW(
-        actionsClipboardTitle_,
-        T(L"剪贴板与文本",
-          L"Clipboard & text"));
-    SetWindowTextW(
-        actionsWebTitle_,
-        T(L"网页与 URL",
-          L"Web & URL"));
-    SetWindowTextW(
-        actionsNote_,
-        L"");
     SetWindowTextW(
         aboutName_,
         L"ALTRun Next");
@@ -1575,7 +1562,6 @@ void SettingsWindow::RefreshFromSettings() {
             : FALSE);
 
     RefreshHotkeyPage();
-    RefreshActionDiagnostics();
     RefreshUpdateStatus();
 
     for (HWND control :
@@ -2190,308 +2176,6 @@ void SettingsWindow::ResetAllHotkeys() {
     RefreshHotkeyPage();
 }
 
-void SettingsWindow::RefreshActionDiagnostics() {
-    if (!actionsWindowsStatus_) return;
-
-    const auto runtime =
-        app_.RuntimeDiagnostics();
-
-    std::wstring memoryText;
-    if (runtime.processMemory.available) {
-        memoryText +=
-            T(L"Working Set：",
-              L"Working Set: ");
-        memoryText +=
-            FormatBytes(
-                runtime.processMemory
-                    .workingSetBytes);
-
-        memoryText += L"\r\n";
-        memoryText +=
-            T(L"Peak Working Set：",
-              L"Peak Working Set: ");
-        memoryText +=
-            FormatBytes(
-                runtime.processMemory
-                    .peakWorkingSetBytes);
-
-        memoryText += L"\r\n";
-        memoryText +=
-            T(L"Private Bytes：",
-              L"Private Bytes: ");
-        memoryText +=
-            FormatBytes(
-                runtime.processMemory
-                    .privateBytes);
-    } else {
-        memoryText =
-            T(L"无法读取当前进程内存计数器。",
-              L"Unable to read process memory counters.");
-    }
-
-    SetWindowTextW(
-        diagnosticsMemoryStatus_,
-        memoryText.c_str());
-
-    std::wstring searchText =
-        T(L"用户快捷项：",
-          L"User commands: ");
-    searchText +=
-        std::to_wstring(
-            runtime.userCommandCount);
-
-    searchText +=
-        T(L"  ·  Provider 原始命令：",
-          L"  ·  Provider commands: ");
-    searchText +=
-        std::to_wstring(
-            runtime.providerCommandCount);
-
-    searchText += L"\r\n";
-    searchText +=
-        T(L"合并可搜索命令：",
-          L"Merged searchable commands: ");
-    searchText +=
-        std::to_wstring(
-            runtime.mergedCommandCount);
-
-    searchText += L"\r\n";
-    searchText += L"Pinyin: ";
-    if (!runtime.pinyinLoaded) {
-        searchText +=
-            T(L"未加载", L"Not loaded");
-    } else if (
-        runtime.pinyinAvailable) {
-        searchText +=
-            T(L"已加载 / 可用",
-              L"Loaded / Ready");
-    } else {
-        searchText +=
-            T(L"已加载 / 不可用",
-              L"Loaded / Unavailable");
-    }
-
-    searchText +=
-        T(L"  ·  Cache：",
-          L"  ·  Cache: ");
-    searchText +=
-        std::to_wstring(
-            runtime.pinyinCacheEntryCount);
-
-    searchText += L"\r\n";
-    searchText +=
-        T(L"Provider Refresh：",
-          L"Provider Refresh: ");
-    searchText +=
-        runtime.providerRefreshRunning
-        ? T(L"运行中", L"Running")
-        : T(L"空闲", L"Idle");
-
-    searchText +=
-        T(L"  ·  Monitor：",
-          L"  ·  Monitor: ");
-    searchText +=
-        runtime.providerMonitorRunning
-        ? T(L"运行中", L"Running")
-        : T(L"停止", L"Stopped");
-
-    SetWindowTextW(
-        diagnosticsSearchStatus_,
-        searchText.c_str());
-
-    const auto& context =
-        app_.LastActivationContext();
-
-    const auto reasonText =
-        [&](ActionUnavailableReason reason)
-            -> const wchar_t* {
-        switch (reason) {
-        case ActionUnavailableReason::None:
-            return T(L"可用", L"Available");
-        case ActionUnavailableReason::ResultNotFolder:
-            return T(L"当前结果不是文件夹",
-                     L"The selected result is not a folder");
-        case ActionUnavailableReason::NoSupportedFileManager:
-            return T(L"最近一次呼出未捕获 Explorer 或 Total Commander",
-                     L"The last activation did not capture Explorer or Total Commander");
-        case ActionUnavailableReason::NoCopyableTarget:
-            return T(L"当前结果没有可复制的目标",
-                     L"The selected result has no copyable target");
-        case ActionUnavailableReason::InvalidActionTarget:
-            return T(L"动作目标无效或为空",
-                     L"The action target is invalid or empty");
-        }
-        return T(L"不可用", L"Unavailable");
-    };
-
-    std::wstring windows =
-        T(L"最近一次呼出上下文：",
-          L"Last activation context: ");
-
-    switch (context.kind) {
-    case win::WindowsContextKind::Explorer:
-        windows += L"Explorer";
-        break;
-    case win::WindowsContextKind::FileDialog:
-        windows +=
-            T(L"文件打开 / 保存对话框",
-              L"Open / Save dialog");
-        break;
-    case win::WindowsContextKind::TotalCommander:
-        windows += L"Total Commander";
-        break;
-    case win::WindowsContextKind::None:
-        windows += T(L"无", L"None");
-        break;
-    }
-
-    if (context.HasExplorer() &&
-        !context.explorerFolder.empty()) {
-        windows += L"\r\n";
-        windows += T(L"来源目录：", L"Source folder: ");
-        windows += context.explorerFolder;
-    }
-
-    if (context.HasTotalCommander()) {
-        windows += L"\r\n";
-        windows += T(L"活动面板：", L"Active panel: ");
-        windows +=
-            context.totalCommanderActivePanel == 1
-                ? T(L"左", L"Left")
-                : T(L"右", L"Right");
-
-        if (!context.totalCommanderFolder.empty()) {
-            windows += L"  ·  ";
-            windows += context.totalCommanderFolder;
-        }
-    }
-
-    if (context.HasFileDialog()) {
-        windows += L"\r\n";
-        windows += T(L"对话框进程 ID：",
-                     L"Dialog process ID: ");
-        windows +=
-            std::to_wstring(
-                context.fileDialogProcessId);
-    }
-
-    LauncherResult folderProbe;
-    folderProbe.kind = ResultKind::Folder;
-    folderProbe.target =
-        L"C:\\ALTRunNext\\Diagnostics";
-    folderProbe.action.kind =
-        LauncherActionKind::OpenFolder;
-    folderProbe.action.payload =
-        folderProbe.target;
-
-    const auto navigate =
-        EvaluateLauncherAction(
-            folderProbe,
-            LauncherExecutionIntent::
-                NavigateCurrentFileManager,
-            context.HasExplorer(),
-            context.HasFileDialog(),
-            context.HasTotalCommander());
-
-    windows += L"\r\n";
-    windows += T(L"导航当前文件管理器：",
-                 L"Navigate current file manager: ");
-    windows += navigate.available
-        ? T(L"可用", L"Available")
-        : T(L"不可用", L"Unavailable");
-
-    if (!navigate.available) {
-        windows += L"  ·  ";
-        windows += reasonText(navigate.reason);
-    }
-
-    windows += L"\r\n";
-    windows += T(L"文件对话框 Folder Enter：",
-                 L"File-dialog Folder Enter: ");
-    windows += context.HasFileDialog()
-        ? T(L"将导航当前对话框",
-            L"Navigates the captured dialog")
-        : T(L"当前未激活",
-            L"Not active");
-
-    const auto folderContext =
-        context.CurrentFilesystemFolder();
-    windows += L"\r\n{folder}: ";
-    if (folderContext.empty()) {
-        windows += T(L"不可用", L"Unavailable");
-    } else {
-        windows += T(L"可用  ·  ", L"Available  ·  ");
-        windows += folderContext;
-    }
-
-    const bool everythingEnabled =
-        providers::IsEnabled(
-            app_.SettingsData().providerEnabled,
-            providers::kEverythingFilesystem,
-            false);
-
-    windows += L"\r\nEverything IPC: ";
-    if (!everythingEnabled) {
-        windows += T(L"已禁用", L"Disabled");
-    } else {
-        const auto everything =
-            app_.EverythingStatus();
-        if (everything.availability ==
-            EverythingAvailability::Available) {
-            windows += T(L"可用", L"Available");
-        } else if (
-            everything.availability ==
-            EverythingAvailability::Unknown) {
-            windows += T(L"正在检测", L"Detecting");
-        } else {
-            windows +=
-                T(L"不可用  ·  应用搜索回退仍有效",
-                  L"Unavailable  ·  application-search fallback remains active");
-        }
-    }
-
-    SetWindowTextW(
-        actionsWindowsStatus_,
-        windows.c_str());
-
-    LauncherResult copyProbe;
-    copyProbe.kind = ResultKind::File;
-    copyProbe.target =
-        L"C:\\ALTRunNext\\Diagnostics.txt";
-    copyProbe.action.kind =
-        LauncherActionKind::OpenFile;
-    copyProbe.action.payload =
-        copyProbe.target;
-
-    const auto copy =
-        EvaluateLauncherAction(
-            copyProbe,
-            LauncherExecutionIntent::
-                CopySelectedText,
-            false,
-            false,
-            false);
-
-    std::wstring clipboard =
-        T(L"复制选中结果：",
-          L"Copy selected result: ");
-    clipboard += copy.available
-        ? T(L"就绪", L"Ready")
-        : reasonText(copy.reason);
-    clipboard += L"\r\n";
-    clipboard +=
-        T(L"Copy / clip / 复制 文本动作：就绪  ·  Unicode CF_UNICODETEXT  ·  不读取或持久化剪贴板历史",
-          L"Copy / clip text action: Ready  ·  Unicode CF_UNICODETEXT  ·  clipboard history is neither read nor persisted");
-
-    SetWindowTextW(
-        actionsClipboardStatus_,
-        clipboard.c_str());
-
-    SetWindowTextW(
-        actionsWebStatus_,
-        T(L"直接 HTTP / HTTPS / www URL：就绪\r\n{query} URL 模板：就绪  ·  builtin.web 仅运行时存在，不写入 provider-cache",
-          L"Direct HTTP / HTTPS / www URLs: Ready\r\n{query} URL templates: Ready  ·  builtin.web is runtime-only and is not written to provider-cache"));
-}
 
 
 void SettingsWindow::RefreshProviderStatus() {
@@ -2783,9 +2467,6 @@ void SettingsWindow::UpdateNavLabels() {
         navData_,
         label(Page::Data, L"数据", L"Data").c_str());
     SetWindowTextW(
-        navDiagnostics_,
-        label(Page::Diagnostics, L"诊断", L"Diagnostics").c_str());
-    SetWindowTextW(
         navAbout_,
         label(Page::About, L"关于", L"About").c_str());
 }
@@ -2800,9 +2481,6 @@ void SettingsWindow::UpdatePageHeader() {
         break;
     case Page::Hotkeys:
         title = T(L"快捷键", L"Hotkeys");
-        break;
-    case Page::Diagnostics:
-        title = T(L"诊断", L"Diagnostics");
         break;
     case Page::Appearance:
         title = T(L"外观", L"Appearance");
@@ -2839,13 +2517,6 @@ void SettingsWindow::ShowPage(Page page) {
             kProviderStatusTimerId);
     }
 
-    if (page_ == Page::Diagnostics &&
-        page != Page::Diagnostics) {
-        KillTimer(
-            hwnd_,
-            kDiagnosticsStatusTimerId);
-    }
-
     if (page != page_ &&
         page == Page::General) {
         generalScrollOffset_ = 0;
@@ -2877,9 +2548,6 @@ void SettingsWindow::ShowPage(Page page) {
     setVisible(
         hotkeyControls_,
         page == Page::Hotkeys);
-    setVisible(
-        diagnosticsControls_,
-        page == Page::Diagnostics);
     setVisible(
         appearanceControls_,
         page == Page::Appearance);
@@ -2914,14 +2582,6 @@ void SettingsWindow::ShowPage(Page page) {
 
     if (page == Page::Hotkeys) {
         RefreshHotkeyPage();
-    } else if (
-        page == Page::Diagnostics) {
-        SetTimer(
-            hwnd_,
-            kDiagnosticsStatusTimerId,
-            1000,
-            nullptr);
-        RefreshActionDiagnostics();
     } else if (
         page == Page::Providers) {
         SetTimer(
