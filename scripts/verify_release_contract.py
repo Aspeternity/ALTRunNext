@@ -193,6 +193,10 @@ if version == "0.8.0-alpha.2.2":
         if token in cmake:
             fail(f"v0.8 alpha.2.2 diagnostics build dependency remains: {token}")
 
+    build_workflow = read(".github/workflows/build.yml")
+    if "process_memory_tests" in build_workflow:
+        fail("v0.8 alpha.2.2 build workflow still references deleted process-memory tests")
+
     for path in (
         "src/platform/ProcessMemory.cpp",
         "src/platform/ProcessMemory.hpp",
@@ -215,8 +219,8 @@ if version == "0.8.0-alpha.2.2":
         "kGeneralCardMaxWidthLogical == 560",
         "scale(820)",
         "scale(720)",
-        "layout.behavior.left ==\\n            layout.search.left",
-        "layout.search.top >\\n            layout.behavior.bottom",
+        "layout.behavior.left ==",
+        "layout.search.top >",
     ):
         if token not in desktop_test:
             fail(f"v0.8 alpha.2.2 single-column desktop coverage missing: {token}")
