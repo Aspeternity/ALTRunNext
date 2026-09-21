@@ -3001,6 +3001,7 @@ void SettingsWindow::ToggleProviderSetting(
         nullptr);
 }
 
+
 void SettingsWindow::CommitPendingProviderChanges() {
     KillTimer(
         hwnd_,
@@ -3028,13 +3029,14 @@ void SettingsWindow::CommitPendingProviderChanges() {
             FALSE);
     }
 
-    bool failed = false;
-    bool everythingFailed = false;
+    ProviderEnableMap ordinaryChanges;
+    std::optional<bool>
+        everythingChange;
 
     for (const auto& [providerId, enabled] :
          pending) {
-        const bool defaultEnabled =
-            providerId !=
+        const bool everything =
+            providerId ==
             providers::
                 kEverythingFilesystem;
 
@@ -3043,22 +3045,45 @@ void SettingsWindow::CommitPendingProviderChanges() {
                 app_.SettingsData()
                     .providerEnabled,
                 providerId,
-                defaultEnabled);
+                !everything);
 
         if (current == enabled) {
             continue;
         }
 
-        if (!app_.SetProviderEnabled(
-                providerId,
-                enabled)) {
-            failed = true;
-            everythingFailed =
-                everythingFailed ||
-                providerId ==
-                    providers::
-                        kEverythingFilesystem;
+        if (everything) {
+            everythingChange =
+                enabled;
+        } else {
+            ordinaryChanges[
+                providerId] =
+                enabled;
         }
+    }
+
+    bool failed = false;
+    bool everythingFailed = false;
+
+    // Apply all ordinary discovery providers in one Settings save / cache
+    // merge / Launcher refresh. This is the expensive work that used to run
+    // once per click.
+    if (!ordinaryChanges.empty() &&
+        !app_.SetProviderEnabledBatch(
+            ordinaryChanges)) {
+        failed = true;
+    }
+
+    // Everything remains a separate lifecycle operation because it may own
+    // a managed Service and require UAC. Run it after the cheap batch so a
+    // permission prompt cannot delay the ordinary-provider final state.
+    if (everythingChange &&
+        !app_.SetProviderEnabled(
+            std::string(
+                providers::
+                    kEverythingFilesystem),
+            *everythingChange)) {
+        failed = true;
+        everythingFailed = true;
     }
 
     pendingProviderStates_.clear();
