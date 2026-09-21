@@ -190,7 +190,6 @@ int main() {
     std::size_t skippedCount = 0;
     assert(importedCommands.ImportTsv(
         exportedCommands,
-        false,
         &importedCount,
         &skippedCount));
     assert(importedCount == 2);
@@ -200,24 +199,6 @@ int main() {
         data / "commands-imported.json");
     importedReloaded.Load();
     assert(importedReloaded.Commands().size() == 2);
-
-    const auto legacyBeta = root / "legacy-altrun.ini";
-    WriteText(
-        legacyBeta,
-        "[Shortcuts]\n"
-        "paint=mspaint.exe\n"
-        "term\tTerminal\tcmd.exe\t/k echo test\tC:\\\\Windows\n");
-
-    UserCommandStore legacyImported(
-        data / "commands-legacy-imported.json");
-    importedCount = 0;
-    skippedCount = 0;
-    assert(legacyImported.ImportTsv(
-        legacyBeta,
-        true,
-        &importedCount,
-        &skippedCount));
-    assert(importedCount == 2);
 
     UsageStore usage(data / "usage.json", legacyUsage);
     usage.Load(commandsReloaded.LegacyIdMap());
