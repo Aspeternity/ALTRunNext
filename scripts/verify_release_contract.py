@@ -154,6 +154,15 @@ if version == "0.8.0-alpha.1":
         "LoadCommandEditor",
         "editingCommandId_",
         "filteredCommandIds_",
+        "搜索快捷项...",
+        "Search shortcuts...",
+        "快捷项详情",
+        "Shortcut details",
+        "主快捷词 *",
+        "Primary keyword *",
+        "取消更改",
+        "Discard changes",
+        "oldType",
     )
     for token in legacy_settings_tokens:
         if token in settings_h or token in settings_cpp:
