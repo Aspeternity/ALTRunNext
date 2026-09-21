@@ -5736,6 +5736,12 @@ LRESULT SettingsWindow::HandleMessage(
     switch (message) {
     case WM_TIMER:
         if (wParam ==
+            kProviderCommitTimerId) {
+            CommitPendingProviderChanges();
+            return 0;
+        }
+
+        if (wParam ==
             kProviderStatusTimerId &&
             page_ == Page::Providers) {
             RefreshProviderStatus();
@@ -5782,6 +5788,52 @@ LRESULT SettingsWindow::HandleMessage(
         const bool toggleActivated =
             notify == BN_CLICKED ||
             notify == BN_DOUBLECLICKED;
+
+        if (id >= kIdHotkeyCaptureBase &&
+            id < kIdHotkeyCaptureBase +
+                hotkeyRows_.size()) {
+            if (notify == BN_CLICKED) {
+                if (auto* row =
+                        HotkeyRowFromControlId(
+                            id,
+                            kIdHotkeyCaptureBase)) {
+                    BeginHotkeyCapture(
+                        row->actionId);
+                }
+            }
+            return 0;
+        }
+
+        if (id >= kIdHotkeyEnabledBase &&
+            id < kIdHotkeyEnabledBase +
+                hotkeyRows_.size()) {
+            if (toggleActivated) {
+                if (auto* row =
+                        HotkeyRowFromControlId(
+                            id,
+                            kIdHotkeyEnabledBase)) {
+                    ToggleHotkeyActionEnabled(
+                        row->actionId);
+                    redrawClickedToggle();
+                }
+            }
+            return 0;
+        }
+
+        if (id >= kIdHotkeyResetBase &&
+            id < kIdHotkeyResetBase +
+                hotkeyRows_.size()) {
+            if (notify == BN_CLICKED) {
+                if (auto* row =
+                        HotkeyRowFromControlId(
+                            id,
+                            kIdHotkeyResetBase)) {
+                    ResetHotkeyAction(
+                        row->actionId);
+                }
+            }
+            return 0;
+        }
 
         switch (id) {
         case kIdNavGeneral:
@@ -5850,52 +5902,6 @@ LRESULT SettingsWindow::HandleMessage(
             }
             return 0;
 
-        case kIdHotkeyActionList:
-            if (notify == LBN_SELCHANGE &&
-                !syncing_) {
-                const int index =
-                    static_cast<int>(
-                        SendMessageW(
-                            hotkeyActionList_,
-                            LB_GETCURSEL,
-                            0,
-                            0));
-
-                if (index >= 0 &&
-                    index <
-                        static_cast<int>(
-                            hotkeyActionIds_
-                                .size())) {
-                    capturingHotkeyActionId_
-                        .clear();
-                    LoadHotkeyEditor(
-                        hotkeyActionIds_[
-                            static_cast<
-                                std::size_t>(
-                                index)]);
-                }
-            }
-            return 0;
-
-        case kIdHotkeyEnabled:
-            if (toggleActivated) {
-                ToggleSelectedHotkeyEnabled();
-                redrawClickedToggle();
-            }
-            return 0;
-
-        case kIdHotkeyCapture:
-            if (notify == BN_CLICKED) {
-                BeginHotkeyCapture();
-            }
-            return 0;
-
-        case kIdHotkeyResetCurrent:
-            if (notify == BN_CLICKED) {
-                ResetSelectedHotkey();
-            }
-            return 0;
-
         case kIdHotkeyResetAll:
             if (notify == BN_CLICKED) {
                 ResetAllHotkeys();
@@ -5940,13 +5946,7 @@ LRESULT SettingsWindow::HandleMessage(
 
         case kIdDataImportTsv:
             if (notify == BN_CLICKED) {
-                ImportCommands(false);
-            }
-            return 0;
-
-        case kIdDataImportLegacy:
-            if (notify == BN_CLICKED) {
-                ImportCommands(true);
+                ImportCommands();
             }
             return 0;
 
@@ -6052,12 +6052,18 @@ LRESULT SettingsWindow::HandleMessage(
             break;
         }
 
-        if (item->CtlID ==
-                kIdHotkeyActionList &&
-            item->CtlType ==
-                ODT_LISTBOX) {
-            DrawHotkeyActionItem(
-                *item);
+        if (item->CtlType ==
+                ODT_BUTTON &&
+            item->CtlID >=
+                kIdHotkeyEnabledBase &&
+            item->CtlID <
+                kIdHotkeyEnabledBase +
+                    hotkeyRows_.size()) {
+            DrawHotkeyToggle(
+                *item,
+                static_cast<std::size_t>(
+                    item->CtlID -
+                    kIdHotkeyEnabledBase));
             return TRUE;
         }
 
@@ -6079,7 +6085,6 @@ LRESULT SettingsWindow::HandleMessage(
             item->CtlID == kIdHideOnFocusLost ||
             item->CtlID == kIdShowTrayIcon ||
             item->CtlID == kIdShowResultIcons ||
-            item->CtlID == kIdHotkeyEnabled ||
             item->CtlID == kIdPinyinSearch ||
             item->CtlID == kIdWildcardMatching ||
             item->CtlID == kIdNumericQuickLaunch ||
@@ -6648,9 +6653,14 @@ LRESULT SettingsWindow::HandleMessage(
     }
 
     case WM_CLOSE:
+        CommitPendingProviderChanges();
+
         KillTimer(
             hwnd_,
             kProviderStatusTimerId);
+        KillTimer(
+            hwnd_,
+            kProviderCommitTimerId);
 
         ShowWindow(
             hwnd_,
@@ -6659,6 +6669,12 @@ LRESULT SettingsWindow::HandleMessage(
         return 0;
 
     case WM_DESTROY:
+        KillTimer(
+            hwnd_,
+            kProviderStatusTimerId);
+        KillTimer(
+            hwnd_,
+            kProviderCommitTimerId);
         hwnd_ = nullptr;
         return 0;
 
