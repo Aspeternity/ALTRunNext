@@ -205,6 +205,14 @@ private:
     void UpdateNavLabels();
     void UpdatePageHeader();
 
+    void RefreshProviderStatus();
+    void RefreshActionDiagnostics();
+    void AcquireEverything();
+    void RecheckEverything();
+    void RefreshDataCompatibilityStatus();
+    void RefreshUpdateStatus();
+    void ApplyUpdateSettings();
+
     void ToggleGeneralSetting(
         UINT id);
     void ToggleProviderSetting(
