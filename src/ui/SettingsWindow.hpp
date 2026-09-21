@@ -239,7 +239,7 @@ private:
         const wchar_t* text,
         UINT id,
         DWORD style =
-            BS_PUSHBUTTON | BS_FLAT);
+            BS_OWNERDRAW);
 
     HWND CreateCheckboxRow(
         const wchar_t* text,
