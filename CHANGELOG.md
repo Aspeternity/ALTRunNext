@@ -7,7 +7,8 @@
 - Replaced the Hotkeys master/detail layout with grouped single-column Global / Launcher hotkey cards and inline binding controls.
 - Added per-action inline capture, optional enable switches, conditional per-row Reset actions and per-row validation/registration status without changing Hotkey Registry IDs or behavior.
 - Debounced Search source commits for 180 ms so rapid clicks collapse to the final desired state instead of queueing synchronous provider refresh work.
-- Kept Everything service/UAC lifecycle semantics while restoring failed provider changes to the actual persisted state.
+- Batched ordinary discovery-source changes into one Settings save, provider-cache merge, Launcher refresh and provider-refresh request per debounce window.
+- Kept Everything as a separate final lifecycle operation so its managed-service/UAC semantics remain unchanged while failed changes restore the actual persisted state.
 - Reduced Appearance cards to 560 logical pixels with 200px right-aligned combos and corrected label/combo vertical alignment.
 - Removed the manual legacy AltRun import UI and permissive legacy import mode while retaining automatic legacy-data migration and legacy ID/schema compatibility.
 - Rebalanced Data import/export into two equal buttons and Maintenance into three equal buttons with shared card margins/gaps.
