@@ -18,7 +18,6 @@
 #include <array>
 #include <cstdint>
 #include <ctime>
-#include <cwctype>
 #include <filesystem>
 #include <iomanip>
 #include <iterator>
@@ -50,36 +49,6 @@ constexpr COLORREF kMuted =
     kPalette.mutedText;
 constexpr COLORREF kAccent =
     kPalette.accent;
-
-std::wstring TrimWide(std::wstring_view value) {
-    std::size_t first = 0;
-    std::size_t last = value.size();
-
-    while (first < last && std::iswspace(value[first])) ++first;
-    while (last > first && std::iswspace(value[last - 1])) --last;
-
-    return std::wstring(value.substr(first, last - first));
-}
-
-std::wstring LowerWide(std::wstring_view value) {
-    std::wstring out(value);
-    std::transform(
-        out.begin(),
-        out.end(),
-        out.begin(),
-        [](wchar_t c) {
-            return static_cast<wchar_t>(std::towlower(c));
-        });
-    return out;
-}
-
-bool ContainsInsensitive(
-    std::wstring_view value,
-    std::wstring_view needle) {
-
-    if (needle.empty()) return true;
-    return LowerWide(value).find(LowerWide(needle)) != std::wstring::npos;
-}
 
 std::wstring FormatBytes(
     std::uint64_t bytes) {
@@ -309,50 +278,6 @@ HWND SettingsWindow::CreateCheckbox(
         text,
         id,
         BS_AUTOCHECKBOX | BS_FLAT);
-}
-
-HWND SettingsWindow::CreateEdit(
-    UINT id,
-    DWORD style) {
-
-    HWND edit = CreateWindowExW(
-        WS_EX_CLIENTEDGE,
-        L"EDIT",
-        L"",
-        WS_CHILD | WS_VISIBLE | WS_TABSTOP | style,
-        0, 0, 0, 0,
-        hwnd_,
-        reinterpret_cast<HMENU>(
-            static_cast<UINT_PTR>(id)),
-        instance_,
-        nullptr);
-
-    SendMessageW(
-        edit,
-        EM_SETMARGINS,
-        EC_LEFTMARGIN | EC_RIGHTMARGIN,
-        MAKELPARAM(Scale(6), Scale(6)));
-
-    return edit;
-}
-
-std::wstring SettingsWindow::ControlText(
-    HWND control) const {
-
-    const int length =
-        GetWindowTextLengthW(control);
-
-    std::wstring value(
-        static_cast<std::size_t>(length + 1),
-        L'\0');
-
-    GetWindowTextW(
-        control,
-        value.data(),
-        length + 1);
-
-    value.resize(static_cast<std::size_t>(length));
-    return value;
 }
 
 void SettingsWindow::CreateControls() {
