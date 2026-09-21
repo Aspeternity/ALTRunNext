@@ -3917,7 +3917,8 @@ void SettingsWindow::Layout() {
                     primaryNav.size()) *
                     (navHeight + navGap) +
                 Scale(20),
-            client.bottom -
+            static_cast<int>(
+                client.bottom) -
                 navHeight -
                 Scale(22));
 
@@ -6654,7 +6655,8 @@ LRESULT SettingsWindow::HandleMessage(
         const int aboutSeparatorY =
             std::max(
                 Scale(360),
-                client.bottom -
+                static_cast<int>(
+                    client.bottom) -
                     Scale(
                         ui::
                             kSettingsNavHeightLogical) -
