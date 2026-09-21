@@ -145,33 +145,6 @@ void SetChecked(HWND control, bool checked) {
         0);
 }
 
-int TypeIndex(CommandType type) {
-    switch (type) {
-    case CommandType::Url:
-        return 1;
-    case CommandType::Folder:
-        return 2;
-    case CommandType::CommandLine:
-        return 3;
-    case CommandType::Application:
-    default:
-        return 0;
-    }
-}
-
-CommandType TypeFromIndex(int index) {
-    switch (index) {
-    case 1:
-        return CommandType::Url;
-    case 2:
-        return CommandType::Folder;
-    case 3:
-        return CommandType::CommandLine;
-    default:
-        return CommandType::Application;
-    }
-}
-
 } // namespace
 
 SettingsWindow::SettingsWindow(App& app, HINSTANCE instance)
@@ -1114,7 +1087,6 @@ void SettingsWindow::ApplyFonts() {
         face);
 
     std::vector<HWND> normalControls{
-        navCommands_,
         navGeneral_,
         navHotkeys_,
         navDiagnostics_,
@@ -1123,35 +1095,6 @@ void SettingsWindow::ApplyFonts() {
         navData_,
         navAbout_,
         pageDescription_,
-        commandSearch_,
-        commandNew_,
-        commandList_,
-        commandMoveUp_,
-        commandMoveDown_,
-        commandNameLabel_,
-        commandName_,
-        commandKeywordLabel_,
-        commandKeyword_,
-        commandAliasesLabel_,
-        commandAliases_,
-        commandTypeLabel_,
-        commandType_,
-        commandTargetLabel_,
-        commandTarget_,
-        commandBrowseTarget_,
-        commandArgumentsLabel_,
-        commandArguments_,
-        commandWorkdirLabel_,
-        commandWorkdir_,
-        commandBrowseWorkdir_,
-        commandEnabled_,
-        commandAdmin_,
-        commandPinned_,
-        commandTest_,
-        commandDelete_,
-        commandCancel_,
-        commandSave_,
-        commandStatus_,
         searchBehaviorTitle_,
         numericQuickLaunchOrderLabel_,
         numericQuickLaunchOrder_,
@@ -1242,7 +1185,6 @@ void SettingsWindow::ApplyFonts() {
     }
 
     for (HWND control : std::array<HWND, 16>{
-             commandEditorTitle_,
              generalBehaviorTitle_,
              searchBehaviorTitle_,
              hotkeySectionTitle_,
@@ -1319,65 +1261,46 @@ void SettingsWindow::ApplyLanguage() {
         T(L"ALTRun Next 设置", L"ALTRun Next Settings"));
 
     SendMessageW(
-        commandSearch_,
         EM_SETCUEBANNER,
         TRUE,
         reinterpret_cast<LPARAM>(
             T(L"搜索快捷项...", L"Search shortcuts...")));
 
     SetWindowTextW(
-        commandNew_,
         T(L"+ 新建", L"+ New"));
     SetWindowTextW(
-        commandMoveUp_,
         T(L"上移", L"Move up"));
     SetWindowTextW(
-        commandMoveDown_,
         T(L"下移", L"Move down"));
     SetWindowTextW(
-        commandEditorTitle_,
         T(L"快捷项详情", L"Shortcut details"));
     SetWindowTextW(
-        commandNameLabel_,
         T(L"名称 *", L"Name *"));
     SetWindowTextW(
-        commandKeywordLabel_,
         T(L"主快捷词 *", L"Primary keyword *"));
     SetWindowTextW(
-        commandAliasesLabel_,
         T(L"别名（逗号分隔）", L"Aliases (comma separated)"));
     SetWindowTextW(
-        commandTypeLabel_,
         T(L"类型", L"Type"));
     SetWindowTextW(
-        commandTargetLabel_,
         T(L"目标 *", L"Target *"));
     SetWindowTextW(
-        commandArgumentsLabel_,
         T(L"参数", L"Arguments"));
     SetWindowTextW(
-        commandWorkdirLabel_,
         T(L"工作目录", L"Working directory"));
     SetWindowTextW(
-        commandEnabled_,
         T(L"启用", L"Enabled"));
     SetWindowTextW(
-        commandAdmin_,
         T(L"以管理员身份运行", L"Run as administrator"));
     SetWindowTextW(
-        commandPinned_,
         T(L"置顶", L"Pinned"));
     SetWindowTextW(
-        commandTest_,
         T(L"测试运行", L"Test"));
     SetWindowTextW(
-        commandDelete_,
         T(L"删除", L"Delete"));
     SetWindowTextW(
-        commandCancel_,
         T(L"取消更改", L"Discard changes"));
     SetWindowTextW(
-        commandSave_,
         T(L"保存", L"Save"));
 
     const int oldType =
@@ -1385,38 +1308,31 @@ void SettingsWindow::ApplyLanguage() {
             0,
             static_cast<int>(
                 SendMessageW(
-                    commandType_,
                     CB_GETCURSEL,
                     0,
                     0)));
 
-    SendMessageW(commandType_, CB_RESETCONTENT, 0, 0);
     SendMessageW(
-        commandType_,
         CB_ADDSTRING,
         0,
         reinterpret_cast<LPARAM>(
             T(L"应用程序", L"Application")));
     SendMessageW(
-        commandType_,
         CB_ADDSTRING,
         0,
         reinterpret_cast<LPARAM>(
             T(L"网址", L"URL")));
     SendMessageW(
-        commandType_,
         CB_ADDSTRING,
         0,
         reinterpret_cast<LPARAM>(
             T(L"文件夹", L"Folder")));
     SendMessageW(
-        commandType_,
         CB_ADDSTRING,
         0,
         reinterpret_cast<LPARAM>(
             T(L"命令", L"Command")));
     SendMessageW(
-        commandType_,
         CB_SETCURSEL,
         oldType,
         0);
@@ -3462,16 +3378,6 @@ void SettingsWindow::UpdateNavLabels() {
 
 void SettingsWindow::UpdatePageHeader() {
     switch (page_) {
-    case Page::Commands:
-        SetWindowTextW(
-            pageTitle_,
-            T(L"快捷项", L"Shortcuts"));
-        SetWindowTextW(
-            pageDescription_,
-            T(L"管理用户自定义快捷项。开始菜单自动发现的程序不会写入这里。",
-              L"Manage user shortcuts. Automatically discovered Start Menu apps are not stored here."));
-        break;
-
     case Page::General:
         SetWindowTextW(
             pageTitle_,
@@ -3559,12 +3465,6 @@ void SettingsWindow::ShowPage(Page page) {
             kDiagnosticsStatusTimerId);
     }
 
-    if (page_ == Page::Commands &&
-        page != Page::Commands &&
-        !ConfirmDiscardChanges()) {
-        return;
-    }
-
     if (page != page_ &&
         page == Page::General) {
         generalScrollOffset_ = 0;
@@ -3580,7 +3480,6 @@ void SettingsWindow::ShowPage(Page page) {
         }
     };
 
-    setVisible(commandControls_, page == Page::Commands);
     setVisible(generalControls_, page == Page::General);
     setVisible(hotkeyControls_, page == Page::Hotkeys);
     setVisible(diagnosticsControls_, page == Page::Diagnostics);
@@ -3590,9 +3489,7 @@ void SettingsWindow::ShowPage(Page page) {
     setVisible(dataControls_, page == Page::Data);
     setVisible(aboutControls_, page == Page::About);
 
-    if (page == Page::Commands) {
-        RefreshCommandList(editingCommandId_);
-    } else if (
+else if (
         page == Page::Hotkeys) {
         RefreshHotkeyPage();
     } else if (
@@ -4798,238 +4695,6 @@ void SettingsWindow::Layout() {
         Scale(42),
         TRUE);
 
-    if (page_ == Page::Commands) {
-        const int top = Scale(130);
-        const int leftWidth =
-            std::clamp(
-                Scale(300),
-                Scale(250),
-                std::max(
-                    Scale(250),
-                    contentWidth / 3));
-
-        const int gap = Scale(28);
-        const int editorX =
-            contentLeft + leftWidth + gap;
-        const int editorWidth =
-            std::max(
-                Scale(360),
-                contentRight - editorX);
-
-        MoveWindow(
-            commandSearch_,
-            contentLeft,
-            top,
-            leftWidth - Scale(90),
-            Scale(34),
-            TRUE);
-
-        MoveWindow(
-            commandNew_,
-            contentLeft + leftWidth - Scale(82),
-            top,
-            Scale(82),
-            Scale(34),
-            TRUE);
-
-        MoveWindow(
-            commandList_,
-            contentLeft,
-            top + Scale(46),
-            leftWidth,
-            std::max<int>(
-                Scale(250),
-                static_cast<int>(client.bottom) - top - Scale(118)),
-            TRUE);
-
-        MoveWindow(
-            commandMoveUp_,
-            contentLeft,
-            client.bottom - Scale(56),
-            (leftWidth - Scale(8)) / 2,
-            Scale(34),
-            TRUE);
-
-        MoveWindow(
-            commandMoveDown_,
-            contentLeft +
-                (leftWidth - Scale(8)) / 2 +
-                Scale(8),
-            client.bottom - Scale(56),
-            (leftWidth - Scale(8)) / 2,
-            Scale(34),
-            TRUE);
-
-        MoveWindow(
-            commandEditorTitle_,
-            editorX,
-            top,
-            editorWidth,
-            Scale(30),
-            TRUE);
-
-        const int labelWidth = Scale(132);
-        const int fieldX =
-            editorX + labelWidth;
-        const int fieldWidth =
-            std::max(
-                Scale(210),
-                editorWidth - labelWidth);
-        const int browseWidth = Scale(44);
-        const int rowHeight = Scale(44);
-        int y = top + Scale(42);
-
-        auto placeField =
-            [&](HWND label,
-                HWND control,
-                HWND browse = nullptr) {
-                MoveWindow(
-                    label,
-                    editorX,
-                    y + Scale(6),
-                    labelWidth - Scale(12),
-                    Scale(24),
-                    TRUE);
-
-                const int width =
-                    browse
-                        ? fieldWidth - browseWidth - Scale(8)
-                        : fieldWidth;
-
-                MoveWindow(
-                    control,
-                    fieldX,
-                    y,
-                    width,
-                    Scale(34),
-                    TRUE);
-
-                if (browse) {
-                    MoveWindow(
-                        browse,
-                        fieldX + width + Scale(8),
-                        y,
-                        browseWidth,
-                        Scale(34),
-                        TRUE);
-                }
-
-                y += rowHeight;
-            };
-
-        placeField(
-            commandNameLabel_,
-            commandName_);
-        placeField(
-            commandKeywordLabel_,
-            commandKeyword_);
-        placeField(
-            commandAliasesLabel_,
-            commandAliases_);
-        placeField(
-            commandTypeLabel_,
-            commandType_);
-        placeField(
-            commandTargetLabel_,
-            commandTarget_,
-            commandBrowseTarget_);
-        placeField(
-            commandArgumentsLabel_,
-            commandArguments_);
-        placeField(
-            commandWorkdirLabel_,
-            commandWorkdir_,
-            commandBrowseWorkdir_);
-
-        const int optionGap = Scale(8);
-        const int enabledWidth =
-            std::clamp(
-                fieldWidth * 24 / 100,
-                Scale(66),
-                Scale(96));
-        const int pinnedWidth =
-            std::clamp(
-                fieldWidth * 22 / 100,
-                Scale(62),
-                Scale(88));
-        const int adminWidth =
-            std::max(
-                Scale(72),
-                fieldWidth -
-                    enabledWidth -
-                    pinnedWidth -
-                    optionGap * 2);
-
-        MoveWindow(
-            commandEnabled_,
-            fieldX,
-            y + Scale(3),
-            enabledWidth,
-            Scale(30),
-            TRUE);
-
-        MoveWindow(
-            commandAdmin_,
-            fieldX +
-                enabledWidth +
-                optionGap,
-            y + Scale(3),
-            adminWidth,
-            Scale(30),
-            TRUE);
-
-        MoveWindow(
-            commandPinned_,
-            fieldX +
-                enabledWidth +
-                optionGap +
-                adminWidth +
-                optionGap,
-            y + Scale(3),
-            pinnedWidth,
-            Scale(30),
-            TRUE);
-
-        y += Scale(44);
-
-        const int actionGap = Scale(8);
-        const int actionWidth =
-            std::max(
-                1,
-                (fieldWidth -
-                 actionGap * 3) / 4);
-
-        std::array<HWND, 4> actions{
-            commandTest_,
-            commandDelete_,
-            commandCancel_,
-            commandSave_,
-        };
-
-        for (std::size_t i = 0;
-             i < actions.size();
-             ++i) {
-            MoveWindow(
-                actions[i],
-                fieldX +
-                    static_cast<int>(i) *
-                        (actionWidth +
-                         actionGap),
-                y,
-                actionWidth,
-                Scale(34),
-                TRUE);
-        }
-
-        MoveWindow(
-            commandStatus_,
-            fieldX,
-            y + Scale(44),
-            fieldWidth,
-            Scale(30),
-            TRUE);
-    }
-
     if (page_ == Page::General) {
         const auto metrics =
             BuildGeneralLayout(
@@ -5904,7 +5569,6 @@ RECT SettingsWindow::ProviderCardRect() const {
     };
 }
 
-
 void SettingsWindow::DrawNavigationButton(
     const DRAWITEMSTRUCT& item) {
 
@@ -5913,10 +5577,6 @@ void SettingsWindow::DrawNavigationButton(
     bool selected = false;
 
     switch (item.CtlID) {
-    case kIdNavCommands:
-        selected =
-            page_ == Page::Commands;
-        break;
     case kIdNavGeneral:
         selected =
             page_ == Page::General;
@@ -6812,12 +6472,6 @@ LRESULT SettingsWindow::HandleMessage(
         const UINT notify = HIWORD(wParam);
 
         switch (id) {
-        case kIdNavCommands:
-            if (notify == BN_CLICKED) {
-                ShowPage(Page::Commands);
-            }
-            return 0;
-
         case kIdNavGeneral:
             if (notify == BN_CLICKED) {
                 ShowPage(Page::General);
@@ -6857,135 +6511,6 @@ LRESULT SettingsWindow::HandleMessage(
         case kIdNavAbout:
             if (notify == BN_CLICKED) {
                 ShowPage(Page::About);
-            }
-            return 0;
-
-        case kIdCommandSearch:
-            if (notify == EN_CHANGE && !syncing_) {
-                RefreshCommandList(editingCommandId_);
-            }
-            return 0;
-
-        case kIdCommandList:
-            if (notify == LBN_SELCHANGE && !syncing_) {
-                const int index =
-                    static_cast<int>(
-                        SendMessageW(
-                            commandList_,
-                            LB_GETCURSEL,
-                            0,
-                            0));
-
-                if (index >= 0 &&
-                    index <
-                        static_cast<int>(
-                            filteredCommandIds_.size())) {
-
-                    const std::wstring selectedId =
-                        filteredCommandIds_[
-                            static_cast<std::size_t>(index)];
-
-                    if (selectedId != editingCommandId_) {
-                        if (!ConfirmDiscardChanges()) {
-                            RefreshCommandList(
-                                editingCommandId_);
-                            return 0;
-                        }
-
-                        LoadCommandEditor(selectedId);
-                    }
-                }
-            }
-            return 0;
-
-        case kIdCommandNew:
-            if (notify == BN_CLICKED) {
-                BeginNewCommand();
-            }
-            return 0;
-
-        case kIdCommandMoveUp:
-            if (notify == BN_CLICKED) {
-                MoveEditingCommand(-1);
-            }
-            return 0;
-
-        case kIdCommandMoveDown:
-            if (notify == BN_CLICKED) {
-                MoveEditingCommand(1);
-            }
-            return 0;
-
-        case kIdCommandBrowseTarget:
-            if (notify == BN_CLICKED) {
-                BrowseCommandTarget();
-            }
-            return 0;
-
-        case kIdCommandBrowseWorkdir:
-            if (notify == BN_CLICKED) {
-                BrowseCommandWorkingDirectory();
-            }
-            return 0;
-
-        case kIdCommandTest:
-            if (notify == BN_CLICKED) {
-                TestEditingCommand();
-            }
-            return 0;
-
-        case kIdCommandDelete:
-            if (notify == BN_CLICKED) {
-                DeleteEditingCommand();
-            }
-            return 0;
-
-        case kIdCommandCancel:
-            if (notify == BN_CLICKED) {
-                editorDirty_ = false;
-
-                if (editingNew_) {
-                    editingNew_ = false;
-                    editingCommandId_.clear();
-                    RefreshCommandList();
-                    if (filteredCommandIds_.empty()) {
-                        ClearCommandEditor();
-                    }
-                } else if (!editingCommandId_.empty()) {
-                    LoadCommandEditor(
-                        editingCommandId_);
-                }
-            }
-            return 0;
-
-        case kIdCommandSave:
-            if (notify == BN_CLICKED) {
-                SaveCommandEditor();
-            }
-            return 0;
-
-        case kIdCommandName:
-        case kIdCommandKeyword:
-        case kIdCommandAliases:
-        case kIdCommandTarget:
-        case kIdCommandArguments:
-        case kIdCommandWorkdir:
-            if (notify == EN_CHANGE) {
-                MarkEditorDirty();
-            }
-            return 0;
-
-        case kIdCommandType:
-            if (notify == CBN_SELCHANGE) {
-                MarkEditorDirty();
-            }
-            return 0;
-
-        case kIdCommandEnabled:
-        case kIdCommandAdmin:
-        case kIdCommandPinned:
-            if (notify == BN_CLICKED) {
-                MarkEditorDirty();
             }
             return 0;
 
@@ -7480,64 +7005,6 @@ LRESULT SettingsWindow::HandleMessage(
             DeleteObject(border);
         }
 
-        if (page_ == Page::Commands) {
-            RECT clientRect{};
-            GetClientRect(hwnd_, &clientRect);
-
-            const int contentLeft =
-                Scale(kSidebarWidthLogical) +
-                Scale(38);
-
-            const int contentRight =
-                clientRect.right - Scale(34);
-
-            const int contentWidth =
-                std::max(
-                    Scale(360),
-                    contentRight - contentLeft);
-
-            const int leftWidth =
-                std::clamp(
-                    Scale(300),
-                    Scale(250),
-                    std::max(
-                        Scale(250),
-                        contentWidth / 3));
-
-            const int dividerX =
-                contentLeft +
-                leftWidth +
-                Scale(14);
-
-            HPEN divider =
-                CreatePen(
-                    PS_SOLID,
-                    1,
-                    kBorder);
-
-            oldPen =
-                SelectObject(
-                    dc,
-                    divider);
-
-            MoveToEx(
-                dc,
-                dividerX,
-                Scale(130),
-                nullptr);
-
-            LineTo(
-                dc,
-                dividerX,
-                client.bottom - Scale(22));
-
-            SelectObject(
-                dc,
-                oldPen);
-
-            DeleteObject(divider);
-        }
-
         EndPaint(
             hwnd_,
             &paint);
@@ -7570,7 +7037,6 @@ LRESULT SettingsWindow::HandleMessage(
         SetBkColor(dc, background);
 
         if (control == pageDescription_ ||
-            control == commandStatus_ ||
             control == hotkeyStatus_ ||
             control == auxiliaryHotkeyStatus_ ||
             control == dataStatus_ ||
@@ -7742,11 +7208,6 @@ LRESULT SettingsWindow::HandleMessage(
         KillTimer(
             hwnd_,
             kProviderStatusTimerId);
-
-        if (page_ == Page::Commands &&
-            !ConfirmDiscardChanges()) {
-            return 0;
-        }
 
         ShowWindow(
             hwnd_,
