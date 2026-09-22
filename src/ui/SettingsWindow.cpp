@@ -1802,8 +1802,9 @@ int SettingsWindow::HotkeyAuxiliaryHeight(
         textHeight =
             std::max(
                 textHeight,
-                measured.bottom -
-                    measured.top);
+                static_cast<int>(
+                    measured.bottom -
+                    measured.top));
 
         SelectObject(
             dc,
