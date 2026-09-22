@@ -2714,6 +2714,10 @@ bool App::SetUpdateSettings(
         updateSettingsChangedSinceCheck_ =
             true;
 
+        if (checking) {
+            ++updateGeneration_;
+        }
+
         if (!preserveActiveUpdate) {
             updateStatus_ = {};
             updateManifest_.reset();
@@ -2722,12 +2726,9 @@ bool App::SetUpdateSettings(
         }
     }
 
-    if (checking) {
-        ++updateGeneration_;
-
-        if (updateThread_.joinable()) {
-            updateThread_.request_stop();
-        }
+    if (checking &&
+        updateThread_.joinable()) {
+        updateThread_.request_stop();
     }
 
     if (settingsWindow_) {
