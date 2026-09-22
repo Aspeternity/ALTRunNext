@@ -1121,6 +1121,49 @@ CenterOnCursorMonitor() {
         SWP_NOSIZE |
             SWP_NOZORDER |
             SWP_NOACTIVATE);
+
+    // Moving to a monitor with a different DPI can resize the hidden window
+    // through WM_DPICHANGED. Recenter once with that settled physical size.
+    RECT settled{};
+    if (GetWindowRect(
+            hwnd_,
+            &settled)) {
+        const int settledWidth =
+            settled.right -
+            settled.left;
+        const int settledHeight =
+            settled.bottom -
+            settled.top;
+
+        const int settledX =
+            info.rcWork.left +
+            std::max(
+                0,
+                (workWidth -
+                 settledWidth) / 2);
+        const int settledY =
+            info.rcWork.top +
+            std::max(
+                0,
+                (workHeight -
+                 settledHeight) / 2);
+
+        if (settled.left !=
+                settledX ||
+            settled.top !=
+                settledY) {
+            SetWindowPos(
+                hwnd_,
+                nullptr,
+                settledX,
+                settledY,
+                0,
+                0,
+                SWP_NOSIZE |
+                    SWP_NOZORDER |
+                    SWP_NOACTIVATE);
+        }
+    }
 }
 
 int ShortcutManagerWindow::
@@ -1664,8 +1707,6 @@ HandleHeaderNotification(
     return false;
 }
 
-void ShortcutManagerWindow::
-UpdateEmptyText() {
 void ShortcutManagerWindow::
 UpdateEmptyText() {
     if (!list_) {
