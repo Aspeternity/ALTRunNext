@@ -120,6 +120,7 @@ private:
     HIMAGELIST rowHeightImageList_{};
     UINT dpi_{96};
     bool customColumnWidths_{false};
+    bool adjustingColumnWidths_{false};
     bool suppressFilterRefresh_{false};
     std::vector<std::wstring>
         visibleIds_;
