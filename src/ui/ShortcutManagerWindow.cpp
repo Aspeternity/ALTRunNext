@@ -1025,8 +1025,9 @@ UpdateColumnWidths(
     const int contentWidth =
         std::max(
             Scale(360),
-            client.right -
-                client.left);
+            static_cast<int>(
+                client.right -
+                client.left));
 
     const int minimumTarget =
         Scale(120);
