@@ -69,7 +69,8 @@ private:
     void Layout();
     void RecreateFonts();
     void RebuildRowHeightImageList();
-    void UpdateColumnWidths();
+    void UpdateColumnWidths(
+        int listWidth = -1);
     void UpdateEmptyText();
     void DrawActionButton(
         const DRAWITEMSTRUCT& item);
@@ -113,6 +114,7 @@ private:
     HWND list_{};
     HFONT font_{};
     HFONT semiboldFont_{};
+    HFONT headerFont_{};
     HIMAGELIST rowHeightImageList_{};
     UINT dpi_{96};
     std::vector<std::wstring>
