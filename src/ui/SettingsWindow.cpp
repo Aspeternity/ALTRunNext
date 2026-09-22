@@ -3919,9 +3919,6 @@ void SettingsWindow::Layout() {
                     : launcherTop;
             const int rowHeight =
                 HotkeyRowHeight(row);
-            const bool hasAuxiliary =
-                rowHeight >
-                    baseRowHeight;
 
             const int toggleX =
                 cardRight -
@@ -4018,7 +4015,6 @@ void SettingsWindow::Layout() {
                     rowHeight;
             }
 
-            (void)hasAuxiliary;
         }
 
         const int launcherCardBottom =
