@@ -730,7 +730,8 @@ void ShortcutManagerWindow::Layout() {
                         buttonHeight,
                         std::max(
                             Scale(22),
-                            metrics.tmHeight +
+                            static_cast<int>(
+                                metrics.tmHeight) +
                                 Scale(6)));
             }
 
