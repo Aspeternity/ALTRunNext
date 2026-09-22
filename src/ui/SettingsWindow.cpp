@@ -1711,6 +1711,13 @@ void SettingsWindow::SetHotkeyRowStatus(
             ? SW_HIDE
             : SW_SHOW);
 
+    if (!status.empty() &&
+        row->reset) {
+        ShowWindow(
+            row->reset,
+            SW_HIDE);
+    }
+
     if (page_ == Page::Hotkeys) {
         Layout();
         InvalidateRect(
