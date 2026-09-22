@@ -1735,7 +1735,29 @@ void SettingsWindow::RelayoutHotkeyPage() {
         FALSE,
         0);
 
+    for (HWND control :
+         hotkeyControls_) {
+        if (control) {
+            SendMessageW(
+                control,
+                WM_SETREDRAW,
+                FALSE,
+                0);
+        }
+    }
+
     Layout();
+
+    for (HWND control :
+         hotkeyControls_) {
+        if (control) {
+            SendMessageW(
+                control,
+                WM_SETREDRAW,
+                TRUE,
+                0);
+        }
+    }
 
     SendMessageW(
         hwnd_,
@@ -6471,11 +6493,22 @@ LRESULT SettingsWindow::HandleMessage(
                     WindowFromPoint(
                         point);
 
-                if (!isHotkeyCaptureWindow(
+                if (LOWORD(wParam) !=
+                        WM_LBUTTONDOWN ||
+                    !isHotkeyCaptureWindow(
                         clicked)) {
                     CancelHotkeyCapture();
                 }
             }
+        }
+        break;
+
+    case WM_NCLBUTTONDOWN:
+    case WM_NCRBUTTONDOWN:
+    case WM_NCMBUTTONDOWN:
+        if (!capturingHotkeyActionId_
+                 .empty()) {
+            CancelHotkeyCapture();
         }
         break;
 
