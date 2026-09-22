@@ -1807,6 +1807,12 @@ bool App::RestoreDefaultSettings() {
         return false;
     }
 
+    if (previous.updateChannel !=
+        settingsStore_.Data()
+            .updateChannel) {
+        InvalidateUpdateCheckForChannelChange();
+    }
+
     commandStore_.ReloadProviderCache(
         settingsStore_.Data()
             .providerEnabled);
@@ -2687,6 +2693,11 @@ bool App::SetUpdateSettings(
         return true;
     }
 
+    InvalidateUpdateCheckForChannelChange();
+    return true;
+}
+
+void App::InvalidateUpdateCheckForChannelChange() {
     bool checking = false;
     bool preserveActiveUpdate = false;
 
@@ -2735,8 +2746,6 @@ bool App::SetUpdateSettings(
         settingsWindow_->
             OnUpdateStatusChanged();
     }
-
-    return true;
 }
 
 win::UpdateSnapshot
