@@ -78,7 +78,7 @@ if version == "0.8.0-alpha.2.8":
         "updateAutoCheck_,\n        TRUE",
         "updatePrerelease_,\n        TRUE",
         "PageCardRect(\n                    246,\n                    174,\n                    560)",
-        "const int versionWidth",
+        "int versionWidth",
         "const auto dismissComboFocus =",
         "std::array<HWND, 6>",
     ):
@@ -158,7 +158,7 @@ if version == "0.8.0-alpha.2.8":
     for token in (
         "## 0.8.0-alpha.2.8",
         "0.8.0.28",
-        "passive settings",
+        "Decoupled update preferences",
     ):
         if token not in changelog:
             fail(f"v0.8 alpha.2.8 changelog contract missing: {token}")
