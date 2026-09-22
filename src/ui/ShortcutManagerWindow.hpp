@@ -70,7 +70,12 @@ private:
     void RecreateFonts();
     void RebuildRowHeightImageList();
     void UpdateColumnWidths(
-        int resizedColumn = -1);
+        int resizedColumn = -1,
+        int proposedWidth = -1);
+    [[nodiscard]] bool
+    HandleHeaderNotification(
+        LPARAM lParam,
+        LRESULT& result);
     void UpdateEmptyText();
     void ResetTransientState(
         std::wstring_view preferredId);
