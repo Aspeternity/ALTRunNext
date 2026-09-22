@@ -781,8 +781,7 @@ void ShortcutManagerWindow::Layout() {
         EndDeferWindowPos(defer);
     }
 
-    UpdateColumnWidths(
-        availableWidth);
+    UpdateColumnWidths();
 
     RedrawWindow(
         hwnd_,
@@ -1824,6 +1823,79 @@ ChildSubclassProc(
             hwnd,
             wParam)) {
         return 0;
+    }
+
+    if (self &&
+        hwnd == self->filter_) {
+        if (message == WM_SETFOCUS ||
+            message == WM_KILLFOCUS ||
+            message == WM_SETTEXT) {
+            InvalidateRect(
+                hwnd,
+                nullptr,
+                TRUE);
+        }
+
+        if (message == WM_PAINT) {
+            const LRESULT result =
+                DefSubclassProc(
+                    hwnd,
+                    message,
+                    wParam,
+                    lParam);
+
+            if (WindowText(hwnd).empty()) {
+                HDC dc =
+                    GetDC(hwnd);
+
+                if (dc) {
+                    RECT rect{};
+                    GetClientRect(
+                        hwnd,
+                        &rect);
+
+                    rect.left +=
+                        self->Scale(10);
+                    rect.right -=
+                        self->Scale(8);
+
+                    SetBkMode(
+                        dc,
+                        TRANSPARENT);
+                    SetTextColor(
+                        dc,
+                        ui::
+                            kApplicationPalette
+                                .mutedText);
+
+                    HGDIOBJ oldFont =
+                        SelectObject(
+                            dc,
+                            self->font_);
+
+                    DrawTextW(
+                        dc,
+                        self->T(
+                            L"搜索快捷项",
+                            L"Search shortcuts"),
+                        -1,
+                        &rect,
+                        DT_LEFT |
+                            DT_VCENTER |
+                            DT_SINGLELINE |
+                            DT_NOPREFIX);
+
+                    SelectObject(
+                        dc,
+                        oldFont);
+                    ReleaseDC(
+                        hwnd,
+                        dc);
+                }
+            }
+
+            return result;
+        }
     }
 
     if (message == WM_NCDESTROY) {
