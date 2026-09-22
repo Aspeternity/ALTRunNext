@@ -533,8 +533,6 @@ ResetTransientState(
 }
 
 void ShortcutManagerWindow::Refresh(
-
-void ShortcutManagerWindow::Refresh(
     std::wstring_view preferredId) {
     if (!list_) {
         return;
@@ -2012,8 +2010,10 @@ ChildSubclassProc(
                     NMHEADERW*>(
                         lParam);
 
-            if (notification->code ==
-                    HDN_BEGINTRACKW &&
+            if ((notification->code ==
+                     HDN_BEGINTRACKW ||
+                 notification->code ==
+                     HDN_DIVIDERDBLCLICKW) &&
                 header &&
                 header->iItem == 3) {
                 // Target is the elastic final column. Keeping its right edge
