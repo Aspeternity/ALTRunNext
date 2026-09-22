@@ -65,7 +65,7 @@ if version == "0.8.0-alpha.3.1":
         'T(L"路径转换…",',
         "BS_OWNERDRAW",
         "ui::kApplicationPalette",
-        "ui::kStandardControlHeightLogical",
+        "kStandardControlHeightLogical",
         "LVS_EX_FULLROWSELECT",
         "LVS_EX_DOUBLEBUFFER",
         "Scale(30)",
