@@ -85,6 +85,10 @@ if version == "0.8.0-alpha.2.10":
     if "normalFont_" not in hotkey_font_block:
         fail("v0.8 alpha.2.10 Hotkey rows must use normal Settings typography")
 
+    hotkey_registry = (
+        read("src/core/HotkeyRegistry.hpp") +
+        read("src/core/HotkeyRegistry.cpp")
+    )
     for token in (
         "launcher.activate",
         "launcher.activateSecondary",
@@ -92,7 +96,6 @@ if version == "0.8.0-alpha.2.10":
         "result.navigateCurrentFileManager",
         "result.copySelectedTarget",
     ):
-        hotkey_registry = read("src/core/HotkeyRegistry.cpp")
         if token not in hotkey_registry:
             fail(f"v0.8 alpha.2.10 Hotkey Registry ID changed/missing: {token}")
 
