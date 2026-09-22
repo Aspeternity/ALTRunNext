@@ -1035,8 +1035,6 @@ DrawActionButton(
             GetDlgCtrlID(
                 item.hwndItem));
 
-    const bool primary =
-        id == kIdAdd;
     const bool danger =
         id == kIdDelete;
     const bool disabled =
@@ -1047,40 +1045,25 @@ DrawActionButton(
          ODS_SELECTED) != 0;
 
     COLORREF fillColor =
-        palette.controlBackground;
+        pressed && !disabled
+            ? palette.pressedBackground
+            : palette.controlBackground;
     COLORREF borderColor =
         palette.frame;
     COLORREF textColor =
-        palette.text;
+        disabled
+            ? palette.mutedText
+            : danger
+                ? RGB(190, 45, 45)
+                : palette.text;
 
-    if (primary) {
+    if (danger &&
+        pressed &&
+        !disabled) {
         fillColor =
-            disabled
-                ? RGB(196, 205, 214)
-                : pressed
-                    ? RGB(0, 99, 177)
-                    : palette.accent;
+            RGB(255, 244, 244);
         borderColor =
-            fillColor;
-        textColor =
-            RGB(255, 255, 255);
-    } else if (danger) {
-        textColor =
-            disabled
-                ? palette.mutedText
-                : RGB(190, 45, 45);
-        borderColor =
-            disabled
-                ? palette.frame
-                : RGB(226, 185, 185);
-        fillColor =
-            pressed && !disabled
-                ? RGB(255, 244, 244)
-                : palette.controlBackground;
-    } else if (pressed &&
-               !disabled) {
-        fillColor =
-            palette.pressedBackground;
+            RGB(226, 185, 185);
     }
 
     RECT rect =
@@ -1156,9 +1139,7 @@ DrawActionButton(
     HGDIOBJ oldFont =
         SelectObject(
             item.hDC,
-            primary && semiboldFont_
-                ? semiboldFont_
-                : font_);
+            font_);
 
     RECT textRect =
         surface;
@@ -1203,73 +1184,149 @@ HandleListCustomDraw(
         return CDRF_DODEFAULT;
     }
 
+    if (draw->nmcd.dwDrawStage !=
+        CDDS_PREPAINT &&
+        draw->nmcd.dwDrawStage !=
+            CDDS_ITEMPREPAINT) {
+        return CDRF_DODEFAULT;
+    }
+
+    if (draw->nmcd.dwDrawStage ==
+        CDDS_PREPAINT) {
+        return CDRF_NOTIFYITEMDRAW;
+    }
+
     const auto& palette =
         ui::kApplicationPalette;
+    const int itemIndex =
+        static_cast<int>(
+            draw->nmcd.dwItemSpec);
 
-    switch (draw->nmcd.dwDrawStage) {
-    case CDDS_PREPAINT:
-        return CDRF_NOTIFYITEMDRAW;
-
-    case CDDS_ITEMPREPAINT: {
-        const bool selected =
-            (draw->nmcd.uItemState &
-             CDIS_SELECTED) != 0;
-
-        draw->clrText =
-            selected
-                ? palette.selectionText
-                : palette.text;
-        draw->clrTextBk =
-            selected
-                ? palette.selectionBackground
-                : palette.controlBackground;
-
-        return CDRF_NOTIFYPOSTPAINT;
+    RECT row{};
+    if (!ListView_GetItemRect(
+            list_,
+            itemIndex,
+            &row,
+            LVIR_BOUNDS)) {
+        return CDRF_DODEFAULT;
     }
 
-    case CDDS_ITEMPOSTPAINT: {
-        RECT row{};
-        const int itemIndex =
-            static_cast<int>(
-                draw->nmcd.dwItemSpec);
+    RECT client{};
+    GetClientRect(
+        list_,
+        &client);
+    row.right =
+        client.right;
 
-        if (ListView_GetItemRect(
+    const bool selected =
+        (ListView_GetItemState(
+             list_,
+             itemIndex,
+             LVIS_SELECTED) &
+         LVIS_SELECTED) != 0;
+
+    const COLORREF backgroundColor =
+        selected
+            ? palette.selectionBackground
+            : palette.controlBackground;
+
+    HBRUSH background =
+        CreateSolidBrush(
+            backgroundColor);
+    FillRect(
+        draw->nmcd.hdc,
+        &row,
+        background);
+    DeleteObject(
+        background);
+
+    SetBkMode(
+        draw->nmcd.hdc,
+        TRANSPARENT);
+    SetTextColor(
+        draw->nmcd.hdc,
+        selected
+            ? palette.selectionText
+            : palette.text);
+
+    HGDIOBJ oldFont =
+        SelectObject(
+            draw->nmcd.hdc,
+            font_);
+
+    int x =
+        row.left;
+
+    for (int column = 0;
+         column < 4;
+         ++column) {
+        const int width =
+            ListView_GetColumnWidth(
                 list_,
-                itemIndex,
-                &row,
-                LVIR_BOUNDS)) {
-            HPEN separator =
-                CreatePen(
-                    PS_SOLID,
-                    1,
-                    palette.separator);
-            HGDIOBJ oldPen =
-                SelectObject(
-                    draw->nmcd.hdc,
-                    separator);
+                column);
 
-            MoveToEx(
-                draw->nmcd.hdc,
-                row.left,
-                row.bottom - 1,
-                nullptr);
-            LineTo(
-                draw->nmcd.hdc,
-                row.right,
-                row.bottom - 1);
+        RECT cell{
+            x + Scale(6),
+            row.top,
+            x +
+                width -
+                Scale(6),
+            row.bottom,
+        };
 
-            SelectObject(
-                draw->nmcd.hdc,
-                oldPen);
-            DeleteObject(separator);
-        }
+        wchar_t text[1024]{};
+        ListView_GetItemText(
+            list_,
+            itemIndex,
+            column,
+            text,
+            static_cast<int>(
+                std::size(text)));
 
-        return CDRF_DODEFAULT;
+        DrawTextW(
+            draw->nmcd.hdc,
+            text,
+            -1,
+            &cell,
+            DT_LEFT |
+                DT_VCENTER |
+                DT_SINGLELINE |
+                DT_END_ELLIPSIS |
+                DT_NOPREFIX);
+
+        x += width;
     }
 
-    default:
-        return CDRF_DODEFAULT;
-    }
+    SelectObject(
+        draw->nmcd.hdc,
+        oldFont);
+
+    HPEN separator =
+        CreatePen(
+            PS_SOLID,
+            1,
+            palette.separator);
+    HGDIOBJ oldPen =
+        SelectObject(
+            draw->nmcd.hdc,
+            separator);
+
+    MoveToEx(
+        draw->nmcd.hdc,
+        row.left,
+        row.bottom - 1,
+        nullptr);
+    LineTo(
+        draw->nmcd.hdc,
+        row.right,
+        row.bottom - 1);
+
+    SelectObject(
+        draw->nmcd.hdc,
+        oldPen);
+    DeleteObject(separator);
+
+    return CDRF_SKIPDEFAULT;
 }
 
 bool ShortcutManagerWindow::
