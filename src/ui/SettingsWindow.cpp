@@ -2639,6 +2639,11 @@ void SettingsWindow::UpdatePageHeader() {
 
 
 void SettingsWindow::ShowPage(Page page) {
+    if (page_ == Page::Hotkeys &&
+        page != Page::Hotkeys) {
+        CancelHotkeyCapture(false);
+    }
+
     if (page_ == Page::Providers &&
         page != Page::Providers) {
         KillTimer(
@@ -2707,7 +2712,7 @@ void SettingsWindow::ShowPage(Page page) {
     }
 
     if (page == Page::Hotkeys) {
-        RefreshHotkeyPage();
+        RefreshHotkeyPage(false);
     } else if (
         page == Page::Providers) {
         SetTimer(
@@ -6287,6 +6292,8 @@ void SettingsWindow::ShowAbout() {
 void SettingsWindow::Show() {
     if (!hwnd_) return;
 
+    CancelHotkeyCapture(false);
+
     // Retry a binding that previously failed, but never tear down a
     // working hotkey merely because the Settings window was opened.
     app_.RepairGlobalHotkey(false);
@@ -6361,6 +6368,24 @@ LRESULT SettingsWindow::HandleMessage(
     WPARAM wParam,
     LPARAM lParam) {
 
+    const auto isHotkeyCaptureWindow =
+        [&](HWND control) {
+            if (!control) {
+                return false;
+            }
+
+            const UINT id =
+                static_cast<UINT>(
+                    GetDlgCtrlID(
+                        control));
+
+            return
+                id >= kIdHotkeyCaptureBase &&
+                id <
+                    kIdHotkeyCaptureBase +
+                        hotkeyRows_.size();
+        };
+
     const auto dismissComboFocus =
         [&]() {
             const HWND focused =
@@ -6417,6 +6442,11 @@ LRESULT SettingsWindow::HandleMessage(
     case WM_RBUTTONDOWN:
     case WM_MBUTTONDOWN:
         dismissComboFocus();
+
+        if (!capturingHotkeyActionId_
+                 .empty()) {
+            CancelHotkeyCapture();
+        }
         break;
 
     case WM_PARENTNOTIFY:
@@ -6430,6 +6460,31 @@ LRESULT SettingsWindow::HandleMessage(
             // focused. Any click elsewhere inside Settings should dismiss that
             // focus first; the clicked child can then take focus normally.
             dismissComboFocus();
+
+            if (!capturingHotkeyActionId_
+                     .empty()) {
+                POINT point{};
+                GetCursorPos(
+                    &point);
+
+                const HWND clicked =
+                    WindowFromPoint(
+                        point);
+
+                if (!isHotkeyCaptureWindow(
+                        clicked)) {
+                    CancelHotkeyCapture();
+                }
+            }
+        }
+        break;
+
+    case WM_ACTIVATE:
+        if (LOWORD(wParam) ==
+                WA_INACTIVE &&
+            !capturingHotkeyActionId_
+                 .empty()) {
+            CancelHotkeyCapture();
         }
         break;
 
@@ -7476,6 +7531,7 @@ LRESULT SettingsWindow::HandleMessage(
     }
 
     case WM_CLOSE:
+        CancelHotkeyCapture(false);
         CommitPendingProviderChanges();
 
         KillTimer(
