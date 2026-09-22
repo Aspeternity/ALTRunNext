@@ -9,7 +9,7 @@
 - Made Keywords / Name / Type user-resizable while keeping Target as the locked elastic final column.
 - Recomputed Target immediately after header resize/double-click and clamped oversized first-three-column layouts so no pseudo-fifth header region can appear.
 - Added a full ListView redraw after manual header resizing to clear stale selected-row pixels outside the real four-column area.
-- Reduced the search EDIT surface to 26 logical pixels and vertically centered it in the top control row.
+- Sized the search EDIT from the active body-font metrics and vertically centered that compact surface in the top control row.
 - Changed placeholder drawing to use the EDIT formatting rectangle and forced erase/repaint on EN_CHANGE, eliminating stale placeholder pixels under typed search text.
 - Preserved alpha.3.2 24px rows, free resize/maximize, DeferWindowPos resize behavior, selection styling and all frozen v0.7 functional contracts.
 - Kept Shortcut Editor and Path Conversion internals unchanged.
