@@ -707,8 +707,41 @@ void ShortcutManagerWindow::Layout() {
         Scale(
             ui::
                 kStandardControlHeightLogical);
-    const int searchHeight =
-        Scale(26);
+
+    int searchHeight =
+        Scale(24);
+
+    if (font_) {
+        HDC dc =
+            GetDC(hwnd_);
+
+        if (dc) {
+            HGDIOBJ oldFont =
+                SelectObject(
+                    dc,
+                    font_);
+
+            TEXTMETRICW metrics{};
+            if (GetTextMetricsW(
+                    dc,
+                    &metrics)) {
+                searchHeight =
+                    std::min(
+                        buttonHeight,
+                        std::max(
+                            Scale(22),
+                            metrics.tmHeight +
+                                Scale(6)));
+            }
+
+            SelectObject(
+                dc,
+                oldFont);
+            ReleaseDC(
+                hwnd_,
+                dc);
+        }
+    }
 
     const int newButtonWidth =
         Scale(112);
