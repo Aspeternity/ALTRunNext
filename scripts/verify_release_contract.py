@@ -65,7 +65,8 @@ if version == "0.8.0-alpha.3.3":
         "customColumnWidths_",
         "ListView_SetSelectionMark",
         "preferredId.empty()",
-        "Scale(26)",
+        "GetTextMetricsW",
+        "metrics.tmHeight",
         "EM_GETRECT",
         "HDN_BEGINTRACKW",
         "HDN_ENDTRACKW",
@@ -137,7 +138,7 @@ if version == "0.8.0-alpha.3.3":
         "0.8.0.33",
         "interaction state separately",
         "elastic final column",
-        "26-logical-pixel",
+        "body-font metrics",
     ):
         if token not in readme:
             fail(f"v0.8 alpha.3.3 README contract missing: {token}")
@@ -167,7 +168,7 @@ if version == "0.8.0-alpha.3.3":
         "| rows=24px",
         "| columns=3 user-resizable + elastic Target",
         "| target divider=locked",
-        "| search=26px/edit-rect/erase-on-change",
+        "| search=font-derived/edit-rect/erase-on-change",
         "| Editor/Path Conversion semantics untouched",
     )
     raise SystemExit(0)
