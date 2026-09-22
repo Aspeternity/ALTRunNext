@@ -105,6 +105,12 @@ ShortcutManagerWindow::
             semiboldFont_);
         semiboldFont_ = nullptr;
     }
+
+    if (headerFont_) {
+        DeleteObject(
+            headerFont_);
+        headerFont_ = nullptr;
+    }
 }
 
 const wchar_t*
@@ -165,8 +171,8 @@ bool ShortcutManagerWindow::Create() {
             WS_CLIPCHILDREN,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        980,
-        650,
+        900,
+        560,
         nullptr,
         nullptr,
         instance_,
@@ -183,8 +189,8 @@ bool ShortcutManagerWindow::Create() {
         nullptr,
         0,
         0,
-        Scale(980),
-        Scale(650),
+        Scale(900),
+        Scale(560),
         SWP_NOMOVE |
             SWP_NOZORDER |
             SWP_NOACTIVATE);
@@ -224,12 +230,13 @@ void ShortcutManagerWindow::CreateControls() {
     // Create controls in visual/tab order:
     // search -> new -> list -> global tool -> selected-item actions.
     filter_ = CreateWindowExW(
-        WS_EX_CLIENTEDGE,
+        0,
         L"EDIT",
         L"",
         WS_CHILD |
             WS_VISIBLE |
             WS_TABSTOP |
+            WS_BORDER |
             ES_AUTOHSCROLL,
         0,
         0,
@@ -247,12 +254,13 @@ void ShortcutManagerWindow::CreateControls() {
         kIdAdd);
 
     list_ = CreateWindowExW(
-        WS_EX_CLIENTEDGE,
+        0,
         WC_LISTVIEWW,
         L"",
         WS_CHILD |
             WS_VISIBLE |
             WS_TABSTOP |
+            WS_BORDER |
             LVS_REPORT |
             LVS_SINGLESEL |
             LVS_SHOWSELALWAYS,
@@ -394,13 +402,10 @@ void ShortcutManagerWindow::ApplyLanguage() {
         T(L"路径转换…",
           L"Path conversion…"));
 
-    SendMessageW(
+    InvalidateRect(
         filter_,
-        EM_SETCUEBANNER,
-        TRUE,
-        reinterpret_cast<LPARAM>(
-            T(L"搜索快捷项",
-              L"Search shortcuts")));
+        nullptr,
+        TRUE);
 
     const std::array<const wchar_t*, 4>
         labels{
