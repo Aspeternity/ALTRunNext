@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <array>
+#include <iterator>
 
 #ifndef LVM_SETEMPTYTEXT
 #define LVM_SETEMPTYTEXT (LVM_FIRST + 204)
@@ -601,6 +602,11 @@ void ShortcutManagerWindow::Refresh(
     EnableWindow(edit_, hasSelection);
     EnableWindow(delete_, hasSelection);
     EnableWindow(test_, hasSelection);
+    EnableWindow(
+        pathConversion_,
+        app_.UserCommands().empty()
+            ? FALSE
+            : TRUE);
 
     UpdateEmptyText();
     InvalidateRect(
@@ -1129,6 +1135,46 @@ HandleListCustomDraw(
             selected
                 ? palette.selectionBackground
                 : palette.controlBackground;
+
+        return CDRF_NOTIFYPOSTPAINT;
+    }
+
+    case CDDS_ITEMPOSTPAINT: {
+        RECT row{};
+        const int itemIndex =
+            static_cast<int>(
+                draw->nmcd.dwItemSpec);
+
+        if (ListView_GetItemRect(
+                list_,
+                itemIndex,
+                &row,
+                LVIR_BOUNDS)) {
+            HPEN separator =
+                CreatePen(
+                    PS_SOLID,
+                    1,
+                    palette.separator);
+            HGDIOBJ oldPen =
+                SelectObject(
+                    draw->nmcd.hdc,
+                    separator);
+
+            MoveToEx(
+                draw->nmcd.hdc,
+                row.left,
+                row.bottom - 1,
+                nullptr);
+            LineTo(
+                draw->nmcd.hdc,
+                row.right,
+                row.bottom - 1);
+
+            SelectObject(
+                draw->nmcd.hdc,
+                oldPen);
+            DeleteObject(separator);
+        }
 
         return CDRF_DODEFAULT;
     }
