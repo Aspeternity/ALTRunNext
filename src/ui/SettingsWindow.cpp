@@ -4268,9 +4268,8 @@ void SettingsWindow::Layout() {
             if (GetTextExtentPoint32W(
                     dc,
                     versionText,
-                    static_cast<int>(
-                        wcslen(
-                            versionText)),
+                    lstrlenW(
+                        versionText),
                     &size)) {
                 versionWidth =
                     size.cx;
@@ -5156,8 +5155,7 @@ void SettingsWindow::DrawGitHubLink(
         if (GetTextExtentPoint32W(
                 item.hDC,
                 buffer,
-                static_cast<int>(
-                    wcslen(buffer)),
+                lstrlenW(buffer),
                 &size)) {
             HPEN underline =
                 CreatePen(
