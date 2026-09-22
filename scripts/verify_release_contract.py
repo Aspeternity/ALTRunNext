@@ -95,14 +95,27 @@ if version == "0.8.0-alpha.2.8":
     set_update_body = app_cpp[set_update_start:set_update_end]
     if "StartUpdateCheck(" in set_update_body:
         fail("v0.8 alpha.2.8 update preferences must not directly start an update check")
+    if "previous.updateChannel !=" not in set_update_body or \
+       "InvalidateUpdateCheckForChannelChange();" not in set_update_body:
+        fail("v0.8 alpha.2.8 channel preference must invalidate without executing a check")
+
+    invalidate_start = app_cpp.find("void App::InvalidateUpdateCheckForChannelChange()")
+    invalidate_end = app_cpp.find("\nwin::UpdateSnapshot\nApp::UpdateStatus()", invalidate_start)
+    if invalidate_start < 0 or invalidate_end < 0:
+        fail("v0.8 alpha.2.8 channel invalidation helper could not be inspected")
+    invalidate_body = app_cpp[invalidate_start:invalidate_end]
     for token in (
-        "previous.updateChannel !=",
         "updateSettingsChangedSinceCheck_",
         "updateThread_.request_stop()",
         "preserveActiveUpdate",
+        "++updateGeneration_",
     ):
-        if token not in set_update_body:
+        if token not in invalidate_body:
             fail(f"v0.8 alpha.2.8 passive update-settings contract missing: {token}")
+
+    if "previous.updateChannel !=" not in app_cpp or \
+       "settingsStore_.Data()\n            .updateChannel" not in app_cpp:
+        fail("v0.8 alpha.2.8 reset-default update-channel invalidation is missing")
 
     for token in (
         "std::atomic<std::uint64_t>",
