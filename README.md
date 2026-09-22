@@ -31,7 +31,7 @@ The Manager now treats window geometry and interaction state separately. Hiding 
 
 The table remains exactly four columns after manual resizing. Keywords / Name / Type can be resized by the user; Target is the elastic final column and immediately consumes the remaining ListView client width. The Target divider itself is locked, and oversized first-three-column layouts are clamped so a useful Target area remains. A full ListView redraw after header tracking removes stale selection pixels and prevents the previous pseudo-fifth-column residue.
 
-The search field keeps the native single-line EDIT behavior but is reduced to a 26-logical-pixel input surface centered in the top action row. Custom placeholder drawing now follows the EDIT formatting rectangle, and every EN_CHANGE erases/repaints the edit before filtering so typed text cannot coexist with stale **搜索快捷项 / Search shortcuts** pixels.
+The search field keeps the native single-line EDIT behavior but now derives its compact height from the active body-font metrics and centers that input surface in the top action row. Custom placeholder drawing follows the EDIT formatting rectangle, and every EN_CHANGE erases/repaints the edit before filtering so typed text cannot coexist with stale **搜索快捷项 / Search shortcuts** pixels.
 
 The alpha.3.2 24px row density, restrained selection, DeferWindowPos resize fix, free resize/maximize behavior, 900×560 default and 720×480 minimum remain unchanged. No shortcut persistence, filtering semantics, context actions, Path Conversion, Shortcut Editor, Runtime Input, Provider, Hotkey, updater or Shortcut TSV v3 behavior changes. Settings remains schemaVersion 8. Windows fixed FileVersion/ProductVersion is `0.8.0.33`.
 
