@@ -886,7 +886,8 @@ UpdateColumnWidths() {
     const int target =
         std::max(
             minimumTarget,
-            client.right -
+            static_cast<int>(
+                client.right) -
                 keywords -
                 name -
                 type -
