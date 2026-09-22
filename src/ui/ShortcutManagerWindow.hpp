@@ -1,7 +1,7 @@
 #pragma once
 
-#include <commctrl.h>
 #include <windows.h>
+#include <commctrl.h>
 
 #include <string>
 #include <string_view>
