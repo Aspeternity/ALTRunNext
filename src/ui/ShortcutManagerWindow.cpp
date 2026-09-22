@@ -631,7 +631,7 @@ void ShortcutManagerWindow::Layout() {
         &client);
 
     const int margin =
-        Scale(18);
+        Scale(16);
     const int gap =
         Scale(10);
     const int buttonHeight =
@@ -640,7 +640,7 @@ void ShortcutManagerWindow::Layout() {
                 kStandardControlHeightLogical);
 
     const int newButtonWidth =
-        Scale(120);
+        Scale(112);
     const int topY =
         margin;
 
@@ -658,28 +658,10 @@ void ShortcutManagerWindow::Layout() {
                 newButtonWidth -
                 gap);
 
-    MoveWindow(
-        filter_,
-        margin,
-        topY,
-        filterWidth,
-        buttonHeight,
-        TRUE);
-
-    MoveWindow(
-        add_,
-        margin +
-            filterWidth +
-            gap,
-        topY,
-        newButtonWidth,
-        buttonHeight,
-        TRUE);
-
     const int listY =
         topY +
         buttonHeight +
-        Scale(12);
+        Scale(10);
 
     const int bottomButtonY =
         client.bottom -
@@ -688,73 +670,127 @@ void ShortcutManagerWindow::Layout() {
 
     const int listBottom =
         bottomButtonY -
-        Scale(12);
+        Scale(10);
 
-    MoveWindow(
+    const int listHeight =
+        std::max(
+            Scale(120),
+            listBottom -
+                listY);
+
+    const int pathButtonWidth =
+        Scale(108);
+    const int actionWidth =
+        Scale(80);
+    const int actionGap =
+        Scale(8);
+
+    int deleteX =
+        client.right -
+        margin -
+        actionWidth;
+    const int editX =
+        deleteX -
+        actionGap -
+        actionWidth;
+    const int testX =
+        editX -
+        actionGap -
+        actionWidth;
+
+    HDWP defer =
+        BeginDeferWindowPos(7);
+
+    const auto move =
+        [&](HWND control,
+            int x,
+            int y,
+            int width,
+            int height) {
+            if (!defer ||
+                !control) {
+                return;
+            }
+
+            defer =
+                DeferWindowPos(
+                    defer,
+                    control,
+                    nullptr,
+                    x,
+                    y,
+                    width,
+                    height,
+                    SWP_NOZORDER |
+                        SWP_NOACTIVATE |
+                        SWP_NOCOPYBITS);
+        };
+
+    move(
+        filter_,
+        margin,
+        topY,
+        filterWidth,
+        buttonHeight);
+
+    move(
+        add_,
+        margin +
+            filterWidth +
+            gap,
+        topY,
+        newButtonWidth,
+        buttonHeight);
+
+    move(
         list_,
         margin,
         listY,
         availableWidth,
-        std::max(
-            Scale(120),
-            listBottom -
-                listY),
-        TRUE);
+        listHeight);
 
-    const int pathButtonWidth =
-        Scale(116);
-
-    MoveWindow(
+    move(
         pathConversion_,
         margin,
         bottomButtonY,
         pathButtonWidth,
-        buttonHeight,
-        TRUE);
+        buttonHeight);
 
-    const int actionWidth =
-        Scale(84);
-    const int actionGap =
-        Scale(8);
-
-    int actionX =
-        client.right -
-        margin -
-        actionWidth;
-
-    MoveWindow(
-        delete_,
-        actionX,
-        bottomButtonY,
-        actionWidth,
-        buttonHeight,
-        TRUE);
-
-    actionX -=
-        actionWidth +
-        actionGap;
-
-    MoveWindow(
-        edit_,
-        actionX,
-        bottomButtonY,
-        actionWidth,
-        buttonHeight,
-        TRUE);
-
-    actionX -=
-        actionWidth +
-        actionGap;
-
-    MoveWindow(
+    move(
         test_,
-        actionX,
+        testX,
         bottomButtonY,
         actionWidth,
-        buttonHeight,
-        TRUE);
+        buttonHeight);
 
-    UpdateColumnWidths();
+    move(
+        edit_,
+        editX,
+        bottomButtonY,
+        actionWidth,
+        buttonHeight);
+
+    move(
+        delete_,
+        deleteX,
+        bottomButtonY,
+        actionWidth,
+        buttonHeight);
+
+    if (defer) {
+        EndDeferWindowPos(defer);
+    }
+
+    UpdateColumnWidths(
+        availableWidth);
+
+    RedrawWindow(
+        hwnd_,
+        nullptr,
+        nullptr,
+        RDW_INVALIDATE |
+            RDW_ERASE |
+            RDW_ALLCHILDREN);
 }
 
 void ShortcutManagerWindow::RecreateFonts() {
@@ -770,18 +806,42 @@ void ShortcutManagerWindow::RecreateFonts() {
         semiboldFont_ = nullptr;
     }
 
+    if (headerFont_) {
+        DeleteObject(
+            headerFont_);
+        headerFont_ = nullptr;
+    }
+
+    const auto language =
+        app_.SettingsData().language;
+
     font_ =
         ui::CreateFontHandle(
             ui::ApplicationFontSpec(
-                app_.SettingsData().language,
+                language,
                 ui::UiFontRole::Body),
             dpi_);
 
     semiboldFont_ =
         ui::CreateFontHandle(
             ui::ApplicationFontSpec(
-                app_.SettingsData().language,
+                language,
                 ui::UiFontRole::BodySemibold),
+            dpi_);
+
+    auto headerSpec =
+        ui::ApplicationFontSpec(
+            language,
+            ui::UiFontRole::Body);
+
+    headerSpec.pointSize =
+        std::max(
+            8,
+            headerSpec.pointSize - 1);
+
+    headerFont_ =
+        ui::CreateFontHandle(
+            headerSpec,
             dpi_);
 
     for (HWND control :
@@ -811,7 +871,9 @@ void ShortcutManagerWindow::RecreateFonts() {
                 header,
                 WM_SETFONT,
                 reinterpret_cast<WPARAM>(
-                    font_),
+                    headerFont_
+                        ? headerFont_
+                        : font_),
                 TRUE);
         }
     }
@@ -834,10 +896,13 @@ RebuildRowHeightImageList() {
             nullptr;
     }
 
+    const int rowHeight =
+        Scale(24);
+
     rowHeightImageList_ =
         ImageList_Create(
             1,
-            Scale(30),
+            rowHeight,
             ILC_COLOR32,
             1,
             1);
@@ -849,7 +914,7 @@ RebuildRowHeightImageList() {
     HBITMAP spacer =
         CreateBitmap(
             1,
-            Scale(30),
+            rowHeight,
             1,
             32,
             nullptr);
@@ -869,34 +934,51 @@ RebuildRowHeightImageList() {
 }
 
 void ShortcutManagerWindow::
-UpdateColumnWidths() {
+UpdateColumnWidths(
+    int listWidth) {
     if (!list_) {
         return;
     }
 
-    RECT client{};
-    GetClientRect(
-        list_,
-        &client);
+    int contentWidth =
+        listWidth;
 
+    if (contentWidth <= 0) {
+        RECT client{};
+        GetClientRect(
+            list_,
+            &client);
+        contentWidth =
+            client.right -
+            client.left;
+    } else {
+        contentWidth -=
+            GetSystemMetricsForDpi(
+                SM_CXBORDER,
+                dpi_) *
+            2;
+    }
+
+    contentWidth =
+        std::max(
+            Scale(360),
+            contentWidth);
+
+    // Four real columns only. The final Target column always consumes the
+    // exact remainder so resize never exposes a fake fifth header cell.
     const int keywords =
-        Scale(210);
+        contentWidth * 22 / 100;
     const int name =
-        Scale(180);
+        contentWidth * 26 / 100;
     const int type =
-        Scale(90);
-    const int minimumTarget =
-        Scale(220);
-
+        contentWidth * 12 / 100;
     const int target =
         std::max(
-            minimumTarget,
-            static_cast<int>(
-                client.right) -
+            1,
+            contentWidth -
                 keywords -
                 name -
-                type -
-                Scale(4));
+                type);
 
     ListView_SetColumnWidth(
         list_,
