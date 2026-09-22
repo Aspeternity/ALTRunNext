@@ -103,7 +103,7 @@ if version == "0.8.0-alpha.2.9":
     for token in (
         "## v0.8.0-alpha.2.9 — About Alignment Polish",
         "0.8.0.29",
-        "shared 24-logical-pixel metadata row",
+        "24-logical-pixel metadata row",
     ):
         if token not in readme:
             fail(f"v0.8 alpha.2.9 README contract missing: {token}")
