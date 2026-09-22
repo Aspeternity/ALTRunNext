@@ -69,8 +69,7 @@ private:
     void Layout();
     void RecreateFonts();
     void RebuildRowHeightImageList();
-    void UpdateColumnWidths(
-        int listWidth = -1);
+    void UpdateColumnWidths();
     void UpdateEmptyText();
     void DrawActionButton(
         const DRAWITEMSTRUCT& item);
