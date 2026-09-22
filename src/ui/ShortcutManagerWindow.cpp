@@ -789,7 +789,8 @@ void ShortcutManagerWindow::Layout() {
         nullptr,
         RDW_INVALIDATE |
             RDW_ERASE |
-            RDW_ALLCHILDREN);
+            RDW_ALLCHILDREN |
+            RDW_UPDATENOW);
 }
 
 void ShortcutManagerWindow::RecreateFonts() {
