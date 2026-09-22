@@ -934,30 +934,19 @@ RebuildRowHeightImageList() {
 }
 
 void ShortcutManagerWindow::
-UpdateColumnWidths(
-    int listWidth) {
+UpdateColumnWidths() {
     if (!list_) {
         return;
     }
 
-    int contentWidth =
-        listWidth;
+    RECT client{};
+    GetClientRect(
+        list_,
+        &client);
 
-    if (contentWidth <= 0) {
-        RECT client{};
-        GetClientRect(
-            list_,
-            &client);
-        contentWidth =
-            client.right -
-            client.left;
-    } else {
-        contentWidth -=
-            GetSystemMetricsForDpi(
-                SM_CXBORDER,
-                dpi_) *
-            2;
-    }
+    int contentWidth =
+        client.right -
+        client.left;
 
     contentWidth =
         std::max(
