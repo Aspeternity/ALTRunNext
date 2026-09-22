@@ -290,6 +290,7 @@ private:
     void StopManagedEverythingLifecycle();
     void HandleUpdateStatusMessage(
         std::uint64_t generation);
+    void InvalidateUpdateCheckForChannelChange();
     bool BeginPreparedUpdate();
     void SignalStartupHealthEvent();
     void CaptureActivationContext();
