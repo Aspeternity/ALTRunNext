@@ -379,19 +379,19 @@ int main() {
         initialFeatureSettings.schemaVersion ==
         config::kSettingsSchemaVersion);
 
-    assert(!featureSettings.Data().startWithWindows);
+    assert(featureSettings.Data().startWithWindows);
     assert(
         featureSettings.Data()
             .startupBehavior ==
         StartupBehavior::Notification);
     assert(featureSettings.Data().showTrayIcon);
     assert(featureSettings.Data().soundEnabled);
-    assert(!featureSettings.Data().addToSendToMenu);
+    assert(featureSettings.Data().addToSendToMenu);
     assert(!featureSettings.Data().auxiliaryHotkeyEnabled);
     assert(featureSettings.Data().auxiliaryHotkeyKey == "pause");
     assert(featureSettings.Data().pinyinSearch);
     assert(!featureSettings.Data().showResultIcons);
-    assert(!featureSettings.Data().numericQuickLaunch);
+    assert(featureSettings.Data().numericQuickLaunch);
     assert(
         !featureSettings.Data()
              .executeSingleResultImmediately);
@@ -416,6 +416,9 @@ int main() {
     soundSettings.Load();
     assert(soundSettings.Data().soundEnabled);
     assert(soundSettings.Data().startupBehavior == StartupBehavior::Silent);
+    assert(!soundSettings.Data().startWithWindows);
+    assert(!soundSettings.Data().addToSendToMenu);
+    assert(!soundSettings.Data().numericQuickLaunch);
     assert(soundSettings.SetSoundEnabled(false));
     SettingsStore soundReloaded(soundSettingsPath);
     soundReloaded.Load();
@@ -436,6 +439,19 @@ int main() {
     assert(futureSound.IsReadOnlyDueToNewerSchema());
     assert(!futureSound.SetSoundEnabled(true));
     assert(ReadText(futureSoundPath) == futureSoundBefore);
+
+    // Current-schema explicit opt-outs must survive the new default-on policy.
+    const auto explicitOptOutPath =
+        data / "settings-explicit-opt-out.json";
+    WriteText(
+        explicitOptOutPath,
+        R"({"schemaVersion":11,"general":{"startWithWindows":false,"addToSendToMenu":false},"behavior":{"numericQuickLaunch":false}})");
+    SettingsStore explicitOptOut(
+        explicitOptOutPath);
+    explicitOptOut.Load();
+    assert(!explicitOptOut.Data().startWithWindows);
+    assert(!explicitOptOut.Data().addToSendToMenu);
+    assert(!explicitOptOut.Data().numericQuickLaunch);
 
     assert(featureSettings.SetStartWithWindows(true));
     assert(featureSettings.Data().startWithWindows);
@@ -1604,13 +1620,13 @@ int main() {
             LoadedPrimary);
 
     assert(featureSettings.ResetDefaults());
-    assert(!featureSettings.Data().startWithWindows);
+    assert(featureSettings.Data().startWithWindows);
     assert(
         featureSettings.Data().startupBehavior ==
         StartupBehavior::Notification);
     assert(featureSettings.Data().showTrayIcon);
     assert(featureSettings.Data().soundEnabled);
-    assert(!featureSettings.Data().addToSendToMenu);
+    assert(featureSettings.Data().addToSendToMenu);
     assert(
         !featureSettings.Data()
              .auxiliaryHotkeyEnabled);
@@ -1624,8 +1640,8 @@ int main() {
         "pause");
     assert(featureSettings.Data().pinyinSearch);
     assert(
-        !featureSettings.Data()
-             .numericQuickLaunch);
+        featureSettings.Data()
+            .numericQuickLaunch);
     assert(
         !featureSettings.Data()
              .executeSingleResultImmediately);

@@ -347,6 +347,17 @@ bool SettingsStore::LoadJson() {
         const auto& root =
             *load.value;
 
+        if (load.schemaVersion > 0 &&
+            load.schemaVersion <
+                config::kSettingsSchemaVersion) {
+            // alpha.5.46 changes only the defaults for a new settings store.
+            // Older persisted documents keep the historical opt-in baseline
+            // when a field/section did not exist yet.
+            settings_.startWithWindows = false;
+            settings_.addToSendToMenu = false;
+            settings_.numericQuickLaunch = false;
+        }
+
         if (root.contains(
                 "appearance") &&
             root["appearance"]
@@ -413,18 +424,25 @@ bool SettingsStore::LoadJson() {
                         "addToSendToMenu",
                         settings_
                             .addToSendToMenu);
-            } else if (
-                general.contains(
-                    "showOnStartup") &&
-                general["showOnStartup"]
-                    .is_boolean()) {
-                settings_.startupBehavior =
+            } else {
+                // SendTo did not exist before schema 10. Preserve the old
+                // opt-in behavior for upgraded settings instead of applying
+                // the new-install default.
+                settings_.addToSendToMenu =
+                    false;
+
+                if (general.contains(
+                        "showOnStartup") &&
                     general["showOnStartup"]
-                        .get<bool>()
-                        ? StartupBehavior::
-                              ShowLauncher
-                        : StartupBehavior::
-                              Silent;
+                        .is_boolean()) {
+                    settings_.startupBehavior =
+                        general["showOnStartup"]
+                            .get<bool>()
+                            ? StartupBehavior::
+                                  ShowLauncher
+                            : StartupBehavior::
+                                  Silent;
+                }
             }
 
             settings_.soundEnabled = general.value("soundEnabled", settings_.soundEnabled);
@@ -811,6 +829,13 @@ bool SettingsStore::LoadJson() {
 }
 
 bool SettingsStore::MigrateLegacyIni() {
+    // Legacy INI users predate the new default-on integration policy.
+    // Keep their historical opt-in defaults unless they explicitly change
+    // them after migration.
+    settings_.startWithWindows = false;
+    settings_.addToSendToMenu = false;
+    settings_.numericQuickLaunch = false;
+
     std::ifstream input(
         legacyIniPath_,
         std::ios::binary);

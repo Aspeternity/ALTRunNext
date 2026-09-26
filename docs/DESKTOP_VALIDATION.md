@@ -8,6 +8,18 @@ Automated CI covers compilation, Config/Search tests, provider smoke tests, hotk
 
 The checks below are the remaining **real interactive Windows desktop** validation items. Automated geometry/behavior tests reduce regression risk but do not replace observing the actual UI, IME, monitor transitions, providers and hotkey lifecycle on a real desktop.
 
+## v0.8.0-alpha.5.46 Tray Menu + Default Behavior validation
+
+- [ ] Right-click the tray icon in Chinese UI and confirm the order is **显示主界面**, separator, **快捷项管理…**, **设置…**, separator, **关于**, **退出**. There is no **重新加载** entry.
+- [ ] Repeat in English UI: **Show launcher**, separator, **Shortcut Manager…**, **Settings…**, separator, **About**, **Exit**. The first item is the native default item.
+- [ ] Confirm Show launcher, Shortcut Manager and Settings display their current effective hotkeys. Rebind each action and reopen the tray menu; the labels update immediately. Disable an optional binding and confirm its stale shortcut text is not shown.
+- [ ] Fresh data defaults **Start with Windows**, **Add to Send To menu** and **Numeric quick launch** to enabled. Confirm startup registration and the SendTo shortcut are actually created, and numbered-result execution works with the existing 90 ms text-intent arbitration.
+- [ ] Upgrade an existing schema-11 data directory where all three settings are explicitly disabled; they remain disabled after launch.
+- [ ] Upgrade a representative older settings file missing the newer integration fields; migration keeps the historical disabled baseline instead of silently opting the user in.
+- [ ] Use **Restore defaults** after disabling all three. The stored settings return to enabled and the real Windows startup/SendTo registrations are applied transactionally.
+- [ ] Recheck tray keyboard/mouse activation, Explorer-restart recovery, original ALTRun icon and Popup.wav behavior from alpha.5.45.
+- [ ] Settings schema remains 11; Commands 2, Usage 2, Provider Cache 22; fixed Windows version is 0.8.0.216.
+
 ## v0.8.0-alpha.5.45 Stable Shell Identity + Tray Lifecycle validation
 
 - [ ] With **Show system tray icon** enabled, confirm the ALTRun Next tray icon has the `ALTRun Next` tooltip and no duplicate icon appears after repeated hide/show cycles.

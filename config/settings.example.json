@@ -1,12 +1,12 @@
 {
   "schemaVersion": 11,
   "general": {
-    "startWithWindows": false,
+    "startWithWindows": true,
     "showTrayIcon": true,
     "popupMonitor": "cursor",
     "startupBehavior": "notification",
     "soundEnabled": true,
-    "addToSendToMenu": false
+    "addToSendToMenu": true
   },
   "hotkey": {
     "modifiers": [
@@ -58,7 +58,7 @@
   "behavior": {
     "pinyinSearch": true,
     "wildcardMatching": false,
-    "numericQuickLaunch": false,
+    "numericQuickLaunch": true,
     "numericQuickLaunchOrder": "one-to-zero",
     "executeSingleResultImmediately": false
   },
