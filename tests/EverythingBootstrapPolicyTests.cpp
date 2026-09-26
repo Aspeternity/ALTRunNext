@@ -108,6 +108,19 @@ int main() {
                  "revision=0\n"
                  "build=1500\n")
                  .has_value());
+
+        assert(
+            CompareEverythingVersions(
+                L"1.5.0.1500",
+                L"1.4.1.1032") > 0);
+        assert(
+            CompareEverythingVersions(
+                L"1.4.1.1032",
+                L"1.4.1.1032") == 0);
+        assert(
+            CompareEverythingVersions(
+                L"1.4.1.999",
+                L"1.4.1.1032") < 0);
     }
 
     {
