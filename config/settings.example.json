@@ -73,6 +73,9 @@
     "windows.path": true,
     "everything.filesystem": false
   },
+  "everything": {
+    "showTrayIcon": false
+  },
   "update": {
     "autoCheck": true,
     "channel": "stable"
