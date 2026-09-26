@@ -847,8 +847,33 @@ SearchEngine::Search(
     const std::wstring normalizedQuery =
         relevance::Normalize(query);
 
-    const auto queryTokens =
-        relevance::QueryTokens(query);
+    std::vector<std::wstring>
+        queryTokenStorage;
+    std::span<const std::wstring>
+        queryTokens;
+
+    if (!normalizedQuery.empty()) {
+        const bool hasWhitespace =
+            std::any_of(
+                query.begin(),
+                query.end(),
+                [](wchar_t ch) {
+                    return std::iswspace(ch) != 0;
+                });
+
+        if (hasWhitespace) {
+            queryTokenStorage =
+                relevance::QueryTokens(
+                    query);
+            queryTokens =
+                queryTokenStorage;
+        } else {
+            queryTokens =
+                std::span<const std::wstring>(
+                    &normalizedQuery,
+                    1);
+        }
+    }
 
     const bool wildcardQuery =
         allowWildcards &&
