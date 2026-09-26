@@ -1140,6 +1140,9 @@ bool App::StartEverythingBootstrap(
 
     const auto dataDirectory =
         dataDirectory_;
+    const bool showManagedTrayIcon =
+        settingsStore_.Data()
+            .managedEverythingShowTrayIcon;
     const DWORD targetThread =
         uiThreadId_;
     const std::uint64_t generation =
@@ -1150,6 +1153,7 @@ bool App::StartEverythingBootstrap(
             [this,
              dataDirectory,
              allowDownload,
+             showManagedTrayIcon,
              targetThread,
              generation](
                 std::stop_token stopToken) {
@@ -1169,7 +1173,8 @@ bool App::StartEverythingBootstrap(
                         dataDirectory,
                         allowDownload,
                         progress,
-                        stopToken);
+                        stopToken,
+                        showManagedTrayIcon);
 
                 {
                     std::scoped_lock lock(
@@ -3954,6 +3959,46 @@ bool App::SetProviderEnabledBatch(
         StartProviderRefresh(
             std::move(
                 enabledChanges));
+    }
+
+    return true;
+}
+
+bool App::SetManagedEverythingShowTrayIcon(
+    bool enabled) {
+    const auto bootstrap =
+        EverythingBootstrapStatus();
+
+    // Never rewrite a user-managed/external Everything installation. Keep the
+    // preference for a future ALTRun-managed copy, but only restart/apply it
+    // when the current executable is ours.
+    const bool managed =
+        bootstrap.source ==
+            win::EverythingBootstrapSource::
+                Managed ||
+        bootstrap.source ==
+            win::EverythingBootstrapSource::
+                Downloaded;
+
+    if (!settingsStore_
+             .SetManagedEverythingShowTrayIcon(
+                 enabled)) {
+        return false;
+    }
+
+    if (managed &&
+        providers::IsEnabled(
+            settingsStore_.Data()
+                .providerEnabled,
+            providers::
+                kEverythingFilesystem,
+            false)) {
+        StartEverythingBootstrap(false);
+    }
+
+    if (settingsWindow_) {
+        settingsWindow_->
+            RefreshFromSettings();
     }
 
     return true;
