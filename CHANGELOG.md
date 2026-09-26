@@ -7,6 +7,8 @@
 - Prepare normalized query state and pinyin eligibility once per static search, and reuse normalized-query matching in relevance and dynamic filesystem ranking. File-stem matching now uses a non-owning view instead of allocating a temporary string.
 - Avoid additional hot-path allocations by reusing the already-normalized single-term query instead of building a token vector, caching whether any user shortcut needs the contextual `{folder}` working set outside the keypress path, sampling recency time once per empty-query search, and passing the known query-empty state into result rebuilding instead of rereading the EDIT control.
 - Make pinyin cache hits allocation-free through transparent lookup, move derived syllable strings into cache storage instead of copying them, and return the cache bucket array as well as entries when pinyin search is disabled.
+- Lower background refresh memory peaks by moving provider-discovery command vectors into the cache update instead of deep-copying the full discovered catalog.
+- Replace UsageStore's full-history rollback copy on every successful launch with a targeted undo log for only the selected command and affected same-query competitors; Clear likewise moves the map aside and restores it only if persistence fails.
 - Bound the derived pinyin-form cache with an LRU-style capacity of 4096 entries so provider refreshes and long-running user-edit churn cannot grow it without limit.
 - Extend the real Win32 runtime regression with a repeated Shortcut Manager -> Editor -> Path Conversion lifecycle soak and assert that GDI, USER and process-handle counts do not grow per cycle.
 - Preserve Settings schema 11, Commands 2, Usage 2 and Provider Cache 22; Windows fixed version `0.8.0.219`.
