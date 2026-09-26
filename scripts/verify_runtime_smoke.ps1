@@ -172,8 +172,8 @@ try {
         throw "Packaged runtime migration must default Pinyin search to enabled."
     }
 
-    if ($migratedSettings.appearance.showResultIcons -ne $false) {
-        throw "Packaged runtime migration must default search-result icons to disabled."
+    if ($migratedSettings.appearance.PSObject.Properties.Name -contains "showResultIcons") {
+        throw "Packaged runtime migration must drop the removed showResultIcons setting."
     }
 
     if ($migratedSettings.update.autoCheck -ne $true) {
@@ -218,7 +218,7 @@ try {
     Write-Host "  FileVersion string: $fileVersion"
     Write-Host "  Process id: $($process.Id)"
     Write-Host "  Startup observation: $StartupSeconds seconds"
-    Write-Host "  Runtime migration: schema 2 -> 10 with startup-behavior cleanup + current Hotkey Registry + default window placement + default-on Pinyin + default-off result icons + release-appropriate update defaults"
+    Write-Host "  Runtime migration: schema 2 -> 10 with startup-behavior cleanup + current Hotkey Registry + default window placement + default-on Pinyin + removed result-icon setting cleanup + release-appropriate update defaults"
 
 
     # Stop the migration fixture before the startup-performance pass.
