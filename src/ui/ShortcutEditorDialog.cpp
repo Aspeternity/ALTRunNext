@@ -438,7 +438,12 @@ ShortcutEditorDialog::ShortcutEditorDialog(
       owner_(owner) {}
 
 ShortcutEditorDialog::~ShortcutEditorDialog() {
-    CloseWindow();
+    if (hwnd_ && IsWindow(hwnd_)) {
+        window_presentation::
+            HideForDestroy(
+                hwnd_);
+        DestroyWindow(hwnd_);
+    }
 
     if (font_) {
         DeleteObject(font_);
@@ -467,10 +472,12 @@ void ShortcutEditorDialog::CloseWindow() {
         return;
     }
 
-    window_presentation::
-        HideForDestroy(
-            hwnd_);
-    DestroyWindow(hwnd_);
+    // End the nested message loop first. RunModal restores an enabled/active
+    // owner while this popup still exists, then destroys the popup. Destroying
+    // an active modal window while its owner is disabled lets USER32 activate
+    // another window and then bounce back to the owner, which is visible as a
+    // one-frame Shortcut Manager flash.
+    closed_ = true;
 }
 
 bool ShortcutEditorDialog::Show(
@@ -728,11 +735,19 @@ bool ShortcutEditorDialog::RunModal() {
 
     if (ownerWasEnabled && IsWindow(owner_)) {
         EnableWindow(owner_, TRUE);
-        // External Add Shortcut uses a hidden Launcher as owner. Do not
-        // activate it, or undo the disabled state of an enclosing modal UI.
+        // Restore the same-thread owner before the active popup disappears.
+        // SetActiveWindow is sufficient here and avoids a second global
+        // foreground handoff. Hidden Launcher owners stay non-activated.
         if (IsWindowVisible(owner_) && !IsIconic(owner_)) {
-            SetForegroundWindow(owner_);
+            SetActiveWindow(owner_);
         }
+    }
+
+    if (hwnd_ && IsWindow(hwnd_)) {
+        window_presentation::
+            HideForDestroy(
+                hwnd_);
+        DestroyWindow(hwnd_);
     }
 
     if (sawQuit) {
