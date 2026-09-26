@@ -351,13 +351,32 @@ int main() {
         assert(habits.Data().at(L"new").launches == 100008);
         const auto beforeNew = habits.Data().at(L"new").queryLaunches;
         const auto beforeClassic = habits.Data().at(L"classic").queryLaunches;
-        // Block the atomic writer; both selected and competing evidence must
-        // roll back together if persistence fails.
+        const auto beforeClassicLaunches =
+            habits.Data().at(L"classic").launches;
+        const auto beforeClassicLastUsed =
+            habits.Data().at(L"classic").lastUsedUnix;
+
+        // Block the atomic writer; selected/global fields and competing
+        // evidence must roll back together without requiring a full UsageMap
+        // snapshot.
         std::filesystem::create_directory(habitPath.string() + ".tmp");
         habits.Record(L"classic", L"ts");
         assert(habits.Data().at(L"new").queryLaunches == beforeNew);
         assert(habits.Data().at(L"classic").queryLaunches == beforeClassic);
-        assert(habits.Data().at(L"classic").launches == 8);
+        assert(
+            habits.Data().at(L"classic").launches ==
+            beforeClassicLaunches);
+        assert(
+            habits.Data().at(L"classic").lastUsedUnix ==
+            beforeClassicLastUsed);
+
+        // A command first seen during the failed transaction must disappear
+        // completely, while any competitors it temporarily aged are restored.
+        habits.Record(L"brand-new", L"ts");
+        assert(!habits.Data().contains(L"brand-new"));
+        assert(habits.Data().at(L"new").queryLaunches == beforeNew);
+        assert(habits.Data().at(L"classic").queryLaunches == beforeClassic);
+
         std::filesystem::remove(habitPath.string() + ".tmp");
     }
 
