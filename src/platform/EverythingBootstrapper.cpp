@@ -3691,9 +3691,13 @@ ManagedEverythingStopResult
 StopManagedEverything(
     const std::filesystem::path& dataDirectory,
     std::stop_token stopToken) {
-    const auto executable =
-        ManagedEverythingExecutable(
+    const auto activeExecutable =
+        ActiveManagedEverythingExecutable(
             dataDirectory);
+    const auto executable =
+        activeExecutable.value_or(
+            ManagedEverythingExecutable(
+                dataDirectory));
 
     if (!FileExists(executable)) {
         return {
@@ -3759,9 +3763,13 @@ CheckManagedEverythingUpdate(
     snapshot.source =
         EverythingBootstrapSource::
             Managed;
-    snapshot.executablePath =
-        ManagedEverythingExecutable(
+    const auto activeExecutable =
+        ActiveManagedEverythingExecutable(
             dataDirectory);
+    snapshot.executablePath =
+        activeExecutable.value_or(
+            ManagedEverythingExecutable(
+                dataDirectory));
 
     if (!FileExists(
             snapshot.executablePath)) {
@@ -3855,9 +3863,13 @@ RunEverythingBootstrap(
     EverythingBootstrapSnapshot snapshot;
     snapshot.running = true;
 
-    const auto existingManagedExecutable =
-        ManagedEverythingExecutable(
+    const auto activeManagedExecutable =
+        ActiveManagedEverythingExecutable(
             dataDirectory);
+    const auto existingManagedExecutable =
+        activeManagedExecutable.value_or(
+            ManagedEverythingExecutable(
+                dataDirectory));
 
     if (FileExists(
             existingManagedExecutable)) {
