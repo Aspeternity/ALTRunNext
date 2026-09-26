@@ -524,13 +524,6 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
         if "GrantForegroundToWindow(target)" not in app_cpp:
             fail("alpha.5.48 external shortcut forwarding must grant foreground permission")
         runtime_tests = read("tests/WindowPresentationRuntimeTests.cpp")
-        result_ranking_tests = read("tests/ResultRankingTests.cpp")
-        launcher_cpp = read("src/ui/LauncherWindow.cpp")
-        launcher_hpp = read("src/ui/LauncherWindow.hpp")
-        settings_cpp = read("src/core/Settings.cpp")
-        settings_hpp = read("src/core/Settings.hpp")
-        settings_window_cpp = read("src/ui/SettingsWindow.cpp")
-        cmake = read("CMakeLists.txt")
         for token in ("settings.Create()", "!IsWindowVisible(window)",
                       "HasAboutHeading(window)", "ShortcutEditorDialog::ShowNew"):
             if token not in runtime_tests:
@@ -574,6 +567,13 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
         pinyin_cpp = read("src/core/PinyinSearch.cpp")
         search_tests = read("tests/SearchEngineTests.cpp")
         runtime_tests = read("tests/WindowPresentationRuntimeTests.cpp")
+        result_ranking_tests = read("tests/ResultRankingTests.cpp")
+        launcher_cpp = read("src/ui/LauncherWindow.cpp")
+        launcher_hpp = read("src/ui/LauncherWindow.hpp")
+        settings_store_cpp = read("src/core/Settings.cpp")
+        settings_hpp = read("src/core/Settings.hpp")
+        settings_window_cpp = read("src/ui/SettingsWindow.cpp")
+        cmake = read("CMakeLists.txt")
 
         for token in (
             "std::span<const Command>",
@@ -631,7 +631,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
             app_cpp +
             launcher_cpp +
             launcher_hpp +
-            settings_cpp +
+            settings_store_cpp +
             settings_hpp +
             settings_window_cpp +
             cmake
