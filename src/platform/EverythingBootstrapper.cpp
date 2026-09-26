@@ -1504,12 +1504,12 @@ WaitForEverythingServiceStopped(
     return false;
 }
 
-[[nodiscard]] bool
-WindowOwnedByExecutable(
-    HWND hwnd,
-    const std::filesystem::path& executable) {
+[[nodiscard]] std::optional<
+    std::filesystem::path>
+ExecutableForWindow(
+    HWND hwnd) {
     if (!hwnd) {
-        return false;
+        return std::nullopt;
     }
 
     DWORD processId = 0;
@@ -1518,7 +1518,7 @@ WindowOwnedByExecutable(
         &processId);
 
     if (processId == 0) {
-        return false;
+        return std::nullopt;
     }
 
     HANDLE process =
@@ -1528,7 +1528,7 @@ WindowOwnedByExecutable(
             processId);
 
     if (!process) {
-        return false;
+        return std::nullopt;
     }
 
     std::array<wchar_t, 32768>
@@ -1548,15 +1548,34 @@ WindowOwnedByExecutable(
 
     if (!ok ||
         size == 0) {
-        return false;
+        return std::nullopt;
     }
 
-    return LowerPath(
-               std::filesystem::path(
-                   std::wstring(
-                       buffer.data(),
-                       size))) ==
-        LowerPath(executable);
+    return std::filesystem::path(
+        std::wstring(
+            buffer.data(),
+            size));
+}
+
+[[nodiscard]] std::optional<
+    std::filesystem::path>
+DefaultIpcExecutable() {
+    return ExecutableForWindow(
+        FindWindowW(
+            kEverythingWindowClass,
+            nullptr));
+}
+
+[[nodiscard]] bool
+WindowOwnedByExecutable(
+    HWND hwnd,
+    const std::filesystem::path& executable) {
+    const auto actual =
+        ExecutableForWindow(hwnd);
+
+    return actual &&
+        LowerPath(*actual) ==
+            LowerPath(executable);
 }
 
 [[nodiscard]] bool
@@ -1567,6 +1586,24 @@ ManagedDefaultIpcRunning(
             kEverythingWindowClass,
             nullptr),
         executable);
+}
+
+[[nodiscard]] std::optional<
+    std::filesystem::path>
+ActiveManagedEverythingExecutable(
+    const std::filesystem::path&
+        dataDirectory) {
+    const auto active =
+        DefaultIpcExecutable();
+
+    if (!active ||
+        !IsManagedEverythingServiceExecutable(
+            dataDirectory,
+            *active)) {
+        return std::nullopt;
+    }
+
+    return *active;
 }
 
 [[nodiscard]] bool
