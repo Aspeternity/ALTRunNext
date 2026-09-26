@@ -284,7 +284,7 @@ SearchEngine::DerivedInitialMatchScore(
     }
 
     auto match =
-        relevance::MatchInitials(
+        relevance::MatchNormalizedInitials(
             initials,
             normalizedQuery);
 
@@ -438,7 +438,7 @@ SearchEngine::PinyinMatchScore(
     relevance::Match best{};
 
     auto full =
-        relevance::MatchText(
+        relevance::MatchNormalizedText(
             forms->full,
             normalizedQuery);
 
@@ -455,7 +455,7 @@ SearchEngine::PinyinMatchScore(
     }
 
     auto initials =
-        relevance::MatchInitials(
+        relevance::MatchNormalizedInitials(
             forms->initials,
             normalizedQuery);
 
@@ -497,7 +497,7 @@ relevance::Match
 SearchEngine::CommandTextScore(
     const Command& command,
     std::wstring_view normalizedQuery,
-    bool allowPinyin,
+    bool usePinyin,
     bool allowTarget) const {
 
     if (normalizedQuery.empty()) {
@@ -523,7 +523,7 @@ SearchEngine::CommandTextScore(
         };
 
     consider(
-        relevance::MatchText(
+        relevance::MatchTextNormalizedQuery(
             command.keyword,
             normalizedQuery),
         relevance::MatchField::
@@ -532,7 +532,7 @@ SearchEngine::CommandTextScore(
     for (const auto& alias :
          command.aliases) {
         consider(
-            relevance::MatchText(
+            relevance::MatchTextNormalizedQuery(
                 alias,
                 normalizedQuery),
             relevance::MatchField::
@@ -540,14 +540,14 @@ SearchEngine::CommandTextScore(
     }
 
     consider(
-        relevance::MatchText(
+        relevance::MatchTextNormalizedQuery(
             command.title,
             normalizedQuery),
         relevance::MatchField::Title);
 
     if (allowTarget) {
         consider(
-            relevance::MatchText(
+            relevance::MatchTextNormalizedQuery(
                 command.target,
                 normalizedQuery),
             relevance::MatchField::
@@ -577,9 +577,7 @@ SearchEngine::CommandTextScore(
             normalizedQuery),
         relevance::MatchField::Title);
 
-    if (allowPinyin &&
-        pinyin_.Available() &&
-        IsPinyinQuery(normalizedQuery)) {
+    if (usePinyin) {
 
         consider(
             PinyinMatchScore(
@@ -668,14 +666,13 @@ SearchEngine::CommandWildcardScore(
 
 bool SearchEngine::HasDistinctiveCatalogIntent(
     const Command& command,
-    std::wstring_view query) {
+    std::wstring_view normalizedQuery,
+    std::span<const std::wstring>
+        normalizedQueryTokens) {
 
     if (command.distinctiveTokens.empty()) {
         return false;
     }
-
-    const std::wstring normalizedQuery =
-        relevance::Normalize(query);
 
     if (normalizedQuery.empty()) {
         return false;
@@ -744,9 +741,6 @@ bool SearchEngine::HasDistinctiveCatalogIntent(
         }
     }
 
-    const auto queryTokens =
-        relevance::QueryTokens(query);
-
     for (const auto& distinctive :
          command.distinctiveTokens) {
 
@@ -768,7 +762,7 @@ bool SearchEngine::HasDistinctiveCatalogIntent(
         }
 
         for (const auto& token :
-             queryTokens) {
+             normalizedQueryTokens) {
             if (token.size() < 2) {
                 continue;
             }
@@ -787,7 +781,9 @@ bool SearchEngine::HasDistinctiveCatalogIntent(
 
 bool SearchEngine::AdmitCatalogEntry(
     const Command& command,
-    std::wstring_view query,
+    std::wstring_view normalizedQuery,
+    std::span<const std::wstring>
+        normalizedQueryTokens,
     const relevance::Match& match,
     bool explicitSyntax) {
 
@@ -809,7 +805,7 @@ bool SearchEngine::AdmitCatalogEntry(
         break;
     }
 
-    if (relevance::Normalize(query).empty()) {
+    if (normalizedQuery.empty()) {
         return false;
     }
 
@@ -829,12 +825,13 @@ bool SearchEngine::AdmitCatalogEntry(
 
     return HasDistinctiveCatalogIntent(
         command,
-        query);
+        normalizedQuery,
+        normalizedQueryTokens);
 }
 
 std::vector<SearchResult>
 SearchEngine::Search(
-    const std::vector<Command>& commands,
+    std::span<const Command> commands,
     const UsageMap& usage,
     std::wstring_view query,
     std::size_t limit,
@@ -868,6 +865,13 @@ SearchEngine::Search(
         wildcardQuery ||
         relevance::HasExplicitSyntax(
             query);
+
+    const bool usePinyin =
+        !wildcardQuery &&
+        allowPinyin &&
+        pinyin_.Available() &&
+        IsPinyinQuery(
+            normalizedQuery);
 
     for (std::size_t i = 0;
          i < commands.size();
@@ -915,7 +919,7 @@ SearchEngine::Search(
                     : CommandTextScore(
                           command,
                           normalizedQuery,
-                          allowPinyin,
+                          usePinyin,
                           allowTarget);
 
             // Cached distinctive identity is stronger evidence than a
@@ -931,7 +935,7 @@ SearchEngine::Search(
                      command.distinctiveTokens) {
 
                     auto intentMatch =
-                        relevance::MatchText(
+                        relevance::MatchTextNormalizedQuery(
                             distinctive,
                             normalizedQuery);
 
@@ -954,7 +958,8 @@ SearchEngine::Search(
                     if (restrictiveIntent &&
                         !HasDistinctiveCatalogIntent(
                             command,
-                            query)) {
+                            normalizedQuery,
+                            queryTokens)) {
                         continue;
                     }
 
@@ -990,7 +995,7 @@ SearchEngine::Search(
                         CommandTextScore(
                             command,
                             token,
-                            allowPinyin,
+                            usePinyin,
                             allowTarget);
 
                     // Multi-token intent must use the same already-cached
@@ -1005,7 +1010,7 @@ SearchEngine::Search(
                              command.distinctiveTokens) {
 
                             auto intentMatch =
-                                relevance::MatchText(
+                                relevance::MatchTextNormalizedQuery(
                                     distinctive,
                                     token);
 
@@ -1025,7 +1030,10 @@ SearchEngine::Search(
                             if (restrictiveIntent &&
                                 !HasDistinctiveCatalogIntent(
                                     command,
-                                    token)) {
+                                    token,
+                                    std::span<const std::wstring>(
+                                        &token,
+                                        1))) {
                                 continue;
                             }
 
@@ -1092,13 +1100,14 @@ SearchEngine::Search(
             if (!match ||
                 !AdmitCatalogEntry(
                     command,
-                    query,
+                    normalizedQuery,
+                    queryTokens,
                     match,
                     explicitSyntax) ||
                 !relevance::
-                    AdmitLaunchSurface(
+                    AdmitLaunchSurfaceNormalized(
                         command.surfaceClass,
-                        query,
+                        normalizedQuery,
                         match,
                         explicitSyntax)) {
                 continue;
