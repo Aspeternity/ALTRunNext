@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0-alpha.5.47
+
+- Move startup-registration and SendTo reconciliation off the first-frame path; the real launcher window/health signal is established before Shell integration work begins.
+- Reconcile shell integrations on a background COM worker with desired-state guards so a concurrent Settings change wins deterministically.
+- Make the HKCU Run registration idempotent and avoid rewriting an unchanged value.
+- Load and compare the existing SendTo Shell Link before saving; an unchanged portable install performs no .lnk rewrite, while a moved install still self-repairs target/working-directory/icon paths.
+- Extend packaged x64 runtime smoke with a 3-second first-frame health contract and a repeat-launch no-rewrite assertion.
+- Keep Settings schema 11, Commands 2, Usage 2 and Provider Cache 22; Windows fixed version `0.8.0.217`.
+
 ## 0.8.0-alpha.5.46
 
 - Simplify the native tray menu to Show launcher, Shortcut Manager…, Settings…, About and Exit; remove Reload and group management entries together.

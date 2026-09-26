@@ -290,9 +290,14 @@ private:
         bool forceRunAsAdmin = false,
         std::wstring_view query = {});
     bool ApplyStartupRegistration(
-        bool enabled) const;
+        bool enabled);
     bool ApplySendToRegistration(
+        bool enabled);
+    bool ApplyStartupRegistrationUnlocked(
         bool enabled) const;
+    bool ApplySendToRegistrationUnlocked(
+        bool enabled) const;
+    void StartShellIntegrationReconcile();
     bool ForwardShortcutRequestsToExistingInstance()
         const;
     bool RebindGlobalHotkey(
@@ -369,8 +374,17 @@ private:
         everythingBootstrapThread_;
     std::jthread
         updateThread_;
+    std::jthread
+        shellIntegrationThread_;
     std::atomic_bool
         providerRefreshRunning_{false};
+
+    mutable std::mutex
+        shellIntegrationMutex_;
+    std::atomic_bool
+        desiredStartupRegistration_{false};
+    std::atomic_bool
+        desiredSendToRegistration_{false};
 
     bool providerRefreshFullPending_{false};
     std::unordered_set<std::string>

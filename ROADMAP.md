@@ -280,7 +280,8 @@ In progress:
 - v0.8.0-alpha.5.44 unifies native shortcut-deletion confirmation and introduces a default-on General sound preference with original startup/reveal/execute/failure cues; Settings schema 11.
 - v0.8.0-alpha.5.45 establishes stable unpackaged Shell identity and notification-area lifecycle: explicit AppUserModelID, stable tray GUID/tooltip, keyboard selection and persistent-icon recovery after Explorer restart without resurrecting one-shot startup notification icons. It also adopts the authorized original ALTRun MAINICON and Popup.wav as the product icon and feedback sound assets.
 - v0.8.0-alpha.5.46 simplifies the native tray menu, groups Shortcut Manager with Settings, removes Reload, shows effective hotkeys at menu-open time, and changes fresh/reset defaults for Start with Windows, SendTo integration and numeric Quick Launch to enabled without overriding persisted upgrade choices.
-- next desktop step: validate alpha.5.46 tray grouping/hotkey labels and fresh-vs-upgrade default behavior before continuing Classic closeout and Modern Compact.
+- v0.8.0-alpha.5.47 removes the resulting first-run startup regression: startup/SendTo integration reconciliation moves behind first-frame readiness, runs on a background COM worker and becomes idempotent so ordinary launches do not rewrite the Run value or SendTo shortcut.
+- next desktop step: validate 5.47 cold-start responsiveness and background integration repair together with the 5.46 tray/default behavior before continuing Classic closeout and Modern Compact.
 - Classic ALTRun is polished to maturity first; Modern Compact refinement follows only after Classic real-Windows closeout
 - Launcher polish remains keyboard-first and density/performance protected
 - UI performance consolidation remains a release requirement; v0.8 must not trade responsiveness for decoration
