@@ -137,7 +137,7 @@ PrimaryResultText(
             ResultKind::Folder;
 }
 
-constexpr std::array
+constexpr std::array<
     int,
     ui::kClassicGlyphAssetPixelSizes.size()>
     kClassicShortcutResourceIds{
