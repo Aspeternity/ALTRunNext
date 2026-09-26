@@ -32,6 +32,7 @@
 #include <chrono>
 #include <cstdint>
 #include <fstream>
+#include <span>
 #include <stop_token>
 #include <unordered_map>
 
@@ -761,45 +762,74 @@ std::vector<LauncherResult> App::Search(
             activationContext_
                 .CurrentFilesystemFolder();
 
-    // Keep a same-order working set so {folder} can be resolved for search,
-    // presentation and {query} web aliases without mutating persisted
-    // commands. Contextual commands are intentionally absent when there is
-    // no real filesystem folder to substitute.
+    // Most searches do not use the contextual {folder} feature. Keep the
+    // immutable CommandStore vector as a non-owning span in that common path;
+    // copying every Command (and all of its strings/vectors) on every keypress
+    // was one of the largest avoidable allocator costs in the launcher.
     std::vector<Command>
-        searchableCommands;
+        contextualCommands;
     std::vector<std::size_t>
         sourceIndices;
 
-    searchableCommands.reserve(
-        sourceCommands.size());
-    sourceIndices.reserve(
-        sourceCommands.size());
+    const bool requiresContextWorkingSet =
+        std::any_of(
+            sourceCommands.begin(),
+            sourceCommands.end(),
+            [](const Command& command) {
+                return command.source ==
+                        CommandSource::User &&
+                    UsesFolderTemplate(
+                        command);
+            });
 
-    for (std::size_t index = 0;
-         index < sourceCommands.size();
-         ++index) {
-        const auto& source =
-            sourceCommands[index];
+    std::span<const Command>
+        searchableCommands =
+            sourceCommands;
 
-        if (source.source ==
-                CommandSource::User &&
-            UsesFolderTemplate(
-                source)) {
-            if (contextFolder.empty()) {
-                continue;
+    if (requiresContextWorkingSet) {
+        contextualCommands.reserve(
+            sourceCommands.size());
+        sourceIndices.reserve(
+            sourceCommands.size());
+
+        for (std::size_t index = 0;
+             index < sourceCommands.size();
+             ++index) {
+            const auto& source =
+                sourceCommands[index];
+
+            if (source.source ==
+                    CommandSource::User &&
+                UsesFolderTemplate(
+                    source)) {
+                if (contextFolder.empty()) {
+                    continue;
+                }
+
+                contextualCommands.push_back(
+                    ResolveFolderTemplate(
+                        source,
+                        contextFolder));
+            } else {
+                contextualCommands.push_back(
+                    source);
             }
 
-            searchableCommands.push_back(
-                ResolveFolderTemplate(
-                    source,
-                    contextFolder));
-        } else {
-            searchableCommands.push_back(
-                source);
+            sourceIndices.push_back(
+                index);
         }
 
-        sourceIndices.push_back(index);
+        searchableCommands =
+            contextualCommands;
     }
+
+    const auto sourceIndexFor =
+        [&](std::size_t workingIndex) {
+            return requiresContextWorkingSet
+                ? sourceIndices[
+                      workingIndex]
+                : workingIndex;
+        };
 
     const auto matches =
         searchEngine_.Search(
@@ -826,8 +856,8 @@ std::vector<LauncherResult> App::Search(
 
         const std::size_t
             sourceIndex =
-                sourceIndices[
-                    match.commandIndex];
+                sourceIndexFor(
+                    match.commandIndex);
 
         LauncherResult result;
         result.id = command.id;
@@ -883,46 +913,42 @@ std::vector<LauncherResult> App::Search(
             query,
             limit);
 
-    // Runtime/Web actions receive the context-resolved working set, so remap
-    // their working-set index back to the persisted CommandStore index.
-    for (auto& action : inputActions) {
-        if (action.action.commandIndex ==
-            static_cast<std::size_t>(-1)) {
-            continue;
-        }
+    // Only the contextual working set has synthetic indices. The normal
+    // no-template path already points directly at CommandStore and therefore
+    // needs no remap and no source-index side allocation.
+    const auto remapActionIndices =
+        [&](std::vector<LauncherResult>&
+                actions) {
+            if (!requiresContextWorkingSet) {
+                return;
+            }
 
-        if (action.action.commandIndex >=
-            sourceIndices.size()) {
-            action.action.commandIndex =
-                static_cast<std::size_t>(-1);
-            continue;
-        }
+            for (auto& action : actions) {
+                if (action.action.commandIndex ==
+                    static_cast<std::size_t>(
+                        -1)) {
+                    continue;
+                }
 
-        action.action.commandIndex =
-            sourceIndices[
-                action.action.commandIndex];
-    }
+                if (action.action.commandIndex >=
+                    sourceIndices.size()) {
+                    action.action.commandIndex =
+                        static_cast<std::size_t>(
+                            -1);
+                    continue;
+                }
 
-    // WebAction receives the context-resolved working set, so remap its
-    // working-set index back to the persisted CommandStore index before the
-    // action reaches execution/usage tracking.
-    for (auto& action : webActions) {
-        if (action.action.commandIndex ==
-            static_cast<std::size_t>(-1)) {
-            continue;
-        }
+                action.action.commandIndex =
+                    sourceIndices[
+                        action.action
+                            .commandIndex];
+            }
+        };
 
-        if (action.action.commandIndex >=
-            sourceIndices.size()) {
-            action.action.commandIndex =
-                static_cast<std::size_t>(-1);
-            continue;
-        }
-
-        action.action.commandIndex =
-            sourceIndices[
-                action.action.commandIndex];
-    }
+    remapActionIndices(
+        inputActions);
+    remapActionIndices(
+        webActions);
 
     auto clipboardActions =
         BuildClipboardActionResults(
