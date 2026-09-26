@@ -692,7 +692,6 @@ void SettingsWindow::CreateGeneralPage() {
     addToSendToMenu_ = CreateCheckboxRow(L"", kIdAddToSendToMenu);
 
     searchBehaviorTitle_ = CreateStatic(L"");
-    showResultIcons_ = CreateCheckboxRow(L"", kIdShowResultIcons);
     pinyinSearch_ = CreateCheckboxRow(L"", kIdPinyinSearch);
     numericQuickLaunch_ = CreateCheckboxRow(L"", kIdNumericQuickLaunch);
     executeSingleResult_ = CreateCheckboxRow(L"", kIdExecuteSingleResult);
@@ -740,7 +739,7 @@ void SettingsWindow::CreateGeneralPage() {
         generalBehaviorTitle_, startWithWindows_,
         startupBehaviorLabel_, startupBehavior_,
         showTrayIcon_, soundEnabled_, addToSendToMenu_,
-        searchBehaviorTitle_, showResultIcons_, pinyinSearch_,
+        searchBehaviorTitle_, pinyinSearch_,
         numericQuickLaunch_, executeSingleResult_,
         placementSectionTitle_,
         popupMonitorLabel_, popupMonitorDescription_, popupMonitor_,
@@ -1119,7 +1118,6 @@ void SettingsWindow::ApplyFonts() {
         showTrayIcon_,
         soundEnabled_,
         addToSendToMenu_,
-        showResultIcons_,
         pinyinSearch_,
         numericQuickLaunch_,
         executeSingleResult_,
@@ -1314,7 +1312,6 @@ void SettingsWindow::ApplyLanguage() {
     SetWindowTextW(addToSendToMenu_, T(L"添加到“发送到”菜单", L"Add to “Send to” menu"));
 
     SetWindowTextW(searchBehaviorTitle_, T(L"搜索与执行", L"Search & execution"));
-    SetWindowTextW(showResultIcons_, T(L"显示搜索结果图标", L"Show search result icons"));
     SetWindowTextW(pinyinSearch_, T(L"启用拼音搜索", L"Enable Pinyin search"));
     SetWindowTextW(numericQuickLaunch_, T(L"数字键快速执行结果", L"Quick launch with number keys"));
     SetWindowTextW(executeSingleResult_,
@@ -1752,22 +1749,14 @@ void SettingsWindow::RefreshFromSettings() {
             : BST_UNCHECKED,
         0);
 
-    SendMessageW(
-        showResultIcons_,
-        BM_SETCHECK,
-        settings.showResultIcons
-            ? BST_CHECKED
-            : BST_UNCHECKED,
-        0);
-
     RefreshHotkeyPage();
     RefreshUpdateStatus();
     SyncUpdateStatusTimer();
 
     for (HWND control :
-         std::array<HWND, 15>{
+         std::array<HWND, 14>{
              startWithWindows_, showTrayIcon_, soundEnabled_, addToSendToMenu_,
-             showResultIcons_, pinyinSearch_, numericQuickLaunch_,
+             pinyinSearch_, numericQuickLaunch_,
              executeSingleResult_, providerStartMenu_, providerPackaged_,
              providerAppPaths_, providerPath_, providerEverything_,
              updateAutoCheck_, updatePrerelease_}) {
@@ -3191,7 +3180,6 @@ void SettingsWindow::ToggleGeneralSetting(UINT id) {
     case kIdSoundEnabled: success = app_.SetSoundEnabled(!settings.soundEnabled); break;
     case kIdShowTrayIcon: success = app_.SetShowTrayIcon(!settings.showTrayIcon); break;
     case kIdAddToSendToMenu: success = app_.SetAddToSendToMenu(!settings.addToSendToMenu); break;
-    case kIdShowResultIcons: success = app_.SetShowResultIcons(!settings.showResultIcons); break;
     default: return;
     }
     if (!success) {
@@ -3542,7 +3530,6 @@ bool SettingsWindow::ToggleChecked(
     case kIdSoundEnabled: return settings.soundEnabled;
     case kIdShowTrayIcon: return settings.showTrayIcon;
     case kIdAddToSendToMenu: return settings.addToSendToMenu;
-    case kIdShowResultIcons: return settings.showResultIcons;
     case kIdUpdateAutoCheck:
         return settings.autoCheckUpdates;
     case kIdUpdatePrerelease:
@@ -4197,8 +4184,8 @@ void SettingsWindow::Layout() {
 
         const int searchX = metrics.search.left + Scale(1);
         const int searchWidth = metrics.search.right - metrics.search.left - Scale(2);
-        std::array<HWND, 4> searchRows{
-            showResultIcons_, pinyinSearch_, numericQuickLaunch_, executeSingleResult_,
+        std::array<HWND, 3> searchRows{
+            pinyinSearch_, numericQuickLaunch_, executeSingleResult_,
         };
         for (std::size_t i = 0; i < searchRows.size(); ++i) {
             MoveWindow(searchRows[i], searchX,
@@ -6029,7 +6016,6 @@ void SettingsWindow::DrawGeneralToggle(
     case kIdSoundEnabled: title = T(L"提示音", L"Sound effects"); break;
     case kIdShowTrayIcon: title = T(L"显示系统托盘图标", L"Show system tray icon"); break;
     case kIdAddToSendToMenu: title = T(L"添加到“发送到”菜单", L"Add to “Send to” menu"); break;
-    case kIdShowResultIcons: title = T(L"显示搜索结果图标", L"Show search result icons"); break;
     case kIdPinyinSearch:
         title =
             T(L"启用拼音搜索",
@@ -6144,7 +6130,7 @@ void SettingsWindow::DrawGeneralToggle(
 
     const bool lastRow =
         id ==
-            kIdShowResultIcons ||
+            kIdExecuteSingleResult ||
         id ==
             kIdProviderPath ||
         id ==
@@ -7058,7 +7044,6 @@ LRESULT SettingsWindow::HandleMessage(
         case kIdSoundEnabled:
         case kIdShowTrayIcon:
         case kIdAddToSendToMenu:
-        case kIdShowResultIcons:
             if (toggleActivated) {
                 ToggleGeneralSetting(id);
                 redrawClickedToggle();
@@ -7291,7 +7276,6 @@ LRESULT SettingsWindow::HandleMessage(
             item->CtlID == kIdSoundEnabled ||
             item->CtlID == kIdShowTrayIcon ||
             item->CtlID == kIdAddToSendToMenu ||
-            item->CtlID == kIdShowResultIcons ||
             item->CtlID == kIdPinyinSearch ||
             item->CtlID == kIdNumericQuickLaunch ||
             item->CtlID == kIdExecuteSingleResult ||
