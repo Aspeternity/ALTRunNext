@@ -771,10 +771,13 @@ std::vector<LauncherResult> App::Search(
     std::vector<std::size_t>
         sourceIndices;
 
+    const auto& userCommands =
+        commandStore_.UserCommands();
+
     const bool requiresContextWorkingSet =
         std::any_of(
-            sourceCommands.begin(),
-            sourceCommands.end(),
+            userCommands.begin(),
+            userCommands.end(),
             [](const Command& command) {
                 return command.source ==
                         CommandSource::User &&
