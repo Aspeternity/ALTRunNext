@@ -2083,13 +2083,6 @@ BeginUninstall() {
     const bool chinese =
         ChineseUi();
 
-    if (!altrun::ui::
-             ConfirmApplicationUninstall(
-                 nullptr,
-                 chinese)) {
-        return 0;
-    }
-
     const auto dataChoice =
         altrun::ui::ChooseUninstallData(
             nullptr,
