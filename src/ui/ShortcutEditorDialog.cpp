@@ -643,8 +643,7 @@ bool ShortcutEditorDialog::RunModal() {
 
     window_presentation::
         RevealFullyPainted(
-            hwnd_,
-            SW_SHOW);
+            hwnd_);
     SetForegroundWindow(hwnd_);
     SetFocus(keyword_);
 

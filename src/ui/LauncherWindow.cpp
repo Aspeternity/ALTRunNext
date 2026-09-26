@@ -1539,8 +1539,7 @@ void LauncherWindow::Show() {
     if (firstRevealPending_) {
         window_presentation::
             RevealFullyPainted(
-                hwnd_,
-                SW_SHOWNORMAL);
+                hwnd_);
         firstRevealPending_ = false;
     } else {
         ShowWindow(
@@ -3441,20 +3440,50 @@ void LauncherWindow::ShowTrayMenu(POINT point) {
             ? L"退出"
             : L"Exit");
 
+    // A tray popup needs a foreground owner so USER32 can dismiss it
+    // correctly, but it must not synchronously send WM_COMMAND while the
+    // TrackPopupMenu modal loop is still active. Opening another top-level
+    // window from inside that nested menu loop caused foreground ownership to
+    // bounce once more when the menu unwound, which appeared as a location/
+    // activation flash.
     SetForegroundWindow(hwnd_);
 
-    TrackPopupMenu(
-        menu,
-        TPM_RIGHTBUTTON |
-            TPM_BOTTOMALIGN |
-            TPM_LEFTALIGN,
-        point.x,
-        point.y,
-        0,
-        hwnd_,
-        nullptr);
+    const UINT selected =
+        static_cast<UINT>(
+            TrackPopupMenu(
+                menu,
+                TPM_RIGHTBUTTON |
+                    TPM_BOTTOMALIGN |
+                    TPM_LEFTALIGN |
+                    TPM_RETURNCMD |
+                    TPM_NONOTIFY,
+                point.x,
+                point.y,
+                0,
+                hwnd_,
+                nullptr));
 
     DestroyMenu(menu);
+
+    if (selected != 0) {
+        // Fully unwind both the menu modal loop and the tray callback before
+        // creating/activating Settings, About or Shortcut Manager. WM_NULL is
+        // the documented tray-menu dismissal nudge; FIFO ordering guarantees
+        // it is processed before our deferred command.
+        PostMessageW(
+            hwnd_,
+            WM_NULL,
+            0,
+            0);
+
+        PostMessageW(
+            hwnd_,
+            WM_COMMAND,
+            MAKEWPARAM(
+                selected,
+                0),
+            0);
+    }
 }
 
 LRESULT CALLBACK LauncherWindow::WindowProc(

@@ -32,8 +32,7 @@ void CenterExistingWindow(
     HWND owner) noexcept;
 
 void RevealFullyPainted(
-    HWND hwnd,
-    int showCommand) noexcept;
+    HWND hwnd) noexcept;
 
 void HideForDestroy(
     HWND hwnd) noexcept;

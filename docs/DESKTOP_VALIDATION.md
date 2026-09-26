@@ -8,6 +8,21 @@ Automated CI covers compilation, Config/Search tests, provider smoke tests, hotk
 
 The checks below are the remaining **real interactive Windows desktop** validation items. Automated geometry/behavior tests reduce regression risk but do not replace observing the actual UI, IME, monitor transitions, providers and hotkey lifecycle on a real desktop.
 
+## v0.8.0-alpha.5.48 Silent Launch + Tray Window Presentation validation
+
+- [ ] Search and launch representative Win32 applications (including a TeamSpeak-style Start Menu/application result), packaged applications, files/folders and user shortcuts. Successful execution is silent in every case.
+- [ ] Repeat successful execution through Enter, double-click, main-keyboard numeric Quick Launch and numpad numeric Quick Launch. None plays Popup.wav.
+- [ ] Confirm startup Notification still plays the original Popup.wav when Sound effects is enabled, and a hidden-to-visible Launcher reveal still plays one cue. Disable Sound effects and confirm both are silent.
+- [ ] Trigger one genuine launch/application failure and confirm the existing failure cue/dialog policy still works; canceling UAC remains silent.
+- [ ] With Launcher hidden, repeatedly right-click the tray icon and open **Settings**, **Shortcut Manager** and **About** (at least 20 cycles each). No window may flash at an alternate position, briefly appear at a birth rectangle, or visibly activate twice.
+- [ ] Repeat the tray-open cycle at 100%, 125%, 150%, 175% and 200% scaling, including a second monitor with a different DPI when available.
+- [ ] Open **About** from the tray with Settings not currently visible. The first visible frame is already the About page; the General page must never appear first.
+- [ ] Leave Settings or Shortcut Manager open behind another application, then invoke the same tray entry again. It should foreground once without an intermediate switch/flash.
+- [ ] Minimize Settings and Shortcut Manager, reopen each from the tray and verify normal restore behavior without relocation.
+- [ ] Confirm the tray menu still dismisses normally on click-away/Escape and all commands remain functional after switching to deferred `TPM_RETURNCMD` dispatch.
+- [ ] Recheck 5.47 cold-start responsiveness and background startup/SendTo reconciliation; these paths are unchanged.
+- [ ] Settings schema remains 11; Commands 2, Usage 2, Provider Cache 22; fixed Windows version is 0.8.0.218.
+
 ## v0.8.0-alpha.5.47 First-Frame Startup + Shell Reconciliation validation
 
 - [ ] On a clean extracted x64 build with no `data` directory, launch ALTRun Next and confirm the startup notification/launcher readiness is immediate instead of pausing for several seconds before appearing. Repeat with Windows Defender real-time protection enabled.

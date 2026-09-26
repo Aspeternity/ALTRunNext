@@ -361,8 +361,7 @@ void CenterExistingWindow(
 }
 
 void RevealFullyPainted(
-    HWND hwnd,
-    int showCommand) noexcept {
+    HWND hwnd) noexcept {
 
     if (!hwnd ||
         !IsWindow(hwnd)) {
@@ -374,9 +373,23 @@ void RevealFullyPainted(
             hwnd,
             true);
 
-    ShowWindow(
+    // Expose the already-positioned window without activating it. Every
+    // caller performs the single intended foreground transition only after
+    // the cloak is removed. The previous SW_SHOW/SW_SHOWNORMAL path used to
+    // activate a still-cloaked HWND and callers then activated it again,
+    // producing an avoidable two-step foreground transition on tray opens.
+    SetWindowPos(
         hwnd,
-        showCommand);
+        nullptr,
+        0,
+        0,
+        0,
+        0,
+        SWP_NOMOVE |
+            SWP_NOSIZE |
+            SWP_NOZORDER |
+            SWP_NOACTIVATE |
+            SWP_SHOWWINDOW);
 
     RedrawWindow(
         hwnd,

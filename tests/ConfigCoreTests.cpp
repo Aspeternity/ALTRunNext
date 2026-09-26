@@ -53,14 +53,15 @@ int main() {
         feedback.SetEnabled(true);
         assert(feedback.Accept(FeedbackCue::Reveal, 1));
         assert(!feedback.Accept(FeedbackCue::Reveal, 2));
-        // A fast launch still receives its own feedback after a reveal.
-        assert(feedback.Accept(FeedbackCue::Execute, 3));
+        // Successful Launcher execution is intentionally silent as of
+        // alpha.5.48; only startup, reveal and genuine failure cues remain.
+        assert(feedback.Accept(FeedbackCue::Startup, 3));
         assert(feedback.Accept(FeedbackCue::Failure, 4));
         assert(!feedback.Accept(FeedbackCue::Failure, 503));
         assert(feedback.Accept(FeedbackCue::Failure, 504));
         feedback.SetEnabled(false);
         assert(!feedback.Accept(FeedbackCue::Startup, 1000));
-        assert(!feedback.Accept(FeedbackCue::Execute, 1000));
+        assert(!feedback.Accept(FeedbackCue::Reveal, 1000));
         feedback.SetEnabled(true);
         assert(feedback.Accept(FeedbackCue::Reveal, 1001));
     }

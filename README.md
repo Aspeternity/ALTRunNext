@@ -23,6 +23,14 @@ The latest successful `main` build is always published to the fixed prerelease t
 
 You no longer need to find the correct GitHub Actions run. The `dev-latest` release is replaced automatically only after a successful build and test run.
 
+## v0.8.0-alpha.5.48 — Silent Launch + Tray Window Presentation
+
+Launcher result execution is now intentionally silent. Ordinary applications, packaged applications, files/folders, numeric Quick Launch and other successful Launcher execution paths no longer emit the ALTRun Popup.wav execution cue. Startup notification, hidden-to-visible Launcher reveal and genuine application error feedback remain governed by the existing Sound effects preference.
+
+Tray top-level window presentation was also audited end-to-end. The tray popup now uses `TPM_RETURNCMD | TPM_NONOTIFY` and posts the selected command only after the popup/menu callback has fully unwound, so Settings/About/Shortcut Manager are never created or foregrounded from inside the nested TrackPopupMenu loop. First-frame reveal now uses a non-activating `SWP_SHOWWINDOW | SWP_NOACTIVATE` compositor path and performs exactly one foreground handoff after uncloaking. About selects its page while Settings is still hidden, eliminating the visible General -> About repaint that could look like a second window switch.
+
+Settings schema remains **11**; Commands **2**, Usage **2** and Provider Cache **22** are unchanged. Windows fixed FileVersion/ProductVersion is `0.8.0.218`.
+
 ## v0.8.0-alpha.5.47 — First-Frame Startup + Shell Reconciliation
 
 Cold startup no longer performs Windows startup-registration or SendTo Shell Link work before the real launcher window exists. After the initial launcher/notification/silent presentation path is established, one background COM worker reconciles those integrations without blocking the UI thread. This specifically removes the alpha.5.46 first-run stall caused by synchronously creating `ALTRun Next.lnk` before `LauncherWindow::Create()`.

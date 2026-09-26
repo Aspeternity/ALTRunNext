@@ -5123,7 +5123,6 @@ bool App::ExecuteResult(
                 usageStore_.Record(source.id, query);
             }
         }
-        ui::PlayFeedback(FeedbackCue::Execute);
         return true;
     }
 
@@ -5289,7 +5288,6 @@ bool App::LaunchCommand(
                 command.id, query);
         }
 
-        ui::PlayFeedback(FeedbackCue::Execute);
         return true;
     }
 
@@ -5331,8 +5329,6 @@ bool App::LaunchCommand(
         usageStore_.Record(
             command.id, query);
     }
-
-    ui::PlayFeedback(FeedbackCue::Execute);
     return true;
 }
 
