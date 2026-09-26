@@ -907,6 +907,10 @@ void SettingsWindow::CreateProviderPage() {
         CreateCheckboxRow(
             L"",
             kIdProviderEverything);
+    managedEverythingTrayIcon_ =
+        CreateCheckboxRow(
+            L"",
+            kIdManagedEverythingTrayIcon);
 
     providerStatus_ =
         CreateStatic(
@@ -935,6 +939,7 @@ void SettingsWindow::CreateProviderPage() {
         providerAppPaths_,
         providerPath_,
         providerEverything_,
+        managedEverythingTrayIcon_,
         providerStatus_,
         providerGetEverything_,
         providerRecheckEverything_,
@@ -1482,6 +1487,10 @@ void SettingsWindow::ApplyLanguage() {
         T(L"Everything 文件与文件夹",
           L"Everything files & folders"));
     SetWindowTextW(
+        managedEverythingTrayIcon_,
+        T(L"显示 Everything 托盘图标",
+          L"Show Everything tray icon"));
+    SetWindowTextW(
         providerGetEverything_,
         T(L"获取并启动 Everything",
           L"Get and start Everything"));
@@ -1754,11 +1763,12 @@ void SettingsWindow::RefreshFromSettings() {
     SyncUpdateStatusTimer();
 
     for (HWND control :
-         std::array<HWND, 14>{
+         std::array<HWND, 15>{
              startWithWindows_, showTrayIcon_, soundEnabled_, addToSendToMenu_,
              pinyinSearch_, numericQuickLaunch_,
              executeSingleResult_, providerStartMenu_, providerPackaged_,
              providerAppPaths_, providerPath_, providerEverything_,
+             managedEverythingTrayIcon_,
              updateAutoCheck_, updatePrerelease_}) {
         if (control) {
             InvalidateRect(
@@ -2721,6 +2731,50 @@ void SettingsWindow::RecheckEverything() {
     RefreshProviderStatus();
 }
 
+void SettingsWindow::
+ToggleManagedEverythingTrayIcon() {
+    if (syncing_) {
+        return;
+    }
+
+    const auto ipc =
+        app_.EverythingStatus();
+    const auto bootstrap =
+        app_.EverythingBootstrapStatus();
+
+    const bool externalActive =
+        ipc.availability ==
+            EverythingAvailability::
+                Available &&
+        bootstrap.source !=
+            win::EverythingBootstrapSource::
+                Managed &&
+        bootstrap.source !=
+            win::EverythingBootstrapSource::
+                Downloaded;
+
+    if (externalActive) {
+        return;
+    }
+
+    const auto settings =
+        app_.SettingsData();
+
+    if (!app_
+             .SetManagedEverythingShowTrayIcon(
+                 !settings
+                      .managedEverythingShowTrayIcon)) {
+        altrun::ui::ShowMessage(
+            hwnd_,
+            T(L"无法保存 Everything 托盘图标设置。",
+              L"Could not save the Everything tray icon setting."),
+            L"ALTRun Next",
+            MB_OK |
+                MB_ICONERROR);
+    }
+
+    RefreshFromSettings();
+}
 
 void SettingsWindow::RefreshDataCompatibilityStatus() {
     if (!dataStatus_) {
@@ -3559,6 +3613,9 @@ bool SettingsWindow::ToggleChecked(
             providers::
                 kEverythingFilesystem,
             false);
+    case kIdManagedEverythingTrayIcon:
+        return settings
+            .managedEverythingShowTrayIcon;
     default:
         return false;
     }
@@ -4558,9 +4615,18 @@ void SettingsWindow::Layout() {
             TRUE);
 
         MoveWindow(
+            managedEverythingTrayIcon_,
+            contentLeft + Scale(1),
+            filesTop + Scale(1) +
+                rowHeight,
+            width - Scale(2),
+            rowHeight,
+            TRUE);
+
+        MoveWindow(
             providerStatus_,
             contentLeft + Scale(18),
-            filesTop + Scale(62),
+            filesTop + Scale(112),
             width - Scale(36),
             Scale(42),
             TRUE);
@@ -4568,7 +4634,7 @@ void SettingsWindow::Layout() {
         MoveWindow(
             providerGetEverything_,
             contentLeft + Scale(18),
-            filesTop + Scale(116),
+            filesTop + Scale(166),
             Scale(210),
             Scale(34),
             TRUE);
@@ -4576,7 +4642,7 @@ void SettingsWindow::Layout() {
         MoveWindow(
             providerRecheckEverything_,
             contentLeft + Scale(240),
-            filesTop + Scale(116),
+            filesTop + Scale(166),
             Scale(128),
             Scale(34),
             TRUE);
@@ -5122,9 +5188,14 @@ void SettingsWindow::DrawNavigationButton(
     SetBkMode(
         item.hDC,
         TRANSPARENT);
+    const bool disabled =
+        (item.itemState &
+         ODS_DISABLED) != 0;
     SetTextColor(
         item.hDC,
-        kText);
+        disabled
+            ? kMuted
+            : kText);
 
     HGDIOBJ oldFont =
         SelectObject(
@@ -6050,6 +6121,11 @@ void SettingsWindow::DrawGeneralToggle(
             T(L"Everything 文件与文件夹",
               L"Everything files & folders");
         break;
+    case kIdManagedEverythingTrayIcon:
+        title =
+            T(L"显示 Everything 托盘图标",
+              L"Show Everything tray icon");
+        break;
     case kIdUpdateAutoCheck:
         title =
             T(L"自动检查更新",
@@ -6134,7 +6210,7 @@ void SettingsWindow::DrawGeneralToggle(
         id ==
             kIdProviderPath ||
         id ==
-            kIdProviderEverything;
+            kIdManagedEverythingTrayIcon;
 
     if (!lastRow) {
         HPEN separator =
@@ -7094,6 +7170,13 @@ LRESULT SettingsWindow::HandleMessage(
             }
             return 0;
 
+        case kIdManagedEverythingTrayIcon:
+            if (toggleActivated) {
+                ToggleManagedEverythingTrayIcon();
+                redrawClickedToggle();
+            }
+            return 0;
+
         case kIdPopupMonitor:
             if (notify == CBN_SELCHANGE) {
                 ApplyMonitorControl();
@@ -7284,6 +7367,7 @@ LRESULT SettingsWindow::HandleMessage(
             item->CtlID == kIdProviderAppPaths ||
             item->CtlID == kIdProviderPath ||
             item->CtlID == kIdProviderEverything ||
+            item->CtlID == kIdManagedEverythingTrayIcon ||
             item->CtlID == kIdUpdateAutoCheck ||
             item->CtlID == kIdUpdatePrerelease) {
             DrawGeneralToggle(
@@ -7747,7 +7831,7 @@ LRESULT SettingsWindow::HandleMessage(
             drawCard(
                 PageCardRect(
                     394,
-                    174,
+                    224,
                     720));
         } else if (
             page_ == Page::Appearance) {
