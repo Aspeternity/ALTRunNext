@@ -121,7 +121,8 @@ RunEverythingBootstrap(
     const std::filesystem::path& dataDirectory,
     bool allowDownload,
     EverythingBootstrapProgress progress,
-    std::stop_token stopToken = {});
+    std::stop_token stopToken = {},
+    bool showManagedTrayIcon = false);
 
 [[nodiscard]] std::filesystem::path
 ManagedEverythingExecutable(
