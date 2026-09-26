@@ -899,13 +899,14 @@ SearchEngine::Search(
         if (normalizedQuery.empty()) {
             if (!AdmitCatalogEntry(
                     command,
-                    query,
+                    normalizedQuery,
+                    queryTokens,
                     match,
                     false) ||
                 !relevance::
-                    AdmitLaunchSurface(
+                    AdmitLaunchSurfaceNormalized(
                         command.surfaceClass,
-                        query,
+                        normalizedQuery,
                         match,
                         false)) {
                 continue;
