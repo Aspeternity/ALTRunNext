@@ -134,6 +134,8 @@ private:
         kIdProviderRecheckEverything = 51607;
     static constexpr UINT
         kIdManagedEverythingTrayIcon = 51608;
+    static constexpr UINT
+        kIdProviderUpdateEverything = 51609;
 
     static constexpr UINT_PTR
         kProviderStatusTimerId = 0x51690;
@@ -175,6 +177,7 @@ private:
     void AcquireEverything();
     void RecheckEverything();
     void ToggleManagedEverythingTrayIcon();
+    void CheckOrUpdateEverything();
     void RefreshDataCompatibilityStatus();
     void RefreshUpdateStatus();
     void SyncUpdateStatusTimer();
@@ -394,6 +397,7 @@ private:
     HWND managedEverythingTrayIcon_{};
     HWND providerStatus_{};
     HWND providerGetEverything_{};
+    HWND providerUpdateEverything_{};
     HWND providerRecheckEverything_{};
     HWND providerNote_{};
 
