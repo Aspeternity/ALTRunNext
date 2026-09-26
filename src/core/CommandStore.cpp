@@ -2,6 +2,7 @@
 
 #include "CommandTemplate.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <optional>
 #include <utility>
