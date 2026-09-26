@@ -10,6 +10,16 @@ The checks below are the remaining **real interactive Windows desktop** validati
 
 ## v0.8.0-alpha.5.48 Silent Launch + Tray Window Presentation validation
 
+Follow-up automated coverage now creates the actual Settings window, asserts
+that `Create()` leaves it hidden, inspects the About heading at the first show,
+repeats creation/reopen/minimized restore, and cancels actual shortcut editors
+with hidden and already-disabled owners. This catches lifecycle regressions;
+it does not certify compositor pixels or an Explorer foreground transfer.
+
+- [ ] From Explorer, add a file/program with ALTRun Next already running: the editor receives activation and keyboard input without clicking, with no continuing caption/taskbar flash. Repeat with ALTRun Next initially stopped and with multiple selected paths.
+- [ ] Repeat external Add Shortcut on a second monitor while the hidden Launcher retains a position on the first. The editor follows the operation monitor, and closing it does not reveal/activate the hidden Launcher.
+- [ ] Search `ts` with TeamSpeak and TeamSpeak 3 Client available. Repeatedly execute TeamSpeak 3 Client; its position improves. Confirm learning `team` does not overwrite `ts`, and vice versa.
+- [ ] After saturating one candidate's preference, repeatedly execute the other under the same query. The new preference replaces the old and survives restart. An actual exact shortcut/name remains protected.
 - [ ] Search and launch representative Win32 applications (including a TeamSpeak-style Start Menu/application result), packaged applications, files/folders and user shortcuts. Successful execution is silent in every case.
 - [ ] Repeat successful execution through Enter, double-click, main-keyboard numeric Quick Launch and numpad numeric Quick Launch. None plays Popup.wav.
 - [ ] Confirm startup Notification still plays the original Popup.wav when Sound effects is enabled, and a hidden-to-visible Launcher reveal still plays one cue. Disable Sound effects and confirm both are silent.

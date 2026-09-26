@@ -1940,13 +1940,8 @@ void SettingsWindow::SetHotkeyRowStatus(
         hwnd_ &&
         page_ == Page::Hotkeys;
 
-    if (atomicUpdate) {
-        SendMessageW(
-            hwnd_,
-            WM_SETREDRAW,
-            FALSE,
-            0);
-    }
+    window_presentation::ScopedRedrawSuspend redrawGuard(
+        atomicUpdate ? hwnd_ : nullptr);
 
     SetWindowTextW(
         row->status,
@@ -1967,11 +1962,7 @@ void SettingsWindow::SetHotkeyRowStatus(
 
     Layout();
 
-    SendMessageW(
-        hwnd_,
-        WM_SETREDRAW,
-        TRUE,
-        0);
+    redrawGuard.Resume();
 
     RedrawWindow(
         hwnd_,
@@ -2104,13 +2095,8 @@ void SettingsWindow::RefreshHotkeyPage(
         hwnd_ &&
         page_ == Page::Hotkeys;
 
-    if (atomicUpdate) {
-        SendMessageW(
-            hwnd_,
-            WM_SETREDRAW,
-            FALSE,
-            0);
-    }
+    window_presentation::ScopedRedrawSuspend redrawGuard(
+        atomicUpdate ? hwnd_ : nullptr);
 
     const bool oldSyncing =
         syncing_;
@@ -2243,11 +2229,7 @@ void SettingsWindow::RefreshHotkeyPage(
 
     Layout();
 
-    SendMessageW(
-        hwnd_,
-        WM_SETREDRAW,
-        TRUE,
-        0);
+    redrawGuard.Resume();
 
     RedrawWindow(
         hwnd_,
@@ -2910,11 +2892,7 @@ void SettingsWindow::ShowPage(Page page) {
         }
     }
 
-    SendMessageW(
-        hwnd_,
-        WM_SETREDRAW,
-        FALSE,
-        0);
+    window_presentation::ScopedRedrawSuspend redrawGuard(hwnd_);
 
     page_ = page;
 
@@ -2988,11 +2966,7 @@ void SettingsWindow::ShowPage(Page page) {
     UpdatePageHeader();
     Layout();
 
-    SendMessageW(
-        hwnd_,
-        WM_SETREDRAW,
-        TRUE,
-        0);
+    redrawGuard.Resume();
 
     RedrawWindow(
         hwnd_,

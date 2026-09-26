@@ -516,6 +516,20 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
         if "Present(true);" not in settings_cpp or "Present(false);" not in settings_cpp:
             fail("alpha.5.48 Settings/About presentation path is not unified")
 
+        if "WM_SETREDRAW" in settings_cpp:
+            fail("alpha.5.48 Settings must preserve visibility through the shared redraw guard")
+        if settings_cpp.count("ScopedRedrawSuspend redrawGuard") != 3:
+            fail("alpha.5.48 page/hotkey redraw batches must all use the visibility guard")
+        if "GrantForegroundToWindow(target)" not in app_cpp:
+            fail("alpha.5.48 external shortcut forwarding must grant foreground permission")
+        runtime_tests = read("tests/WindowPresentationRuntimeTests.cpp")
+        for token in ("settings.Create()", "!IsWindowVisible(window)",
+                      "HasAboutHeading(window)", "ShortcutEditorDialog::ShowNew"):
+            if token not in runtime_tests:
+                fail(f"alpha.5.48 real window regression missing: {token}")
+        if "window_presentation_runtime_tests" not in read(".github/workflows/build.yml"):
+            fail("alpha.5.48 real window regression is not wired into Windows CI")
+
         present = settings_cpp.find("void SettingsWindow::Present(")
         about_page = settings_cpp.find("ShowPage(Page::About);", present)
         reveal = settings_cpp.find("RevealFullyPainted(", present)

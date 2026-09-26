@@ -11,11 +11,15 @@ namespace altrun::window_presentation {
 
 namespace {
 
+[[nodiscard]] bool IsPlacementOwner(HWND owner) noexcept {
+    return owner && IsWindow(owner) &&
+        IsWindowVisible(owner) && !IsIconic(owner);
+}
+
 [[nodiscard]] HMONITOR ResolveOwnerOrCursorMonitor(
     HWND owner) noexcept {
 
-    if (owner &&
-        IsWindow(owner)) {
+    if (IsPlacementOwner(owner)) {
         return MonitorFromWindow(
             owner,
             MONITOR_DEFAULTTONEAREST);
@@ -77,8 +81,7 @@ CenteredRect(
     settings_layout::Rect requested{};
 
     RECT ownerRect{};
-    if (owner &&
-        IsWindow(owner) &&
+    if (IsPlacementOwner(owner) &&
         GetWindowRect(
             owner,
             &ownerRect)) {
@@ -125,6 +128,25 @@ CenteredRect(
 }
 
 } // namespace
+
+ScopedRedrawSuspend::ScopedRedrawSuspend(HWND hwnd) noexcept {
+    if (hwnd && IsWindowVisible(hwnd)) {
+        suspended_ = hwnd;
+        SendMessageW(hwnd, WM_SETREDRAW, FALSE, 0);
+    }
+}
+
+ScopedRedrawSuspend::~ScopedRedrawSuspend() {
+    Resume();
+}
+
+void ScopedRedrawSuspend::Resume() noexcept {
+    const HWND hwnd = suspended_;
+    suspended_ = nullptr;
+    if (hwnd && IsWindow(hwnd)) {
+        SendMessageW(hwnd, WM_SETREDRAW, TRUE, 0);
+    }
+}
 
 bool SetCloaked(
     HWND hwnd,

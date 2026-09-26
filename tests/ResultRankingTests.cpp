@@ -32,6 +32,37 @@ LauncherResult Result(
 } // namespace
 
 int main() {
+    // Learned acronym order must survive the unified result merge, and the
+    // comparator must stay transitive across three candidates and ties.
+    {
+        std::vector<LauncherResult> initials;
+        for (const int score : {930, 808, 809}) {
+            for (const int usage : {0, 16, 24, 32}) {
+                LauncherResult result;
+                result.kind = ResultKind::Application;
+                result.surfaceClass = LaunchSurfaceClass::PrimaryApplication;
+                result.relevanceMatch = {relevance::MatchKind::Initials,
+                    relevance::MatchField::Title, score, false};
+                result.usageScore = usage;
+                initials.push_back(result);
+            }
+        }
+        assert(BetterLauncherResult(initials[5], initials[0]));
+        for (const auto& a : initials) {
+            assert(!BetterLauncherResult(a, a));
+            for (const auto& b : initials) {
+                if (BetterLauncherResult(a, b)) {
+                    assert(!BetterLauncherResult(b, a));
+                    for (const auto& c : initials) {
+                        if (BetterLauncherResult(b, c)) {
+                            assert(BetterLauncherResult(a, c));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     const auto file =
         Result(
             ResultKind::File,

@@ -637,7 +637,8 @@ bool ShortcutEditorDialog::Create(
 }
 
 bool ShortcutEditorDialog::RunModal() {
-    if (owner_) {
+    const bool ownerWasEnabled = owner_ && IsWindowEnabled(owner_);
+    if (ownerWasEnabled) {
         EnableWindow(owner_, FALSE);
     }
 
@@ -645,7 +646,9 @@ bool ShortcutEditorDialog::RunModal() {
         RevealFullyPainted(
             hwnd_);
     SetForegroundWindow(hwnd_);
-    SetFocus(keyword_);
+    if (GetForegroundWindow() == hwnd_) {
+        SetFocus(keyword_);
+    }
 
     MSG msg{};
     bool sawQuit = false;
@@ -723,9 +726,13 @@ bool ShortcutEditorDialog::RunModal() {
         }
     }
 
-    if (owner_) {
+    if (ownerWasEnabled && IsWindow(owner_)) {
         EnableWindow(owner_, TRUE);
-        SetForegroundWindow(owner_);
+        // External Add Shortcut uses a hidden Launcher as owner. Do not
+        // activate it, or undo the disabled state of an enclosing modal UI.
+        if (IsWindowVisible(owner_) && !IsIconic(owner_)) {
+            SetForegroundWindow(owner_);
+        }
     }
 
     if (sawQuit) {

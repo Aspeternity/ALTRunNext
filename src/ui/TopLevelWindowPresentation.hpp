@@ -9,6 +9,19 @@ struct CreationGeometry {
     UINT dpi{96};
 };
 
+// DefWindowProc's WM_SETREDRAW(TRUE) adds WS_VISIBLE. Never send it to
+// an initially hidden HWND. Nested guards do not resume an outer guard.
+class ScopedRedrawSuspend {
+public:
+    explicit ScopedRedrawSuspend(HWND hwnd) noexcept;
+    ~ScopedRedrawSuspend();
+    ScopedRedrawSuspend(const ScopedRedrawSuspend&) = delete;
+    ScopedRedrawSuspend& operator=(const ScopedRedrawSuspend&) = delete;
+    void Resume() noexcept;
+private:
+    HWND suspended_{};
+};
+
 [[nodiscard]] bool SetCloaked(
     HWND hwnd,
     bool cloaked) noexcept;

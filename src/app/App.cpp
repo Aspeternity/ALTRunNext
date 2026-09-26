@@ -4857,6 +4857,8 @@ ForwardShortcutRequestsToExistingInstance()
         return false;
     }
 
+    (void)instance_ipc::GrantForegroundToWindow(target);
+
     for (const auto& path :
          startupShortcutPaths_) {
         if (path.empty()) {
