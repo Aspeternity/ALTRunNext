@@ -166,27 +166,21 @@ DecideNumericQuickLaunch(
         context.controlDown ||
         context.altDown;
 
-    if (explicitExecute) {
-        return context.resultAvailable
-            ? NumericQuickLaunchDecision::
-                  ExecuteNow
-            : NumericQuickLaunchDecision::
-                  Text;
-    }
-
-    // A bare digit at an empty query must remain usable for modern names such
-    // as 7zip, 1Password, 115 and year/version searches. Power users can use
-    // Ctrl/Alt+digit when they explicitly want a numbered launch from empty.
-    if (context.queryEmpty ||
-        !context.resultAvailable ||
-        context.recentTextInput ||
-        context.strongContinuation) {
+    // Unmodified digits are always text. The previous grace-window heuristic
+    // could not know about dynamic Everything continuations that have not been
+    // queried yet, so typing names such as "v2ray", "cs2" or "7zip" could
+    // accidentally launch a numbered result. Numbered launch is now explicit:
+    // Ctrl/Alt+digit only.
+    if (!explicitExecute) {
         return NumericQuickLaunchDecision::
             Text;
     }
 
-    return NumericQuickLaunchDecision::
-        DeferExecute;
+    return context.resultAvailable
+        ? NumericQuickLaunchDecision::
+              ExecuteNow
+        : NumericQuickLaunchDecision::
+              Text;
 }
 
 bool HasStrongCommandContinuation(
