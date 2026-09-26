@@ -16,7 +16,6 @@ bool ConfirmShortcutDeletion(HWND owner, std::wstring_view name, bool chinese);
 
 // Product-level native TaskDialog flows shared by Settings and Uninstall.
 bool ConfirmEverythingSetup(HWND owner, bool chinese);
-bool ConfirmApplicationUninstall(HWND owner, bool chinese);
 
 enum class UninstallDataChoice {
     Cancel,
