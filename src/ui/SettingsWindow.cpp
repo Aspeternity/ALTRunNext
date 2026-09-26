@@ -2559,6 +2559,7 @@ void SettingsWindow::RefreshProviderStatus() {
         app_.EverythingBootstrapStatus();
 
     bool showGetEverything = false;
+    bool showUpdateEverything = false;
     bool showRecheck = false;
     std::wstring text;
 
@@ -2581,27 +2582,6 @@ void SettingsWindow::RefreshProviderStatus() {
         text =
             T(L"○ Everything 已禁用",
               L"○ Everything is disabled");
-    } else if (
-        ipc.availability ==
-        EverythingAvailability::
-            Available) {
-
-        text =
-            T(L"● Everything 正在运行",
-              L"● Everything is running");
-
-        if (managedActive) {
-            text +=
-                T(L" · ALTRun Next 托管",
-                  L" · Managed by ALTRun Next");
-        } else {
-            text +=
-                T(L" · 外部安装",
-                  L" · External installation");
-            text +=
-                T(L" · 托盘图标由 Everything 控制",
-                  L" · tray icon is controlled by Everything");
-        }
     } else if (bootstrap.running) {
         text =
             T(L"◌ 正在准备 Everything",
@@ -2611,23 +2591,35 @@ void SettingsWindow::RefreshProviderStatus() {
 
         switch (bootstrap.stage) {
         case win::EverythingBootstrapStage::Discovering:
-            text += T(L"检测本机版本", L"Detecting local copies");
+            text +=
+                T(L"检测本机版本",
+                  L"Detecting local copies");
             break;
         case win::EverythingBootstrapStage::StartingExisting:
-            text += T(L"启动已有版本", L"Starting existing copy");
+            text +=
+                T(L"启动已有版本",
+                  L"Starting existing copy");
             break;
         case win::EverythingBootstrapStage::ResolvingStableVersion:
-            text += T(L"检查官方稳定版", L"Checking latest stable release");
+            text +=
+                T(L"检查官方稳定版",
+                  L"Checking latest stable release");
             break;
         case win::EverythingBootstrapStage::DownloadingManifest:
-            text += T(L"准备安全下载", L"Preparing secure download");
+            text +=
+                T(L"准备安全下载",
+                  L"Preparing secure download");
             break;
         case win::EverythingBootstrapStage::DownloadingPackage:
-            text += T(L"下载便携版", L"Downloading portable build");
+            text +=
+                T(L"下载 Everything",
+                  L"Downloading Everything");
+
             if (bootstrap.downloadedBytes > 0) {
                 text += L" ";
                 text += FormatBytes(
                     bootstrap.downloadedBytes);
+
                 if (bootstrap.totalBytes > 0) {
                     text += L" / ";
                     text += FormatBytes(
@@ -2636,26 +2628,95 @@ void SettingsWindow::RefreshProviderStatus() {
             }
             break;
         case win::EverythingBootstrapStage::VerifyingPackage:
-            text += T(L"验证下载文件", L"Verifying download");
+            text +=
+                T(L"验证下载文件",
+                  L"Verifying download");
             break;
         case win::EverythingBootstrapStage::ExtractingPackage:
-            text += T(L"准备文件", L"Preparing files");
+            text +=
+                T(L"准备文件",
+                  L"Preparing files");
+            break;
+        case win::EverythingBootstrapStage::StoppingManaged:
+            text +=
+                T(L"切换版本",
+                  L"Switching versions");
             break;
         case win::EverythingBootstrapStage::InstallingService:
         case win::EverythingBootstrapStage::RepairingService:
-            text += T(L"启用文件索引，请确认 Windows 提示",
-                      L"Enabling file indexing; confirm the Windows prompt");
+            text +=
+                T(L"启用文件索引，请确认 Windows 提示",
+                  L"Enabling file indexing; confirm the Windows prompt");
             break;
         case win::EverythingBootstrapStage::WaitingForService:
-            text += T(L"启动文件索引", L"Starting file index");
+            text +=
+                T(L"启动文件索引",
+                  L"Starting file index");
             break;
         case win::EverythingBootstrapStage::StartingManaged:
         case win::EverythingBootstrapStage::WaitingForIpc:
-            text += T(L"连接 Everything", L"Connecting to Everything");
+            text +=
+                T(L"连接 Everything",
+                  L"Connecting to Everything");
             break;
         default:
-            text += T(L"应用配置", L"Applying configuration");
+            text +=
+                T(L"应用设置",
+                  L"Applying settings");
             break;
+        }
+    } else if (
+        ipc.availability ==
+        EverythingAvailability::
+            Available) {
+        text =
+            T(L"● Everything 正在运行",
+              L"● Everything is running");
+        showRecheck = true;
+
+        if (managedActive) {
+            showUpdateEverything = true;
+
+            text +=
+                T(L" · ALTRun Next 托管",
+                  L" · Managed by ALTRun Next");
+
+            if (!bootstrap.installedVersion.empty()) {
+                text += L" · v";
+                text +=
+                    bootstrap.installedVersion;
+            }
+
+            if (bootstrap.updateAvailable &&
+                !bootstrap.availableVersion.empty()) {
+                text +=
+                    T(L" · 可更新到 v",
+                      L" · update available: v");
+                text +=
+                    bootstrap.availableVersion;
+            } else if (
+                !bootstrap.availableVersion.empty() &&
+                bootstrap.stage ==
+                    win::EverythingBootstrapStage::
+                        Ready) {
+                text +=
+                    T(L" · 已是最新稳定版",
+                      L" · latest stable");
+            } else if (
+                bootstrap.stage ==
+                    win::EverythingBootstrapStage::
+                        Failed) {
+                text +=
+                    T(L" · 更新检查失败",
+                      L" · update check failed");
+            }
+        } else {
+            text +=
+                T(L" · 外部安装",
+                  L" · External installation");
+            text +=
+                T(L" · 托盘图标由 Everything 控制",
+                  L" · tray icon is controlled by Everything");
         }
     } else {
         showGetEverything = true;
@@ -2679,23 +2740,26 @@ void SettingsWindow::RefreshProviderStatus() {
                 win::EverythingBootstrapStage::
                     Failed) {
             text =
-                T(L"⚠ Everything 自动准备失败",
-                  L"⚠ Automatic Everything setup failed");
+                T(L"⚠ Everything 准备失败",
+                  L"⚠ Everything setup failed");
 
             if (bootstrap.nativeError != 0) {
-                text += T(L" · 系统错误 ", L" · Native error ");
-                text += std::to_wstring(
-                    bootstrap.nativeError);
+                text +=
+                    T(L" · 错误 ",
+                      L" · error ");
+                text +=
+                    std::to_wstring(
+                        bootstrap.nativeError);
             }
         } else if (
             ipc.ambiguousNamedInstances) {
             text =
-                T(L"⚠ 检测到多个 Everything 命名实例",
-                  L"⚠ Multiple named Everything instances detected");
+                T(L"⚠ 检测到多个 Everything 实例",
+                  L"⚠ Multiple Everything instances detected");
         } else {
             text =
                 T(L"○ 未检测到可用的 Everything",
-                  L"○ No usable Everything instance detected");
+                  L"○ No usable Everything detected");
         }
     }
 
@@ -2714,10 +2778,27 @@ void SettingsWindow::RefreshProviderStatus() {
             TRUE);
     }
 
+    if (providerUpdateEverything_) {
+        SetWindowTextW(
+            providerUpdateEverything_,
+            bootstrap.updateAvailable
+                ? T(L"更新 Everything",
+                    L"Update Everything")
+                : T(L"检查更新",
+                    L"Check for updates"));
+    }
+
     ShowWindow(
         providerGetEverything_,
         visible &&
                 showGetEverything
+            ? SW_SHOW
+            : SW_HIDE);
+
+    ShowWindow(
+        providerUpdateEverything_,
+        visible &&
+                showUpdateEverything
             ? SW_SHOW
             : SW_HIDE);
 
