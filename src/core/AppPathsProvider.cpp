@@ -359,7 +359,6 @@ void EnumerateAppPathsKey(
                 command.target);
         command.type =
             CommandType::Application;
-        command.icon = L"auto";
         command.enabled = true;
         command.source =
             CommandSource::AppPaths;
