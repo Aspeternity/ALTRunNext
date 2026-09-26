@@ -112,6 +112,9 @@ struct EverythingBootstrapSnapshot {
     std::uint32_t nativeError{0};
     std::filesystem::path executablePath;
     std::wstring selectedVersion;
+    std::wstring installedVersion;
+    std::wstring availableVersion;
+    bool updateAvailable{false};
     bool usedPinnedVersionFallback{false};
 };
 
@@ -125,7 +128,14 @@ RunEverythingBootstrap(
     bool allowDownload,
     EverythingBootstrapProgress progress,
     std::stop_token stopToken = {},
-    bool showManagedTrayIcon = false);
+    bool showManagedTrayIcon = false,
+    bool forceManagedUpdate = false);
+
+[[nodiscard]] EverythingBootstrapSnapshot
+CheckManagedEverythingUpdate(
+    const std::filesystem::path& dataDirectory,
+    EverythingBootstrapProgress progress,
+    std::stop_token stopToken = {});
 
 [[nodiscard]] std::filesystem::path
 ManagedEverythingExecutable(
