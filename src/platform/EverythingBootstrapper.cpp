@@ -4149,6 +4149,13 @@ RunEverythingBootstrap(
                 *stableVersion;
             snapshot.usedPinnedVersionFallback =
                 false;
+        } else if (forceManagedUpdate) {
+            return Fail(
+                snapshot,
+                EverythingBootstrapFailure::
+                    ManifestDownloadFailed,
+                ERROR_INVALID_DATA,
+                progress);
         }
     } else if (
         stopToken.stop_requested()) {
@@ -4157,6 +4164,13 @@ RunEverythingBootstrap(
             EverythingBootstrapFailure::
                 Cancelled,
             ERROR_CANCELLED,
+            progress);
+    } else if (forceManagedUpdate) {
+        return Fail(
+            snapshot,
+            EverythingBootstrapFailure::
+                ManifestDownloadFailed,
+            stableMetadataError,
             progress);
     }
 
