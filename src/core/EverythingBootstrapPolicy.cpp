@@ -14,6 +14,8 @@ constexpr std::wstring_view kVersion =
     L"1.4.1.1032";
 constexpr std::wstring_view kBaseUrl =
     L"https://www.voidtools.com/";
+constexpr std::wstring_view kStableUpdateMetadataUrl =
+    L"https://www.voidtools.com/everything/update.ini";
 
 [[nodiscard]] std::string
 LowerAscii(
@@ -83,6 +85,11 @@ ParseNonNegativeInt(
 std::wstring_view
 PinnedManagedEverythingVersion() noexcept {
     return kVersion;
+}
+
+std::wstring_view
+EverythingStableUpdateMetadataUrl() noexcept {
+    return kStableUpdateMetadataUrl;
 }
 
 EverythingPackageSpec
