@@ -64,8 +64,7 @@
   },
   "appearance": {
     "launcher": "classic",
-    "language": "zh-CN",
-    "showResultIcons": false
+    "language": "zh-CN"
   },
   "providers": {
     "windows.startmenu": true,

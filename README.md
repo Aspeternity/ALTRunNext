@@ -23,6 +23,18 @@ The latest successful `main` build is always published to the fixed prerelease t
 
 You no longer need to find the correct GitHub Actions run. The `dev-latest` release is replaced automatically only after a successful build and test run.
 
+## v0.8.0-alpha.5.49 — Classic Technical Closeout I
+
+This build starts the post-Classic performance and memory closeout on top of the fully validated alpha.5.48 desktop behavior. The normal Launcher keystroke path no longer builds a deep copy of every discovered `Command`: it searches the immutable CommandStore catalog through a non-owning span and only materializes a context-resolved working set when a user shortcut actually contains the `{folder}` template.
+
+Search also prepares normalized query state and pinyin eligibility once per request instead of repeatedly rebuilding that state for every candidate field. Dynamic filesystem ranking reuses the same prepared-query pattern and uses a non-owning filename stem. The derived pinyin-form cache is now bounded to 4096 LRU-style entries so a long-lived tray process cannot accumulate stale forms indefinitely as provider contents change.
+
+Real-machine validation exposed two closeout issues. The optional result-icon surface was visually inconsistent across mixed static/Everything results, so alpha.5.49 removes that feature completely instead of retaining an idle worker/cache path. Everything relevance also no longer applies the short-ASCII strong-match gate to two-character CJK substrings: `男主` correctly remains eligible inside a result such as `系统男主`, while short ASCII precision behavior remains strict.
+
+Windows runtime validation now includes a repeated real-HWND Shortcut Manager -> Shortcut Editor -> Path Conversion lifecycle soak and samples GDI objects, USER objects and process handles before/after the loop. This phase intentionally avoids a broad architecture rewrite: Classic geometry and desktop presentation remain frozen while measured allocator/resource costs and confirmed search regressions are removed locally.
+
+Settings schema remains **11**; Commands **2**, Usage **2** and Provider Cache **22** are unchanged. Windows fixed FileVersion/ProductVersion is `0.8.0.219`.
+
 ## v0.8.0-alpha.5.48 — Silent Launch + Tray Window Presentation
 
 Launcher result execution is now intentionally silent. Ordinary applications, packaged applications, files/folders, numeric Quick Launch and other successful Launcher execution paths no longer emit the ALTRun Popup.wav execution cue. Startup notification, hidden-to-visible Launcher reveal and genuine application error feedback remain governed by the existing Sound effects preference.

@@ -2,6 +2,7 @@
 
 #include "../core/CommandStore.hpp"
 #include "../core/DynamicQueryProvider.hpp"
+#include "../core/ClassicBehavior.hpp"
 #include "../core/EverythingQuery.hpp"
 #include "../core/LauncherResult.hpp"
 #include "../core/Localization.hpp"
@@ -64,6 +65,8 @@ public:
     void DeferLauncherReveal() noexcept {
         launcherRevealPending_ = true;
     }
+
+    void BeginNumericContinuationProbe(std::uint64_t token, std::wstring query);
 
     void BeginDynamicSearch(
         std::uint64_t generation,
@@ -133,7 +136,6 @@ public:
 
     void SetUiStyle(UiStyle style);
     void SetLanguage(Language language);
-    bool SetShowResultIcons(bool enabled);
     bool SetStartWithWindows(bool enabled);
     bool SetStartupBehavior(
         StartupBehavior behavior);
@@ -270,6 +272,8 @@ private:
     static constexpr UINT
         kProviderChangedMessage =
             WM_APP + 0x172;
+
+    static constexpr UINT kNumericProbeMessage = WM_APP + 0x176;
 
     static constexpr UINT
         kDynamicQueryMessage =

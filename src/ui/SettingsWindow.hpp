@@ -95,8 +95,6 @@ private:
         kIdUiStyle = 51201;
     static constexpr UINT
         kIdLanguage = 51202;
-    static constexpr UINT
-        kIdShowResultIcons = 51203;
 
     static constexpr UINT
         kIdOpenDataFolder = 51301;
@@ -350,7 +348,6 @@ private:
     HWND soundEnabled_{};
     HWND addToSendToMenu_{};
     HWND searchBehaviorTitle_{};
-    HWND showResultIcons_{};
     HWND pinyinSearch_{};
     HWND numericQuickLaunch_{};
     HWND executeSingleResult_{};

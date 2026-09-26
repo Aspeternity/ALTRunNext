@@ -62,8 +62,6 @@ constexpr UINT kIdCancel = 53115;
 constexpr UINT kIdBrowseFolder = 53116;
 constexpr UINT kIdAdvancedToggle = 53117;
 constexpr UINT kIdRuntimeInput = 53118;
-constexpr UINT kIdIcon = 53119;
-constexpr UINT kIdBrowseIcon = 53120;
 constexpr UINT kIdTestInput = 53122;
 
 [[nodiscard]] std::wstring
@@ -698,8 +696,7 @@ bool ShortcutEditorDialog::RunModal() {
                 focus == target_ ||
                 focus == testInput_ ||
                 focus == arguments_ ||
-                focus == workdir_ ||
-                focus == icon_;
+                focus == workdir_;
 
             const bool typeFocus =
                 focus == type_ &&
@@ -908,16 +905,6 @@ void ShortcutEditorDialog::CreateControls() {
         browseWorkdir_,
         kIdBrowseWorkdir);
 
-    makeStatic(
-        iconLabel_,
-        SS_RIGHT);
-    makeEdit(
-        icon_,
-        kIdIcon);
-    makeButton(
-        browseIcon_,
-        kIdBrowseIcon);
-
     makeButton(
         admin_,
         kIdAdmin,
@@ -980,9 +967,6 @@ void ShortcutEditorDialog::CreateControls() {
         workdirLabel_,
         workdir_,
         browseWorkdir_,
-        iconLabel_,
-        icon_,
-        browseIcon_,
         admin_,
         test_,
         save_,
@@ -1173,22 +1157,6 @@ void ShortcutEditorDialog::ApplyLanguage() {
         browseWorkdir_,
         T(L"选择…",
           L"Browse…"));
-    SetWindowTextW(
-        iconLabel_,
-        T(L"图标",
-          L"Icon"));
-    SendMessageW(
-        icon_,
-        EM_SETCUEBANNER,
-        TRUE,
-        reinterpret_cast<LPARAM>(
-            T(L"留空时自动跟随目标",
-              L"Blank = follow target")));
-    SetWindowTextW(
-        browseIcon_,
-        T(L"选择…",
-          L"Choose…"));
-
     SetWindowTextW(
         admin_,
         T(L"以管理员身份运行",
@@ -1620,36 +1588,6 @@ void ShortcutEditorDialog::Layout() {
             TRUE);
         y += advancedRowAdvance;
 
-        const int iconButtonWidth =
-            Scale(68);
-        const int iconEditWidth =
-            advancedFieldWidth -
-            iconButtonWidth -
-            gap;
-
-        MoveWindow(
-            iconLabel_,
-            margin,
-            rowTextTop(y),
-            formLabelWidth,
-            labelHeight,
-            TRUE);
-        MoveWindow(
-            icon_,
-            formFieldLeft,
-            editTop(y),
-            iconEditWidth,
-            editHeight,
-            TRUE);
-        MoveWindow(
-            browseIcon_,
-            advancedFieldRight -
-                iconButtonWidth,
-            editTop(y),
-            iconButtonWidth,
-            editHeight,
-            TRUE);
-        y += advancedRowAdvance;
         y += Scale(
             kAdminTopGapLogical);
 
@@ -2195,7 +2133,7 @@ DesiredClientHeight() const {
             controlRowHeight +
             Scale(6);
 
-        y += advancedRowAdvance * 3;
+        y += advancedRowAdvance * 2;
 
         contentBottom =
             y +
@@ -2285,9 +2223,6 @@ void ShortcutEditorDialog::UpdateAdvancedVisibility() {
              workdirLabel_,
              workdir_,
              browseWorkdir_,
-             iconLabel_,
-             icon_,
-             browseIcon_,
              admin_}) {
         ShowWindow(
             control,
@@ -2590,12 +2525,6 @@ void ShortcutEditorDialog::LoadCommand(
         workdir_,
         it->workingDirectory.c_str());
     SetWindowTextW(
-        icon_,
-        (it->icon.empty() ||
-         it->icon == L"auto")
-            ? L""
-            : it->icon.c_str());
-    SetWindowTextW(
         testInput_,
         L"");
 
@@ -2649,8 +2578,6 @@ void ShortcutEditorDialog::LoadCommand(
     advancedExpanded_ =
         !it->arguments.empty() ||
         !it->workingDirectory.empty() ||
-        (!it->icon.empty() &&
-         it->icon != L"auto") ||
         it->runAsAdmin;
 
     UpdateAdvancedVisibility();
@@ -2679,12 +2606,6 @@ void ShortcutEditorDialog::BeginNew(
     SetWindowTextW(
         workdir_,
         initial.workingDirectory.c_str());
-    SetWindowTextW(
-        icon_,
-        initial.icon.empty() ||
-                initial.icon == L"auto"
-            ? L""
-            : initial.icon.c_str());
     SetWindowTextW(
         testInput_,
         L"");
@@ -2750,8 +2671,6 @@ void ShortcutEditorDialog::BeginNew(
         seed &&
         (!initial.arguments.empty() ||
          !initial.workingDirectory.empty() ||
-         (!initial.icon.empty() &&
-          initial.icon != L"auto") ||
          initial.runAsAdmin);
 
     UpdateAdvancedVisibility();
@@ -2825,13 +2744,6 @@ Command ShortcutEditorDialog::CollectCommand()
             command.keyword;
     }
 
-    const std::wstring icon =
-        TrimWide(
-            ControlText(icon_));
-    command.icon =
-        icon.empty()
-            ? L"auto"
-            : icon;
     command.enabled = true;
     command.runAsAdmin =
         IsChecked(admin_);
@@ -3258,105 +3170,6 @@ BrowseWorkingDirectory() {
     CoTaskMemFree(item);
 }
 
-void ShortcutEditorDialog::BrowseIcon() {
-    std::wstring current =
-        TrimWide(
-            ControlText(icon_));
-
-    if (current.empty()) {
-        current =
-            TrimWide(
-                ControlText(target_));
-    }
-
-    const COMDLG_FILTERSPEC filters[] = {
-        {
-            T(L"图标来源",
-              L"Icon sources"),
-            L"*.ico;*.exe;*.dll;*.lnk",
-        },
-        {
-            T(L"所有文件",
-              L"All files"),
-            L"*.*",
-        },
-    };
-
-    std::wstring selected;
-    const PickerResult modern =
-        PickFileModern(
-            hwnd_,
-            T(L"选择图标来源",
-              L"Choose icon source"),
-            filters,
-            static_cast<UINT>(
-                _countof(filters)),
-            current,
-            selected);
-
-    if (modern ==
-        PickerResult::Cancelled) {
-        return;
-    }
-
-    if (modern ==
-        PickerResult::Selected) {
-        SetWindowTextW(
-            icon_,
-            selected.c_str());
-        return;
-    }
-
-    std::array<wchar_t, 32768>
-        file{};
-
-    if (!current.empty() &&
-        current.size() <
-            file.size()) {
-        std::copy(
-            current.begin(),
-            current.end(),
-            file.begin());
-    }
-
-    const wchar_t* filter =
-        app_.SettingsData().language ==
-                Language::ZhCN
-            ? L"图标来源\0*.ico;*.exe;*.dll;*.lnk\0所有文件\0*.*\0\0"
-            : L"Icon sources\0*.ico;*.exe;*.dll;*.lnk\0All files\0*.*\0\0";
-
-    OPENFILENAMEW open{};
-    open.lStructSize =
-        sizeof(open);
-    open.hwndOwner =
-        hwnd_;
-    open.lpstrFile =
-        file.data();
-    open.nMaxFile =
-        static_cast<DWORD>(
-            file.size());
-    open.lpstrFilter =
-        filter;
-    open.nFilterIndex = 1;
-    open.lpstrTitle =
-        T(L"选择图标来源",
-          L"Choose icon source");
-    open.Flags =
-        OFN_FILEMUSTEXIST |
-        OFN_PATHMUSTEXIST |
-        OFN_EXPLORER |
-        OFN_NOCHANGEDIR;
-
-    if (!GetOpenFileNameW(
-            &open)) {
-        return;
-    }
-
-    SetWindowTextW(
-        icon_,
-        file.data());
-}
-
 LRESULT CALLBACK
 ShortcutEditorDialog::WindowProc(
     HWND hwnd,
@@ -3597,7 +3410,6 @@ LRESULT ShortcutEditorDialog::HandleMessage(
         if (id == kIdBrowseFile ||
             id == kIdBrowseFolder ||
             id == kIdBrowseWorkdir ||
-            id == kIdBrowseIcon ||
             id == kIdTest ||
             id == kIdSave ||
             id == kIdCancel) {
@@ -3671,16 +3483,6 @@ LRESULT ShortcutEditorDialog::HandleMessage(
             if (HIWORD(wParam) ==
                 EN_CHANGE) {
                 UpdateRuntimeInputHint();
-            }
-            return 0;
-
-        case kIdIcon:
-            return 0;
-
-        case kIdBrowseIcon:
-            if (HIWORD(wParam) ==
-                BN_CLICKED) {
-                BrowseIcon();
             }
             return 0;
 

@@ -29,7 +29,6 @@ enum class StartupBehavior {
 struct Settings {
     UiStyle uiStyle{UiStyle::Classic};
     Language language{Language::ZhCN};
-    bool showResultIcons{false};
 
     bool startWithWindows{true};
     StartupBehavior startupBehavior{
@@ -88,7 +87,6 @@ public:
 
     void SetUiStyle(UiStyle style);
     void SetLanguage(Language language);
-    bool SetShowResultIcons(bool enabled);
     bool SetStartWithWindows(bool enabled);
     bool SetStartupBehavior(
         StartupBehavior behavior);

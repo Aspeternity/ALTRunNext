@@ -8,6 +8,21 @@ Automated CI covers compilation, Config/Search tests, provider smoke tests, hotk
 
 The checks below are the remaining **real interactive Windows desktop** validation items. Automated geometry/behavior tests reduce regression risk but do not replace observing the actual UI, IME, monitor transitions, providers and hotkey lifecycle on a real desktop.
 
+## v0.8.0-alpha.5.49 Classic Technical Closeout I validation
+
+Automated coverage preserves all alpha.5.48 presentation regressions and now adds a repeated real-HWND resource soak. The soak opens and closes Shortcut Manager, Shortcut Editor and Path Conversion repeatedly while sampling process GDI objects, USER objects and handles. It is a leak regression gate; it does not replace observing process memory behavior over a longer interactive session.
+
+- [ ] Compare cold startup and idle behavior with the validated alpha.5.48 build. There should be no new first-frame delay, background CPU loop or tray/window regression.
+- [ ] With a representative populated application catalog, type and erase short, long, multi-token, pinyin and English-initial queries repeatedly. Search ordering and input responsiveness must remain consistent with alpha.5.48.
+- [ ] Repeat the `team` / `ts` learning checks from alpha.5.48 and confirm query-scoped preference behavior is unchanged.
+- [ ] Keep ALTRun Next running for an extended session while rebuilding/refreshing providers and editing shortcuts. Working set/private memory may retain allocator pages, but it must settle instead of growing continually after equivalent repeated work.
+- [ ] Open/close Settings, Shortcut Manager, Shortcut Editor and Path Conversion at least 100 cycles total. GDI/USER object counts and process handles must return to a stable plateau rather than increasing with every cycle.
+- [ ] Confirm General no longer exposes a result-icon preference and Launcher results stay text-only in both Classic and Modern Compact; repeated searching must not create an icon worker or HICON cache.
+- [ ] With Everything enabled, verify both prefix and middle-substring CJK queries against the same path: for a result such as `系统男主`, both `系统` and `男主` must return it. Also recheck representative 1-2 character ASCII queries so the existing short-query noise gate remains strict.
+- [ ] Exercise Everything dynamic results alongside static application search. Typing stays responsive and no filesystem/Shell work is introduced into the synchronous static-search path.
+- [ ] Repeat mixed-DPI/multi-monitor and Chinese/English smoke checks to ensure the technical changes did not disturb the fully validated alpha.5.48 presentation lifecycle.
+- [ ] Settings schema remains 11; Commands 2, Usage 2, Provider Cache 22; fixed Windows version is 0.8.0.219.
+
 ## v0.8.0-alpha.5.48 Silent Launch + Tray Window Presentation validation
 
 Follow-up automated coverage now creates the actual Settings window, asserts
@@ -907,3 +922,14 @@ Use an installed/extracted alpha.9-or-newer build for these checks. The first tr
 - [ ] Simulate a launch/health failure in a test build and verify the updater restores the previous application files and relaunches the previous version.
 - [ ] After successful health confirmation, the backup/staging state is cleaned and the running VERSION matches the requested manifest version.
 - [ ] Release assets include `ALTRunNext-x64.zip`, `ALTRunNext-ARM64.zip`, `SHA256SUMS.txt` and `update-manifest.json`; manifest hashes match SHA256SUMS.txt.
+
+### alpha.5.49 numeric intent / uninstall follow-up
+
+- Everything-only portable `v2rayN`: type `v`, pause over 420ms, press `2`; it becomes `v2`, never the old second result. Continue `r` during the probe and verify `v2r` without duplicated/lost characters.
+- Queries with thousands of broad hits: strong filename-prefix candidates must survive the independent prefix recall pass. Verify `系统` / `男主` and explicit Everything/path syntax remain correct.
+- A confirmed absent continuation retains bare-number execution after the 90ms grace. Unknown/timeout has a 240ms initial budget and commits text; profile this budget on real cold/warm Everything installations before tuning.
+- Move caret, select/replace text, paste, Backspace, Escape, focus loss, long-held digits, provider disable/restart and late replies: no unintended or delayed execution. Numeric text commits must not invoke single-result auto-execution.
+- Uninstall from Chinese/spaced paths, both preserve-data and full-delete: read-only packaged files, Explorer open inside the install, managed service already stopping, a briefly locked file and a permanently locked file.
+- After a partial deletion failure, release the reported lock and run the retained/restored Uninstall.exe again. Verify recovery works when the main executable/VERSION was already deleted.
+- Directory junctions are removed as links; targets outside the installation must remain intact. Preserve-data mode must retain user commands/settings. Never terminate external Everything by name alone.
+- Windows CI exercises the production cleanup routines against isolated temporary fixtures (read-only files, sharing locks, final-stage recovery, junctions), plus real EDIT messages and provider IPC replies for numeric intent.

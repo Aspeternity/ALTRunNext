@@ -1,8 +1,10 @@
 #include "app/App.hpp"
+#include "NumericIntentRuntimeFixture.hpp"
 #include "platform/InstanceIpc.hpp"
 #include "ui/SettingsWindow.hpp"
 #include "ui/ShortcutEditorDialog.hpp"
 #include "ui/ShortcutPathConverterDialog.hpp"
+#include "ui/ShortcutManagerWindow.hpp"
 #include "ui/TopLevelWindowPresentation.hpp"
 
 #include <commctrl.h>
@@ -16,6 +18,48 @@
 #endif
 
 namespace {
+
+struct ProcessResourceSnapshot {
+    DWORD gdi{};
+    DWORD user{};
+    DWORD handles{};
+};
+
+ProcessResourceSnapshot ProcessResources() {
+    ProcessResourceSnapshot snapshot;
+    snapshot.gdi =
+        GetGuiResources(
+            GetCurrentProcess(),
+            GR_GDIOBJECTS);
+    snapshot.user =
+        GetGuiResources(
+            GetCurrentProcess(),
+            GR_USEROBJECTS);
+
+    assert(
+        GetProcessHandleCount(
+            GetCurrentProcess(),
+            &snapshot.handles));
+
+    return snapshot;
+}
+
+void AssertNoResourceGrowth(
+    const ProcessResourceSnapshot& before,
+    const ProcessResourceSnapshot& after) {
+
+    // A small tolerance keeps the test independent of one-time USER/common-
+    // control bookkeeping, while any per-open leak across the soak loop still
+    // fails decisively.
+    constexpr DWORD kTolerance = 4;
+
+    assert(after.gdi <=
+        before.gdi + kTolerance);
+    assert(after.user <=
+        before.user + kTolerance);
+    assert(after.handles <=
+        before.handles + kTolerance);
+}
 
 bool HasAboutHeading(HWND window) {
     bool found = false;
@@ -214,6 +258,136 @@ int main() {
         assert(IsWindowVisible(owner));
 
         ShowWindow(owner, SW_HIDE);
+
+        ShortcutManagerWindow manager(
+            app,
+            instance);
+
+        const auto runManagerModalCycle =
+            [&]() {
+                manager.Show();
+
+                const HWND managerWindow =
+                    FindWindowW(
+                        L"ALTRunNext.ShortcutManager",
+                        nullptr);
+
+                assert(
+                    managerWindow &&
+                    IsWindowVisible(
+                        managerWindow));
+                assert(
+                    IsWindowEnabled(
+                        managerWindow));
+
+                modalOwner =
+                    managerWindow;
+                expectedOwnerEnabledAtModalDestroy =
+                    true;
+
+                observedEditor = false;
+                observedModalDestroy = false;
+                auto timer =
+                    SetTimer(
+                        nullptr,
+                        0,
+                        20,
+                        CancelEditor);
+                assert(timer);
+                assert(
+                    !ShortcutEditorDialog::
+                        ShowNew(
+                            app,
+                            instance,
+                            managerWindow,
+                            seed));
+                KillTimer(
+                    nullptr,
+                    timer);
+                assert(
+                    observedEditor &&
+                    observedModalDestroy);
+                assert(
+                    IsWindowEnabled(
+                        managerWindow));
+
+                observedPathConverter =
+                    false;
+                observedModalDestroy = false;
+                timer =
+                    SetTimer(
+                        nullptr,
+                        0,
+                        20,
+                        CancelPathConverter);
+                assert(timer);
+                assert(
+                    !ShortcutPathConverterDialog::
+                        Show(
+                            app,
+                            instance,
+                            managerWindow));
+                KillTimer(
+                    nullptr,
+                    timer);
+                assert(
+                    observedPathConverter &&
+                    observedModalDestroy);
+                assert(
+                    IsWindowEnabled(
+                        managerWindow));
+
+                SendMessageW(
+                    managerWindow,
+                    WM_CLOSE,
+                    0,
+                    0);
+
+                assert(
+                    FindWindowW(
+                        L"ALTRunNext.ShortcutManager",
+                        nullptr) == nullptr);
+            };
+
+        // Warm common controls/window classes before taking the leak baseline.
+        runManagerModalCycle();
+
+        const auto resourcesBefore =
+            ProcessResources();
+
+        constexpr int kSoakCycles = 24;
+
+        for (int cycle = 0;
+             cycle < kSoakCycles;
+             ++cycle) {
+            runManagerModalCycle();
+        }
+
+        const auto resourcesAfter =
+            ProcessResources();
+
+        AssertNoResourceGrowth(
+            resourcesBefore,
+            resourcesAfter);
+
+        std::cout
+            << "Resource soak (" << kSoakCycles
+            << " manager/editor/converter cycles): GDI "
+            << resourcesBefore.gdi << " -> "
+            << resourcesAfter.gdi << ", USER "
+            << resourcesBefore.user << " -> "
+            << resourcesAfter.user << ", handles "
+            << resourcesBefore.handles << " -> "
+            << resourcesAfter.handles << "\n";
+
+        // LauncherWindow::WM_DESTROY posts WM_QUIT because it owns the real
+        // application message loop. Keep the numeric-input fixture last in
+        // this process so its intentional real-window teardown cannot make a
+        // later modal RunModal() observe WM_QUIT and exit before its timer
+        // callback runs.
+        NumericIntentRuntimeFixture::Run(
+            app,
+            instance);
     }
     DestroyWindow(owner);
     if (SUCCEEDED(com)) CoUninitialize();

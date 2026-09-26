@@ -2161,10 +2161,6 @@ ShortcutPathConverterDialog::FieldLabel(
         return T(
             L"工作目录",
             L"Working directory");
-    case Field::Icon:
-        return T(
-            L"自定义图标",
-            L"Custom icon");
     }
 
     return L"";
@@ -2810,21 +2806,6 @@ void ShortcutPathConverterDialog::Scan(
                     *workingDirectory));
         }
 
-        if (!command.icon.empty() &&
-            command.icon != L"auto") {
-            auto icon =
-                makePreview(
-                    command,
-                    Field::Icon,
-                    command.icon,
-                    true);
-
-            if (icon) {
-                commandRows.push_back(
-                    std::move(*icon));
-            }
-        }
-
         if (commandRows.empty()) {
             continue;
         }
@@ -2910,10 +2891,6 @@ void ShortcutPathConverterDialog::ApplySelected() {
             break;
         case Field::WorkingDirectory:
             it->workingDirectory =
-                row.converted;
-            break;
-        case Field::Icon:
-            it->icon =
                 row.converted;
             break;
         }

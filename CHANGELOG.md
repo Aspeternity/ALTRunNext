@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.8.0-alpha.5.49
+
+- Begin the Classic technical closeout while preserving the frozen Classic geometry.
+- Stop copying the complete Command catalog on ordinary Launcher searches. The immutable CommandStore catalog is now consumed through a non-owning span; a context-resolved working copy is materialized only when at least one user shortcut actually uses `{folder}`.
+- Prepare normalized query state and pinyin eligibility once per static search, and reuse normalized-query matching in relevance and dynamic filesystem ranking. File-stem matching now uses a non-owning view instead of allocating a temporary string.
+- Avoid additional hot-path allocations by reusing the already-normalized single-term query instead of building a token vector, caching whether any user shortcut needs the contextual `{folder}` working set outside the keypress path, sampling recency time once per empty-query search, and passing the known query-empty state into result rebuilding instead of rereading the EDIT control.
+- Make pinyin cache hits allocation-free through transparent lookup, move derived syllable strings into cache storage instead of copying them, and return the cache bucket array as well as entries when pinyin search is disabled.
+- Lower background refresh memory peaks by moving provider-discovery command vectors into the cache update instead of deep-copying the full discovered catalog.
+- Replace UsageStore's full-history rollback copy on every successful launch with a targeted undo log for only the selected command and affected same-query competitors; Clear likewise moves the map aside and restores it only if persistence fails.
+- Bound the derived pinyin-form cache with an LRU-style capacity of 4096 entries so provider refreshes and long-running user-edit churn cannot grow it without limit.
+- Extend the real Win32 runtime regression with a repeated Shortcut Manager -> Editor -> Path Conversion lifecycle soak and assert that GDI, USER and process-handle counts do not grow per cycle.
+- Remove the optional search-result icon feature end to end: Settings preference/UI, Launcher HICON worker/cache/async message/rendering branches, LauncherResult icon metadata, ResultIconPipeline and its dedicated test target are gone. Legacy `showResultIcons` JSON is ignored and dropped on the next save without a schema bump.
+- Fix Everything/CJK relevance admission: the 1-2 character strong-match precision gate now applies only to ASCII. A two-character CJK query such as `男主` can match the middle of `系统男主`, while short ASCII noise protection remains unchanged.
+- Overfetch a bounded Everything candidate pool before ALTRun Next applies its own relevance filter/ranking, then trim back to the requested candidate count. This prevents broad short queries such as `v2` from being emptied by provider-side truncation before a strong result such as `v2rayN.exe` is seen.
+- Preserve Settings schema 11, Commands 2, Usage 2 and Provider Cache 22; Windows fixed version `0.8.0.219`.
+
 ## 0.8.0-alpha.5.48
 
 - Follow-up after real-desktop feedback: preserve hidden Settings visibility through page/hotkey redraw batches; `WM_SETREDRAW(TRUE)` previously exposed General before the explicit reveal and could bypass final placement.
@@ -2562,3 +2578,11 @@
 ## 0.1.0
 
 - Created the clean-room C++23/Win32 development baseline.
+
+### alpha.5.49 follow-up — numeric intent and uninstall recovery
+
+- Preserve bare-number quick launch while probing Everything for strong filename continuations on an independent IPC channel. Distinguish confirmed absence from unavailable/truncated/failed queries; cancel stale intents on editing/session changes.
+- Recall filename-prefix candidates before broad Everything results are locally filtered; keep explicit syntax semantics and bounded candidate pools.
+- Fix the elevated uninstaller working-directory pointer lifetime, already-stopping services, process-exit races and ignored process wait timeouts.
+- Clear read-only attributes on owned ordinary entries, unlink reparse points without traversing their targets, retain retry anchors until late cleanup and restore an uninstall recovery entry after partial failure.
+- Add Windows production-EDIT/IPC and real filesystem uninstall regression coverage. Versions and data schemas remain unchanged.
