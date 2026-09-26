@@ -106,7 +106,6 @@ add_library(altrun_core STATIC
     src/core/RelevancePolicy.cpp
     src/core/ResultMerger.cpp
     src/core/ResultRanking.cpp
-    src/core/ResultIconPipeline.cpp
     src/core/RuntimeInput.cpp
     src/core/UpdatePolicy.cpp
     src/core/PinyinSearch.cpp
@@ -622,26 +621,6 @@ if(BUILD_TESTING)
     add_test(
         NAME result_ranking_tests
         COMMAND result_ranking_tests
-    )
-
-    add_executable(
-        result_icon_pipeline_tests
-        tests/ResultIconPipelineTests.cpp
-    )
-    target_link_libraries(
-        result_icon_pipeline_tests
-        PRIVATE altrun_core
-    )
-    target_include_directories(
-        result_icon_pipeline_tests
-        PRIVATE src
-    )
-    altrun_enable_test_assertions(
-        result_icon_pipeline_tests
-    )
-    add_test(
-        NAME result_icon_pipeline_tests
-        COMMAND result_icon_pipeline_tests
     )
 
     add_executable(
