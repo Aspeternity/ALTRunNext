@@ -1940,13 +1940,8 @@ void SettingsWindow::SetHotkeyRowStatus(
         hwnd_ &&
         page_ == Page::Hotkeys;
 
-    if (atomicUpdate) {
-        SendMessageW(
-            hwnd_,
-            WM_SETREDRAW,
-            FALSE,
-            0);
-    }
+    window_presentation::ScopedRedrawSuspend redrawGuard(
+        atomicUpdate ? hwnd_ : nullptr);
 
     SetWindowTextW(
         row->status,
@@ -1967,11 +1962,7 @@ void SettingsWindow::SetHotkeyRowStatus(
 
     Layout();
 
-    SendMessageW(
-        hwnd_,
-        WM_SETREDRAW,
-        TRUE,
-        0);
+    redrawGuard.Resume();
 
     RedrawWindow(
         hwnd_,
@@ -2104,13 +2095,8 @@ void SettingsWindow::RefreshHotkeyPage(
         hwnd_ &&
         page_ == Page::Hotkeys;
 
-    if (atomicUpdate) {
-        SendMessageW(
-            hwnd_,
-            WM_SETREDRAW,
-            FALSE,
-            0);
-    }
+    window_presentation::ScopedRedrawSuspend redrawGuard(
+        atomicUpdate ? hwnd_ : nullptr);
 
     const bool oldSyncing =
         syncing_;
@@ -2243,11 +2229,7 @@ void SettingsWindow::RefreshHotkeyPage(
 
     Layout();
 
-    SendMessageW(
-        hwnd_,
-        WM_SETREDRAW,
-        TRUE,
-        0);
+    redrawGuard.Resume();
 
     RedrawWindow(
         hwnd_,
@@ -2910,11 +2892,7 @@ void SettingsWindow::ShowPage(Page page) {
         }
     }
 
-    SendMessageW(
-        hwnd_,
-        WM_SETREDRAW,
-        FALSE,
-        0);
+    window_presentation::ScopedRedrawSuspend redrawGuard(hwnd_);
 
     page_ = page;
 
@@ -2988,11 +2966,7 @@ void SettingsWindow::ShowPage(Page page) {
     UpdatePageHeader();
     Layout();
 
-    SendMessageW(
-        hwnd_,
-        WM_SETREDRAW,
-        TRUE,
-        0);
+    redrawGuard.Resume();
 
     RedrawWindow(
         hwnd_,
@@ -6693,21 +6667,16 @@ void SettingsWindow::RefreshUpdateStatus() {
 }
 
 void SettingsWindow::ShowAbout() {
-    // Route About through the exact same top-level show/placement path as
-    // Settings first. Changing the hidden window to About before its first
-    // visible ShowWindow produced a path-specific USER32 placement regression
-    // even after the generic Settings centering lifecycle was fixed.
-    Show();
-
-    if (!hwnd_ ||
-        !IsWindow(hwnd_)) {
-        return;
-    }
-
-    ShowPage(Page::About);
+    Present(true);
 }
 
 void SettingsWindow::Show() {
+    Present(false);
+}
+
+void SettingsWindow::Present(
+    bool selectAbout) {
+
     if (!EnsureCreated()) {
         return;
     }
@@ -6719,6 +6688,13 @@ void SettingsWindow::Show() {
     app_.RepairGlobalHotkey(false);
     RefreshFromSettings();
 
+    // Select the requested page before the first visible frame. The old About
+    // path called Show() first and only then switched General -> About, so the
+    // user could see a fully opened Settings window repaint into About.
+    if (selectAbout) {
+        ShowPage(Page::About);
+    }
+
     if (page_ == Page::Providers) {
         SetTimer(
             hwnd_,
@@ -6729,16 +6705,14 @@ void SettingsWindow::Show() {
     }
 
     if (!IsWindowVisible(hwnd_)) {
-        // Build the first visible Settings frame behind a DWM cloak. This
-        // creates a compositor barrier: any stale redirect surface or native
-        // transition frame stays invisible until the final rectangle and all
-        // child/non-client painting are complete.
+        // Finish placement/layout while hidden, expose one fully-painted
+        // frame without activation, then perform exactly one foreground
+        // transition below.
         PositionForShow();
 
         window_presentation::
             RevealFullyPainted(
-                hwnd_,
-                SW_SHOW);
+                hwnd_);
     } else if (IsIconic(hwnd_)) {
         ShowWindow(
             hwnd_,

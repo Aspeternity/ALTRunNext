@@ -720,6 +720,21 @@ int CompareRankContext(
             : -1;
     }
 
+    // Both results already agree on intent tier, surface, field and pinyin.
+    // A derived acronym being complete versus a prefix is a cold-start
+    // preference, not a permanent barrier to an explicitly learned choice.
+    // Compare independent keys (not a pairwise score-distance exception) so
+    // this remains a strict weak ordering for any number of candidates.
+    if (left.match.kind == MatchKind::Initials &&
+        right.match.kind == MatchKind::Initials &&
+        left.match.field != MatchField::Target) {
+        const int leftHabit = std::clamp(left.usageScore, 0, 32);
+        const int rightHabit = std::clamp(right.usageScore, 0, 32);
+        if (leftHabit != rightHabit) {
+            return leftHabit > rightHabit ? 1 : -1;
+        }
+    }
+
     // Once intent strength, surface and field agree, small title-length
     // differences should not permanently defeat a demonstrated habit.
     // Keep the bonus bounded so a materially better text match wins; exact

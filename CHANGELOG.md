@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.0-alpha.5.48
+
+- Follow-up after real-desktop feedback: preserve hidden Settings visibility through page/hotkey redraw batches; `WM_SETREDRAW(TRUE)` previously exposed General before the explicit reveal and could bypass final placement.
+- Transfer foreground permission from the external Add Shortcut forwarding process to the resident instance; ignore hidden/minimized owners for popup placement and do not reactivate a hidden Launcher or re-enable an already-disabled modal owner on close.
+- Allow repeated selections to reorder comparable initials matches; exact name, explicit shortcut, surface and field priority remain protected. Bound and decay same-query preference evidence so saturated history can adapt, without changing Usage schema 2 or global launch counts.
+- Add real-HWND Settings/About/editor runtime regressions to both Windows validation jobs, plus search/persistence/ordering regressions. Mixed-monitor rendering and Explorer foreground behavior still require interactive sign-off.
+- Remove successful Launcher execution feedback entirely; ordinary, packaged and numeric/delayed launches no longer play Popup.wav.
+- Keep sound feedback only for startup notification, hidden-to-visible Launcher reveal and genuine application failure paths.
+- Defer tray menu commands until after the `TrackPopupMenu` modal loop and tray callback unwind, eliminating a foreground-owner bounce when opening Settings, About or Shortcut Manager.
+- Reveal hidden top-level windows without activation under the existing DWM cloak, then perform one explicit foreground handoff after the fully painted frame is visible.
+- Prepare the About page before Settings becomes visible instead of revealing General first and switching pages afterward.
+- Keep Settings schema 11, Commands 2, Usage 2 and Provider Cache 22; Windows fixed version `0.8.0.218`.
+
 ## 0.8.0-alpha.5.47
 
 - Move startup-registration and SendTo reconciliation off the first-frame path; the real launcher window/health signal is established before Shell integration work begins.

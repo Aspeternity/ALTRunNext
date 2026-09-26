@@ -16,6 +16,10 @@ namespace {
 
 constexpr std::size_t kMaxQueriesPerCommand = 8;
 constexpr std::size_t kMaxQueryLength = 32;
+// Eight selections already reach the ranking bonus ceiling. Keep evidence
+// bounded and age competing choices only for the same normalized query so
+// a new habit can replace an old one without changing Usage schema 2.
+constexpr std::uint32_t kMaxQueryEvidence = 8;
 
 std::wstring QueryKey(std::wstring_view query) {
     if (relevance::HasExplicitSyntax(query)) {
@@ -210,12 +214,25 @@ void UsageStore::Record(
     auto& stat =
         usage_[std::wstring(commandId)];
 
-    ++stat.launches;
+    if (stat.launches < std::numeric_limits<std::uint64_t>::max()) {
+        ++stat.launches;
+    }
     stat.lastUsedUnix =
         UnixTimeNow();
 
     const std::wstring key = QueryKey(query);
     if (!key.empty()) {
+        for (auto& [id, other] : usage_) {
+            if (id == commandId) continue;
+            const auto competing = other.queryLaunches.find(key);
+            if (competing == other.queryLaunches.end()) continue;
+            const auto evidence = std::min(competing->second, kMaxQueryEvidence);
+            if (evidence <= 1) {
+                other.queryLaunches.erase(competing);
+            } else {
+                competing->second = evidence - 1;
+            }
+        }
         auto found = stat.queryLaunches.find(key);
         if (found == stat.queryLaunches.end() &&
             stat.queryLaunches.size() >= kMaxQueriesPerCommand) {
@@ -229,9 +246,7 @@ void UsageStore::Record(
             stat.queryLaunches.erase(least);
         }
         auto& count = stat.queryLaunches[key];
-        if (count < std::numeric_limits<std::uint32_t>::max()) {
-            ++count;
-        }
+        count = std::min(count, kMaxQueryEvidence - 1) + 1;
     }
 
     if (!Save()) {

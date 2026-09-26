@@ -42,12 +42,12 @@ channel = match.group(4)
 
 
 
-if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.0-alpha.5.46", "0.8.0-alpha.5.47"):
+if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.0-alpha.5.46", "0.8.0-alpha.5.47", "0.8.0-alpha.5.48"):
     import hashlib
     import subprocess
 
     expected_schemas = {
-        "kSettingsSchemaVersion": 11 if version.endswith((".44", ".45", ".46", ".47")) else 10,
+        "kSettingsSchemaVersion": 11 if version.endswith((".44", ".45", ".46", ".47", ".48")) else 10,
         "kCommandsSchemaVersion": 2,
         "kUsageSchemaVersion": 2,
     }
@@ -159,7 +159,8 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
             fail(f"v0.8 alpha.5.43 Provider Cache regression missing: {token}")
 
     fixed_revision = (
-        "217" if version.endswith(".47")
+        "218" if version.endswith(".48")
+        else "217" if version.endswith(".47")
         else "216" if version.endswith(".46")
         else "215" if version.endswith(".45")
         else "214" if version.endswith(".44")
@@ -237,7 +238,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
         if git_blob_sha(asset_path) != expected:
             fail(f"v0.8 alpha.5.43 frozen Classic asset changed: {asset_path}")
 
-    if version.endswith((".44", ".45", ".46", ".47")):
+    if version.endswith((".44", ".45", ".46", ".47", ".48")):
         if json.loads(read("config/settings.example.json"))["schemaVersion"] != 11:
             fail("sound settings sample must use schema 11")
         for path in ("src/app/App.cpp", "src/ui/LauncherWindow.cpp", "src/ui/SettingsWindow.cpp",
@@ -249,7 +250,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
             if "0.8.0-alpha.5.44" not in read(path):
                 fail(f"missing alpha.5.44 release documentation: {path}")
 
-    if version.endswith((".45", ".46", ".47")):
+    if version.endswith((".45", ".46", ".47", ".48")):
         identity = read("src/platform/AppIdentity.hpp")
         launcher = read("src/ui/LauncherWindow.cpp")
         launcher_hpp = read("src/ui/LauncherWindow.hpp")
@@ -334,7 +335,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
             if "AppIcon.hpp" not in window_source or "LoadApplicationIcon(" not in window_source:
                 fail(f"alpha.5.45 top-level window is not using original ALTRun icon: {path}")
 
-    if version.endswith((".46", ".47")):
+    if version.endswith((".46", ".47", ".48")):
         launcher = read("src/ui/LauncherWindow.cpp")
         launcher_hpp = read("src/ui/LauncherWindow.hpp")
         settings_hpp = read("src/core/Settings.hpp")
@@ -414,7 +415,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
             if "0.8.0-alpha.5.46" not in read(path):
                 fail(f"missing alpha.5.46 release documentation: {path}")
 
-    if version.endswith(".47"):
+    if version.endswith((".47", ".48")):
         app_cpp = read("src/app/App.cpp")
         app_hpp = read("src/app/App.hpp")
         runtime_smoke = read("scripts/verify_runtime_smoke.ps1")
@@ -476,6 +477,84 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
         for path in ("README.md", "ROADMAP.md", "CHANGELOG.md", "docs/DESKTOP_VALIDATION.md"):
             if "0.8.0-alpha.5.47" not in read(path):
                 fail(f"missing alpha.5.47 release documentation: {path}")
+
+    if version.endswith(".48"):
+        app_cpp = read("src/app/App.cpp")
+        feedback_policy = read("src/core/FeedbackPolicy.hpp")
+        launcher = read("src/ui/LauncherWindow.cpp")
+        settings_cpp = read("src/ui/SettingsWindow.cpp")
+        presentation_cpp = read("src/ui/TopLevelWindowPresentation.cpp")
+        presentation_hpp = read("src/ui/TopLevelWindowPresentation.hpp")
+
+        if "FeedbackCue::Execute" in app_cpp or "Execute," in feedback_policy:
+            fail("alpha.5.48 launcher execution feedback returned")
+        if "enum class FeedbackCue { Startup, Reveal, Failure };" not in feedback_policy:
+            fail("alpha.5.48 feedback cue set is not startup/reveal/failure only")
+        if "std::array<bool, 3>" not in feedback_policy or "std::array<std::uint64_t, 3>" not in feedback_policy:
+            fail("alpha.5.48 feedback policy storage still assumes four cues")
+
+        for token in (
+            "TPM_RETURNCMD",
+            "TPM_NONOTIFY",
+            "PostMessageW(",
+            "WM_NULL",
+            "MAKEWPARAM(",
+        ):
+            if token not in launcher:
+                fail(f"alpha.5.48 deferred tray dispatch missing: {token}")
+
+        tray_start = launcher.find("void LauncherWindow::ShowTrayMenu")
+        tray_end = launcher.find("LRESULT CALLBACK LauncherWindow::WindowProc", tray_start)
+        if tray_start < 0 or tray_end < 0:
+            fail("alpha.5.48 tray menu implementation missing")
+        tray_body = launcher[tray_start:tray_end]
+        track = tray_body.find("TrackPopupMenu(")
+        deferred = tray_body.find("PostMessageW(", track)
+        if track < 0 or deferred < 0 or deferred < track:
+            fail("alpha.5.48 tray command is not deferred until after TrackPopupMenu returns")
+
+        if "Present(true);" not in settings_cpp or "Present(false);" not in settings_cpp:
+            fail("alpha.5.48 Settings/About presentation path is not unified")
+
+        if "WM_SETREDRAW" in settings_cpp:
+            fail("alpha.5.48 Settings must preserve visibility through the shared redraw guard")
+        if settings_cpp.count("ScopedRedrawSuspend redrawGuard") != 3:
+            fail("alpha.5.48 page/hotkey redraw batches must all use the visibility guard")
+        if "GrantForegroundToWindow(target)" not in app_cpp:
+            fail("alpha.5.48 external shortcut forwarding must grant foreground permission")
+        runtime_tests = read("tests/WindowPresentationRuntimeTests.cpp")
+        for token in ("settings.Create()", "!IsWindowVisible(window)",
+                      "HasAboutHeading(window)", "ShortcutEditorDialog::ShowNew"):
+            if token not in runtime_tests:
+                fail(f"alpha.5.48 real window regression missing: {token}")
+        if "window_presentation_runtime_tests" not in read(".github/workflows/build.yml"):
+            fail("alpha.5.48 real window regression is not wired into Windows CI")
+
+        present = settings_cpp.find("void SettingsWindow::Present(")
+        about_page = settings_cpp.find("ShowPage(Page::About);", present)
+        reveal = settings_cpp.find("RevealFullyPainted(", present)
+        if present < 0 or about_page < 0 or reveal < 0 or about_page > reveal:
+            fail("alpha.5.48 About page is not selected before the first visible frame")
+
+        reveal_impl = presentation_cpp.find("void RevealFullyPainted(")
+        hide_impl = presentation_cpp.find("void HideForDestroy(", reveal_impl)
+        if reveal_impl < 0 or hide_impl < 0:
+            fail("alpha.5.48 top-level presentation implementation missing")
+        reveal_body = presentation_cpp[reveal_impl:hide_impl]
+        for token in ("SWP_NOACTIVATE", "SWP_SHOWWINDOW"):
+            if token not in reveal_body:
+                fail(f"alpha.5.48 non-activating reveal missing: {token}")
+        if "ShowWindow(" in reveal_body:
+            fail("alpha.5.48 first-frame helper activates through ShowWindow before foreground handoff")
+        if "int showCommand" in presentation_hpp:
+            fail("alpha.5.48 first-frame helper still exposes activating show-command semantics")
+
+        if '"0.8.0-alpha.5.48"' not in update_tests:
+            fail("alpha.5.48 update ordering/default coverage missing")
+
+        for path in ("README.md", "ROADMAP.md", "CHANGELOG.md", "docs/DESKTOP_VALIDATION.md"):
+            if "0.8.0-alpha.5.48" not in read(path):
+                fail(f"missing alpha.5.48 release documentation: {path}")
 
     print(
         version + " shared release contract verified:",

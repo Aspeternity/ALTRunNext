@@ -736,8 +736,7 @@ void ShortcutManagerWindow::Show(
 
         window_presentation::
             RevealFullyPainted(
-                hwnd_,
-                SW_SHOW);
+                hwnd_);
     } else if (IsIconic(hwnd_)) {
         ShowWindow(
             hwnd_,

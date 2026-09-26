@@ -153,6 +153,7 @@ private:
         LPARAM lParam);
 
     bool EnsureCreated();
+    void Present(bool selectAbout);
     void ResetWindowInstanceState();
     void ReleaseWindowResources();
     void CreateControls();

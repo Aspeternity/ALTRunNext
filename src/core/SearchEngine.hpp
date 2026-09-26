@@ -17,6 +17,8 @@ namespace altrun {
 struct UsageStat {
     std::uint64_t launches{0};
     std::int64_t lastUsedUnix{0};
+    // Bounded per-query preference evidence; competing choices decay it.
+    // Global launches above remain a lifetime counter.
     std::unordered_map<std::wstring, std::uint32_t>
         queryLaunches;
 };

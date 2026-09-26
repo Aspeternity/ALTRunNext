@@ -53,14 +53,15 @@ int main() {
         feedback.SetEnabled(true);
         assert(feedback.Accept(FeedbackCue::Reveal, 1));
         assert(!feedback.Accept(FeedbackCue::Reveal, 2));
-        // A fast launch still receives its own feedback after a reveal.
-        assert(feedback.Accept(FeedbackCue::Execute, 3));
+        // Successful Launcher execution is intentionally silent as of
+        // alpha.5.48; only startup, reveal and genuine failure cues remain.
+        assert(feedback.Accept(FeedbackCue::Startup, 3));
         assert(feedback.Accept(FeedbackCue::Failure, 4));
         assert(!feedback.Accept(FeedbackCue::Failure, 503));
         assert(feedback.Accept(FeedbackCue::Failure, 504));
         feedback.SetEnabled(false);
         assert(!feedback.Accept(FeedbackCue::Startup, 1000));
-        assert(!feedback.Accept(FeedbackCue::Execute, 1000));
+        assert(!feedback.Accept(FeedbackCue::Reveal, 1000));
         feedback.SetEnabled(true);
         assert(feedback.Accept(FeedbackCue::Reveal, 1001));
     }
@@ -306,6 +307,59 @@ int main() {
     UsageStore queryReloaded(data / "usage.json");
     queryReloaded.Load();
     assert(queryReloaded.Data().at(calcId).queryLaunches.at(L"s") == 2);
+
+    // Real persistence + search: changing a saturated preference must work,
+    // survive restart, and leave unrelated query evidence/global counts alone.
+    {
+        const auto habitPath = data / "usage-habits.json";
+        WriteText(habitPath,
+            "{\"schemaVersion\":2,\"usage\":{\"new\":{\"launches\":100000,"
+            "\"lastUsedUnix\":1,\"queries\":{\"ts\":100000,\"team\":8}}}}");
+        UsageStore habits(habitPath);
+        habits.Load();
+        std::vector<Command> apps(2);
+        apps[0].id = L"new";
+        apps[0].keyword = L"teamspeak";
+        apps[0].title = L"TeamSpeak";
+        apps[1].id = L"classic";
+        apps[1].keyword = L"teamspeak3client";
+        apps[1].title = L"TeamSpeak 3 Client";
+        for (auto& app : apps) {
+            app.source = CommandSource::StartMenu;
+            app.surfaceClass = LaunchSurfaceClass::PrimaryApplication;
+        }
+        SearchEngine search;
+        const auto winner = [&] {
+            return search.Search(apps, habits.Data(), L"ts", 10, false, false)
+                .front().commandIndex;
+        };
+        assert(winner() == 0);
+        habits.Record(L"classic", L"TS");
+        assert(winner() == 0); // one accidental choice is not a new habit
+        for (int i = 0; i < 7; ++i) habits.Record(L"classic", L"ts");
+        assert(winner() == 1);
+        assert(habits.Data().at(L"new").launches == 100000);
+        assert(habits.Data().at(L"new").queryLaunches.at(L"team") == 8);
+        assert(habits.Data().at(L"classic").queryLaunches.at(L"ts") == 8);
+        UsageStore restarted(habitPath);
+        restarted.Load();
+        assert(search.Search(apps, restarted.Data(), L"ts", 10, false, false)
+                   .front().commandIndex == 1);
+        // A later switch can restore the former preference as well.
+        for (int i = 0; i < 8; ++i) habits.Record(L"new", L"ts");
+        assert(winner() == 0);
+        assert(habits.Data().at(L"new").launches == 100008);
+        const auto beforeNew = habits.Data().at(L"new").queryLaunches;
+        const auto beforeClassic = habits.Data().at(L"classic").queryLaunches;
+        // Block the atomic writer; both selected and competing evidence must
+        // roll back together if persistence fails.
+        std::filesystem::create_directory(habitPath.string() + ".tmp");
+        habits.Record(L"classic", L"ts");
+        assert(habits.Data().at(L"new").queryLaunches == beforeNew);
+        assert(habits.Data().at(L"classic").queryLaunches == beforeClassic);
+        assert(habits.Data().at(L"classic").launches == 8);
+        std::filesystem::remove(habitPath.string() + ".tmp");
+    }
 
     const auto schema1Path = data / "usage-schema1.json";
     WriteText(schema1Path,

@@ -671,7 +671,12 @@ ShortcutPathConverterDialog(
 
 ShortcutPathConverterDialog::
 ~ShortcutPathConverterDialog() {
-    CloseWindow();
+    if (hwnd_ && IsWindow(hwnd_)) {
+        window_presentation::
+            HideForDestroy(
+                hwnd_);
+        DestroyWindow(hwnd_);
+    }
 
     if (font_) {
         DeleteObject(font_);
@@ -691,10 +696,12 @@ CloseWindow() {
         return;
     }
 
-    window_presentation::
-        HideForDestroy(
-            hwnd_);
-    DestroyWindow(hwnd_);
+    // End the nested message loop first. RunModal restores an enabled/active
+    // owner while this popup still exists, then destroys the popup. Destroying
+    // an active modal window while its owner is disabled lets USER32 activate
+    // another window and then bounce back to the owner, which is visible as a
+    // one-frame Shortcut Manager flash.
+    closed_ = true;
 }
 
 bool ShortcutPathConverterDialog::Show(
@@ -823,14 +830,14 @@ bool ShortcutPathConverterDialog::Create() {
 }
 
 bool ShortcutPathConverterDialog::RunModal() {
-    if (owner_) {
+    const bool ownerWasEnabled = owner_ && IsWindowEnabled(owner_);
+    if (ownerWasEnabled) {
         EnableWindow(owner_, FALSE);
     }
 
     window_presentation::
         RevealFullyPainted(
-            hwnd_,
-            SW_SHOW);
+            hwnd_);
     SetForegroundWindow(hwnd_);
 
     MSG msg{};
@@ -920,9 +927,21 @@ bool ShortcutPathConverterDialog::RunModal() {
         }
     }
 
-    if (owner_) {
+    if (ownerWasEnabled && IsWindow(owner_)) {
         EnableWindow(owner_, TRUE);
-        SetForegroundWindow(owner_);
+        // Restore the same-thread owner before the active popup disappears.
+        // SetActiveWindow is sufficient here and avoids a second global
+        // foreground handoff. Hidden Launcher owners stay non-activated.
+        if (IsWindowVisible(owner_) && !IsIconic(owner_)) {
+            SetActiveWindow(owner_);
+        }
+    }
+
+    if (hwnd_ && IsWindow(hwnd_)) {
+        window_presentation::
+            HideForDestroy(
+                hwnd_);
+        DestroyWindow(hwnd_);
     }
 
     if (sawQuit) {
