@@ -731,6 +731,18 @@ bool SettingsStore::LoadJson() {
                             .executeSingleResultImmediately);
         }
 
+        if (root.contains("everything") &&
+            root["everything"].is_object()) {
+            const auto& everything =
+                root["everything"];
+
+            settings_.managedEverythingShowTrayIcon =
+                everything.value(
+                    "showTrayIcon",
+                    settings_
+                        .managedEverythingShowTrayIcon);
+        }
+
         if (root.contains("update") &&
             root["update"].is_object()) {
             const auto& update =
@@ -1048,6 +1060,11 @@ bool SettingsStore::Save() const {
         }},
         {"providers",
          std::move(providersJson)},
+        {"everything", {
+            {"showTrayIcon",
+             settings_
+                 .managedEverythingShowTrayIcon}
+        }},
         {"update", {
             {"autoCheck",
              settings_.autoCheckUpdates},
@@ -1375,6 +1392,27 @@ bool SettingsStore::SetProviderEnabledBatch(
         settings_.providerEnabled[id] =
             enabled;
     }
+
+    if (!Save()) {
+        settings_ = previous;
+        return false;
+    }
+
+    return true;
+}
+
+bool SettingsStore::SetManagedEverythingShowTrayIcon(
+    bool enabled) {
+
+    if (readOnlyDueToNewerSchema_) {
+        return false;
+    }
+
+    const Settings previous =
+        settings_;
+
+    settings_.managedEverythingShowTrayIcon =
+        enabled;
 
     if (!Save()) {
         settings_ = previous;
