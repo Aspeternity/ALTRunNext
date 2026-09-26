@@ -2553,6 +2553,21 @@ void SettingsWindow::RefreshProviderStatus() {
     bool showRecheck = false;
     std::wstring text;
 
+    const bool managedActive =
+        bootstrap.source ==
+            win::EverythingBootstrapSource::
+                Managed ||
+        bootstrap.source ==
+            win::EverythingBootstrapSource::
+                Downloaded ||
+        bootstrap.downloaded;
+
+    const bool externalActive =
+        ipc.availability ==
+            EverythingAvailability::
+                Available &&
+        !managedActive;
+
     if (!enabled) {
         text =
             T(L"○ Everything 已禁用",
@@ -2566,13 +2581,7 @@ void SettingsWindow::RefreshProviderStatus() {
             T(L"● Everything 正在运行",
               L"● Everything is running");
 
-        if (bootstrap.source ==
-                win::EverythingBootstrapSource::
-                    Managed ||
-            bootstrap.source ==
-                win::EverythingBootstrapSource::
-                    Downloaded ||
-            bootstrap.downloaded) {
+        if (managedActive) {
             text +=
                 T(L" · ALTRun Next 托管",
                   L" · Managed by ALTRun Next");
@@ -2580,6 +2589,9 @@ void SettingsWindow::RefreshProviderStatus() {
             text +=
                 T(L" · 外部安装",
                   L" · External installation");
+            text +=
+                T(L" · 托盘图标由 Everything 控制",
+                  L" · tray icon is controlled by Everything");
         }
     } else if (bootstrap.running) {
         text =
@@ -2676,6 +2688,18 @@ void SettingsWindow::RefreshProviderStatus() {
 
     const bool visible =
         page_ == Page::Providers;
+
+    if (managedEverythingTrayIcon_) {
+        EnableWindow(
+            managedEverythingTrayIcon_,
+            enabled &&
+                !bootstrap.running &&
+                !externalActive);
+        InvalidateRect(
+            managedEverythingTrayIcon_,
+            nullptr,
+            TRUE);
+    }
 
     ShowWindow(
         providerGetEverything_,
