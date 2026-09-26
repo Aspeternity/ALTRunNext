@@ -382,6 +382,10 @@ ResetWindowInstanceState() {
     // These controls are touched by asynchronous App callbacks. Clear them
     // as soon as the HWND is gone so a recycled native handle is never used.
     providerStatus_ = nullptr;
+    managedEverythingTrayIcon_ = nullptr;
+    providerGetEverything_ = nullptr;
+    providerUpdateEverything_ = nullptr;
+    providerRecheckEverything_ = nullptr;
     dataStatus_ = nullptr;
     updateStatus_ = nullptr;
     updateAction_ = nullptr;
@@ -6311,9 +6315,14 @@ void SettingsWindow::DrawGeneralToggle(
     SetBkMode(
         item.hDC,
         TRANSPARENT);
+    const bool disabled =
+        (item.itemState &
+         ODS_DISABLED) != 0;
     SetTextColor(
         item.hDC,
-        kText);
+        disabled
+            ? kMuted
+            : kText);
 
     HGDIOBJ oldFont =
         SelectObject(
