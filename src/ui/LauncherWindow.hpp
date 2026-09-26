@@ -1,22 +1,16 @@
 #pragma once
 
 #include "../core/LauncherResult.hpp"
-#include "../core/ResultIconPipeline.hpp"
 #include "UiMetrics.hpp"
 #include "UiTheme.hpp"
 
 #include <windows.h>
 
 #include <array>
-#include <condition_variable>
 #include <cstddef>
 #include <deque>
-#include <filesystem>
-#include <mutex>
 #include <string>
 #include <string_view>
-#include <thread>
-#include <unordered_map>
 #include <vector>
 
 namespace altrun {
@@ -40,7 +34,6 @@ public:
     void ApplyAppearance();
     void ApplyLanguage();
     void ApplyGeneralSettings();
-    void ApplyResultIconPreference();
     void Toggle();
     void ShowStartupNotification(
         std::wstring_view activationHotkey);
@@ -55,7 +48,6 @@ public:
 
 private:
     static constexpr UINT kTrayMessage = WM_APP + 17;
-    static constexpr UINT kIconReadyMessage = WM_APP + 18;
     static constexpr UINT kShortcutIpcMessage = WM_APP + 19;
     static constexpr UINT_PTR
         kNumericIntentTimerId = 0xA176;
@@ -85,46 +77,6 @@ private:
     void PaintClassicClose(HDC dc, const RECT& rect);
     void UpdatePreview();
 
-    struct ResultIconCacheEntry {
-        HICON icon{};
-        std::uint64_t lastUse{0};
-    };
-
-    struct ResultIconPending {
-        std::uint64_t searchGeneration{0};
-        std::uint64_t iconEpoch{0};
-    };
-
-    struct ResultIconJob {
-        ResultIconRequestStamp stamp;
-        HWND targetWindow{};
-        std::wstring cacheKey;
-        std::wstring source;
-        std::filesystem::path baseDirectory;
-    };
-
-    struct ResultIconCompletion {
-        ResultIconRequestStamp stamp;
-        std::wstring cacheKey;
-        HICON icon{};
-    };
-
-    [[nodiscard]] HICON ResultIcon(
-        const LauncherResult& result);
-    [[nodiscard]] int
-    ResultIconPixelSize() const;
-    void QueueResultIcon(
-        const LauncherResult& result,
-        std::wstring cacheKey,
-        int pixelSize);
-    void EnsureResultIconWorker();
-    void ResultIconWorkerLoop();
-    void HandleResultIconCompletions();
-    void CancelPendingResultIconRequests();
-    void ClearResultIconCache();
-    void TrimResultIconCache();
-    void InvalidateResultRowsForIconKey(
-        std::wstring_view cacheKey);
     void RebuildVisibleResults(
         bool allowImmediateExecution,
         bool preserveSelection,
@@ -206,27 +158,8 @@ private:
     HBITMAP classicBackgroundBitmap_{};
     HDC classicBitmapDc_{};
     SIZE classicBackgroundSize_{};
-    std::unordered_map<
-        std::wstring,
-        ResultIconCacheEntry>
-        resultIconCache_;
-    std::unordered_map<
-        std::wstring,
-        ResultIconPending>
-        pendingResultIcons_;
-    std::deque<ResultIconJob>
-        resultIconJobs_;
-    std::deque<ResultIconCompletion>
-        resultIconCompletions_;
     std::deque<std::wstring>
         pendingShortcutPaths_;
-    std::mutex resultIconWorkerMutex_;
-    std::condition_variable
-        resultIconWorkerCv_;
-    std::thread resultIconWorker_;
-    bool resultIconWorkerStop_{false};
-    std::uint64_t resultIconEpoch_{0};
-    std::uint64_t resultIconCacheTick_{0};
     bool trayIconAdded_{false};
     bool notificationOnlyTrayIcon_{false};
     UINT taskbarCreatedMessage_{0};
