@@ -38,6 +38,11 @@ ManagedEverythingPackage(
 ParseEverythingStableUpdateVersion(
     std::string_view updateIni);
 
+[[nodiscard]] int
+CompareEverythingVersions(
+    std::wstring_view left,
+    std::wstring_view right) noexcept;
+
 [[nodiscard]] EverythingArchiveNames
 ManagedEverythingArchiveNames(
     const EverythingPackageSpec& package);
