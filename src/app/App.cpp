@@ -14,6 +14,7 @@
 #include "../core/RuntimeInput.hpp"
 #include "../core/WebAction.hpp"
 #include "Version.hpp"
+#include "../platform/AppIdentity.hpp"
 #include "../platform/Hotkey.hpp"
 #include "../platform/InstanceIpc.hpp"
 #include "../platform/WinClipboard.hpp"
@@ -302,6 +303,13 @@ App::~App() {
 }
 
 int App::Run() {
+    // Keep shell-facing surfaces attached to one stable product identity even
+    // though ALTRun Next is portable and unpackaged.
+    const HRESULT appIdentityResult =
+        SetCurrentProcessExplicitAppUserModelID(
+            app_identity::kAppUserModelId);
+    (void)appIdentityResult;
+
     std::error_code ec;
 
     std::filesystem::create_directories(

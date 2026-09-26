@@ -58,10 +58,10 @@ void SetFeedbackEnabled(bool enabled) {
 
 void PlayFeedback(FeedbackCue cue) {
     if (!policy.Accept(cue, GetTickCount64())) return;
-    constexpr int sounds[]{IDW_STARTUP, IDW_REVEAL, IDW_EXECUTE, IDW_FAILURE};
-    // Embedded PCM, asynchronous, no queue, no looping or default Windows beep.
-    // A new accepted cue replaces the previous one instead of accumulating audio.
-    PlaySoundW(MAKEINTRESOURCEW(sounds[static_cast<std::size_t>(cue)]),
+    // Use the authorized original ALTRun Popup.wav for every accepted
+    // application feedback event. The existing policy still owns when a cue is
+    // allowed; a new cue replaces the previous one instead of queueing audio.
+    PlaySoundW(MAKEINTRESOURCEW(IDW_ALTRUN_POPUP),
                GetModuleHandleW(nullptr), SND_RESOURCE | SND_ASYNC | SND_NODEFAULT);
 }
 

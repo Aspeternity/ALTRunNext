@@ -229,6 +229,7 @@ private:
     std::uint64_t resultIconCacheTick_{0};
     bool trayIconAdded_{false};
     bool notificationOnlyTrayIcon_{false};
+    UINT taskbarCreatedMessage_{0};
     bool firstRevealPending_{true};
     bool imeComposing_{false};
     bool contextActionModalActive_{false};

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0-alpha.5.45
+
+- Set the explicit process AppUserModelID to `Aspeternity.ALTRunNext` so portable shell-facing surfaces share one stable product identity.
+- Give the notification-area icon a stable GUID, preserve the standard tooltip under `NOTIFYICON_VERSION_4`, and accept keyboard selection while retaining double-click activation.
+- Restore only the persistent tray icon after Explorer/taskbar restart; do not resurrect one-shot startup-notification icons.
+- Use the authorized original ALTRun `MAINICON` / `Res/Carracho.ico` for the executable, top-level product windows and tray icon.
+- Replace the temporary generated alpha.5.44 tones with the authorized original ALTRun `Popup.wav` while preserving the existing sound toggle and feedback policy.
+- Preserve Settings schema 11, Commands 2, Usage 2 and Provider Cache 22; Windows fixed version `0.8.0.215`.
+
 ## 0.8.0-alpha.5.44
 
 - Share shortcut deletion confirmation, canonical display name, cancel default, and failure handling across Launcher and Shortcut Manager.

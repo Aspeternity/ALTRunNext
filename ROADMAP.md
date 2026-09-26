@@ -278,7 +278,8 @@ In progress:
 - v0.8.0-alpha.5.43 separates ranking history by successful normalized query after real-machine `s`/`st` launches demonstrated cross-query interference; also suppresses a packaged application's noninteractive App Paths EXE only when the enabled packaged provider supplies the corresponding AUMID. Usage schema 2 migrates old global counts; Provider Cache schema remains 22
 - alpha.5.43 real-machine closeout: per-query ordering isolation and packaged AUMID/internal App Paths entry validation passed.
 - v0.8.0-alpha.5.44 unifies native shortcut-deletion confirmation and introduces a default-on General sound preference with original startup/reveal/execute/failure cues; Settings schema 11.
-- next desktop step: validate alpha.5.44 confirmation, sound preference persistence, startup modes, fast keyboard execution and General scrolling; application identity/icons and tray refinement follow before Modern Compact.
+- v0.8.0-alpha.5.45 establishes stable unpackaged Shell identity and notification-area lifecycle: explicit AppUserModelID, stable tray GUID/tooltip, keyboard selection and persistent-icon recovery after Explorer restart without resurrecting one-shot startup notification icons. It also adopts the authorized original ALTRun MAINICON and Popup.wav as the product icon and feedback sound assets.
+- next desktop step: validate alpha.5.44 confirmation behavior together with alpha.5.45 Explorer-restart, original icon scaling/identity, tray interaction and original Popup.wav behavior before Modern Compact.
 - Classic ALTRun is polished to maturity first; Modern Compact refinement follows only after Classic real-Windows closeout
 - Launcher polish remains keyboard-first and density/performance protected
 - UI performance consolidation remains a release requirement; v0.8 must not trade responsiveness for decoration

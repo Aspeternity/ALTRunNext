@@ -1,12 +1,12 @@
 #include "Feedback.hpp"
+#include "AppIcon.hpp"
 #include "LauncherWindow.hpp"
-#include "../ResourceIds.h"
-
 #include "../app/App.hpp"
 #include "../core/ClassicBehavior.hpp"
 #include "../core/ContextActions.hpp"
 #include "../core/HotkeyRegistry.hpp"
 #include "../core/ResultMerger.hpp"
+#include "../platform/AppIdentity.hpp"
 #include "../platform/Hotkey.hpp"
 #include "../platform/InstanceIpc.hpp"
 #include "../platform/ShellActions.hpp"
@@ -38,6 +38,16 @@ namespace {
 constexpr const wchar_t* kWindowClass =
     instance_ipc::kLauncherWindowClass;
 constexpr wchar_t kWindowTitle[] = L"ALTRun Next";
+
+void InitializeTrayIconIdentity(
+    NOTIFYICONDATAW& data,
+    HWND window) {
+    data.cbSize = sizeof(data);
+    data.hWnd = window;
+    data.uID = 1;
+    data.guidItem =
+        app_identity::kTrayIconGuid;
+}
 
 constexpr DWORD kDwmWindowCornerPreference = 33;
 constexpr int kDwmDoNotRound = 1;
@@ -403,6 +413,10 @@ bool LauncherWindow::Create() {
     INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_STANDARD_CLASSES};
     InitCommonControlsEx(&controls);
 
+    taskbarCreatedMessage_ =
+        RegisterWindowMessageW(
+            L"TaskbarCreated");
+
     if (!LoadClassicBitmapResources(
             instance_,
             kClassicShortcutResourceIds,
@@ -454,7 +468,13 @@ bool LauncherWindow::Create() {
     wc.lpfnWndProc = WindowProc;
     wc.lpszClassName = kWindowClass;
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-    wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+    wc.hIcon =
+        ui::LoadApplicationIcon(
+            instance_);
+    wc.hIconSm =
+        ui::LoadApplicationIcon(
+            instance_,
+            true);
     wc.hbrBackground = nullptr;
 
     if (!RegisterClassExW(&wc) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
@@ -2685,19 +2705,21 @@ void LauncherWindow::AddTrayIcon(
     }
 
     NOTIFYICONDATAW data{};
-    data.cbSize = sizeof(data);
-    data.hWnd = hwnd_;
-    data.uID = 1;
+    InitializeTrayIconIdentity(
+        data,
+        hwnd_);
     data.uFlags =
         NIF_MESSAGE |
         NIF_ICON |
-        NIF_TIP;
+        NIF_TIP |
+        NIF_SHOWTIP |
+        NIF_GUID;
     data.uCallbackMessage =
         kTrayMessage;
     data.hIcon =
-        LoadIconW(
-            nullptr,
-            IDI_APPLICATION);
+        ui::LoadApplicationIcon(
+            instance_,
+            true);
     wcscpy_s(
         data.szTip,
         L"ALTRun Next");
@@ -2725,9 +2747,10 @@ void LauncherWindow::RemoveTrayIcon() {
     if (!hwnd_ || !trayIconAdded_) return;
 
     NOTIFYICONDATAW data{};
-    data.cbSize = sizeof(data);
-    data.hWnd = hwnd_;
-    data.uID = 1;
+    InitializeTrayIconIdentity(
+        data,
+        hwnd_);
+    data.uFlags = NIF_GUID;
     Shell_NotifyIconW(NIM_DELETE, &data);
     trayIconAdded_ = false;
     notificationOnlyTrayIcon_ = false;
@@ -2767,10 +2790,12 @@ void LauncherWindow::ShowStartupNotification(
     }
 
     NOTIFYICONDATAW data{};
-    data.cbSize = sizeof(data);
-    data.hWnd = hwnd_;
-    data.uID = 1;
-    data.uFlags = NIF_INFO;
+    InitializeTrayIconIdentity(
+        data,
+        hwnd_);
+    data.uFlags =
+        NIF_INFO |
+        NIF_GUID;
     data.dwInfoFlags =
         NIIF_INFO |
         NIIF_NOSOUND;
@@ -3675,6 +3700,22 @@ LRESULT LauncherWindow::HandleEditMessage(
 LRESULT LauncherWindow::HandleMessage(
     UINT message, WPARAM wParam, LPARAM lParam) {
 
+    if (taskbarCreatedMessage_ != 0 &&
+        message == taskbarCreatedMessage_) {
+        const bool restorePersistentIcon =
+            trayIconAdded_ &&
+            !notificationOnlyTrayIcon_ &&
+            app_.SettingsData().showTrayIcon;
+
+        trayIconAdded_ = false;
+        notificationOnlyTrayIcon_ = false;
+
+        if (restorePersistentIcon) {
+            AddTrayIcon();
+        }
+        return 0;
+    }
+
     switch (message) {
     case WM_TIMER:
         if (wParam ==
@@ -4466,7 +4507,9 @@ LRESULT LauncherWindow::HandleMessage(
         }
 
         if (event ==
-            WM_LBUTTONDBLCLK) {
+                WM_LBUTTONDBLCLK ||
+            event ==
+                NIN_KEYSELECT) {
             Show();
             return 0;
         }
