@@ -8,6 +8,17 @@ Automated CI covers compilation, Config/Search tests, provider smoke tests, hotk
 
 The checks below are the remaining **real interactive Windows desktop** validation items. Automated geometry/behavior tests reduce regression risk but do not replace observing the actual UI, IME, monitor transitions, providers and hotkey lifecycle on a real desktop.
 
+## v0.8.0-alpha.5.47 First-Frame Startup + Shell Reconciliation validation
+
+- [ ] On a clean extracted x64 build with no `data` directory, launch ALTRun Next and confirm the startup notification/launcher readiness is immediate instead of pausing for several seconds before appearing. Repeat with Windows Defender real-time protection enabled.
+- [ ] Fresh defaults still create the HKCU `Run\ALTRunNext` registration and `SendTo\ALTRun Next.lnk`, but those integrations may appear shortly after first-frame readiness because reconciliation is intentionally background work.
+- [ ] While the first startup reconciliation is still possible, immediately disable **Start with Windows** or **Add to Send To menu** in Settings. The user's new choice wins; a stale startup worker must not re-enable the integration afterward.
+- [ ] After the SendTo link exists, record its LastWriteTime, restart ALTRun Next normally, wait several seconds and confirm the timestamp does not change. Repeat for multiple launches.
+- [ ] Move the portable ALTRun Next directory, launch from the new path and confirm the existing SendTo link repairs its target, working directory and icon path to the new executable without requiring a manual toggle.
+- [ ] Confirm an already-correct HKCU Run value is left unchanged on repeat launch; disabling/re-enabling Start with Windows still applies immediately and persists.
+- [ ] Recheck startup Notification / Show launcher / Silent modes, global hotkeys, Explorer/taskbar restart recovery and 5.46 tray-menu behavior while background reconciliation runs.
+- [ ] Settings schema remains 11; Commands 2, Usage 2, Provider Cache 22; fixed Windows version is 0.8.0.217.
+
 ## v0.8.0-alpha.5.46 Tray Menu + Default Behavior validation
 
 - [ ] Right-click the tray icon in Chinese UI and confirm the order is **显示主界面**, separator, **快捷项管理…**, **设置…**, separator, **关于**, **退出**. There is no **重新加载** entry.

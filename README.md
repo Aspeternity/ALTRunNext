@@ -23,6 +23,14 @@ The latest successful `main` build is always published to the fixed prerelease t
 
 You no longer need to find the correct GitHub Actions run. The `dev-latest` release is replaced automatically only after a successful build and test run.
 
+## v0.8.0-alpha.5.47 — First-Frame Startup + Shell Reconciliation
+
+Cold startup no longer performs Windows startup-registration or SendTo Shell Link work before the real launcher window exists. After the initial launcher/notification/silent presentation path is established, one background COM worker reconciles those integrations without blocking the UI thread. This specifically removes the alpha.5.46 first-run stall caused by synchronously creating `ALTRun Next.lnk` before `LauncherWindow::Create()`.
+
+Both integrations are now idempotent. The HKCU Run value is written only when its command differs from the current executable path, and the SendTo shortcut is loaded and compared before saving. A normal repeat launch therefore performs no Shell Link rewrite; moving the portable folder still repairs the shortcut because its target, working directory and icon path no longer match.
+
+Settings schema remains **11**; Commands **2**, Usage **2** and Provider Cache **22** are unchanged. Windows fixed FileVersion/ProductVersion is `0.8.0.217`. Packaged x64 CI now uses the existing post-update health event as a first-frame probe: with both default-on shell integrations enabled, readiness must arrive within 3 seconds, SendTo must be created after readiness, and a repeat launch must not change the shortcut timestamp.
+
 ## v0.8.0-alpha.5.46 — Tray Menu Polish + Default Behavior
 
 The notification-area menu is reduced to the user-facing essentials. **Show launcher / 显示主界面** is the native default item, followed by one management group containing **Shortcut Manager… / 快捷项管理…** and **Settings… / 设置…**, then **About / 关于** and **Exit / 退出**. The old Reload entry is removed. The three actionable entries display their effective current hotkey when that binding is enabled and available, so customized bindings are reflected when the menu opens.

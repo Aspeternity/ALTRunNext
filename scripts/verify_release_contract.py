@@ -42,12 +42,12 @@ channel = match.group(4)
 
 
 
-if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.0-alpha.5.46"):
+if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.0-alpha.5.46", "0.8.0-alpha.5.47"):
     import hashlib
     import subprocess
 
     expected_schemas = {
-        "kSettingsSchemaVersion": 11 if version.endswith((".44", ".45", ".46")) else 10,
+        "kSettingsSchemaVersion": 11 if version.endswith((".44", ".45", ".46", ".47")) else 10,
         "kCommandsSchemaVersion": 2,
         "kUsageSchemaVersion": 2,
     }
@@ -159,7 +159,8 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
             fail(f"v0.8 alpha.5.43 Provider Cache regression missing: {token}")
 
     fixed_revision = (
-        "216" if version.endswith(".46")
+        "217" if version.endswith(".47")
+        else "216" if version.endswith(".46")
         else "215" if version.endswith(".45")
         else "214" if version.endswith(".44")
         else "213"
@@ -236,7 +237,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
         if git_blob_sha(asset_path) != expected:
             fail(f"v0.8 alpha.5.43 frozen Classic asset changed: {asset_path}")
 
-    if version.endswith((".44", ".45", ".46")):
+    if version.endswith((".44", ".45", ".46", ".47")):
         if json.loads(read("config/settings.example.json"))["schemaVersion"] != 11:
             fail("sound settings sample must use schema 11")
         for path in ("src/app/App.cpp", "src/ui/LauncherWindow.cpp", "src/ui/SettingsWindow.cpp",
@@ -248,7 +249,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
             if "0.8.0-alpha.5.44" not in read(path):
                 fail(f"missing alpha.5.44 release documentation: {path}")
 
-    if version.endswith((".45", ".46")):
+    if version.endswith((".45", ".46", ".47")):
         identity = read("src/platform/AppIdentity.hpp")
         launcher = read("src/ui/LauncherWindow.cpp")
         launcher_hpp = read("src/ui/LauncherWindow.hpp")
@@ -333,7 +334,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
             if "AppIcon.hpp" not in window_source or "LoadApplicationIcon(" not in window_source:
                 fail(f"alpha.5.45 top-level window is not using original ALTRun icon: {path}")
 
-    if version.endswith(".46"):
+    if version.endswith((".46", ".47")):
         launcher = read("src/ui/LauncherWindow.cpp")
         launcher_hpp = read("src/ui/LauncherWindow.hpp")
         settings_hpp = read("src/core/Settings.hpp")
@@ -412,6 +413,69 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
         for path in ("README.md", "ROADMAP.md", "CHANGELOG.md", "docs/DESKTOP_VALIDATION.md"):
             if "0.8.0-alpha.5.46" not in read(path):
                 fail(f"missing alpha.5.46 release documentation: {path}")
+
+    if version.endswith(".47"):
+        app_cpp = read("src/app/App.cpp")
+        app_hpp = read("src/app/App.hpp")
+        runtime_smoke = read("scripts/verify_runtime_smoke.ps1")
+
+        run_start = app_cpp.find("int App::Run()")
+        window_create = app_cpp.find("window_ = std::make_unique<LauncherWindow>", run_start)
+        reconcile_start = app_cpp.find("StartShellIntegrationReconcile();", run_start)
+
+        if run_start < 0 or window_create < 0 or reconcile_start < 0:
+            fail("alpha.5.47 startup-path markers missing")
+        if reconcile_start < window_create:
+            fail("alpha.5.47 shell reconciliation returned to the pre-window startup path")
+
+        pre_window = app_cpp[run_start:window_create]
+        for forbidden in (
+            "ApplyStartupRegistration(",
+            "ApplySendToRegistration(",
+            "CoCreateInstance(",
+            "IPersistFile",
+        ):
+            if forbidden in pre_window:
+                fail(f"alpha.5.47 blocking shell work returned before window creation: {forbidden}")
+
+        for token in (
+            "shellIntegrationThread_",
+            "shellIntegrationMutex_",
+            "desiredStartupRegistration_",
+            "desiredSendToRegistration_",
+            "StartShellIntegrationReconcile",
+        ):
+            if token not in app_hpp:
+                fail(f"alpha.5.47 deferred integration state missing: {token}")
+
+        for token in (
+            "RegQueryValueExW(",
+            "persist->Load(",
+            "PathEqualsInsensitive(",
+            "A normal launch should not rewrite the Shell Link",
+            "CoInitializeEx(",
+            "desiredStartupRegistration_",
+            "desiredSendToRegistration_",
+        ):
+            if token not in app_cpp:
+                fail(f"alpha.5.47 idempotent reconciliation missing: {token}")
+
+        for token in (
+            "--post-update-health-event",
+            "WaitOne(3000)",
+            "First-frame health signal exceeded 3000 ms",
+            "Ordinary startup rewrote an already-correct SendTo shortcut.",
+            "Startup performance contract passed:",
+        ):
+            if token not in runtime_smoke:
+                fail(f"alpha.5.47 packaged startup regression missing: {token}")
+
+        if '"0.8.0-alpha.5.47"' not in update_tests:
+            fail("alpha.5.47 update ordering/default coverage missing")
+
+        for path in ("README.md", "ROADMAP.md", "CHANGELOG.md", "docs/DESKTOP_VALIDATION.md"):
+            if "0.8.0-alpha.5.47" not in read(path):
+                fail(f"missing alpha.5.47 release documentation: {path}")
 
     print(
         version + " shared release contract verified:",
