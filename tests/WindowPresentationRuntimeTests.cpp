@@ -2,6 +2,7 @@
 #include "platform/InstanceIpc.hpp"
 #include "ui/SettingsWindow.hpp"
 #include "ui/ShortcutEditorDialog.hpp"
+#include "ui/ShortcutPathConverterDialog.hpp"
 #include "ui/TopLevelWindowPresentation.hpp"
 
 #include <commctrl.h>
@@ -47,6 +48,29 @@ LRESULT CALLBACK FirstShowProbe(HWND window, UINT message, WPARAM wParam,
 
 HWND modalOwner{};
 bool observedEditor{};
+bool observedPathConverter{};
+bool observedModalDestroy{};
+bool ownerEnabledAtModalDestroy{};
+bool expectedOwnerEnabledAtModalDestroy{};
+
+LRESULT CALLBACK ModalDestroyProbe(HWND window, UINT message, WPARAM wParam,
+                                   LPARAM lParam, UINT_PTR subclassId,
+                                   DWORD_PTR) {
+    if (message == WM_NCDESTROY) {
+        observedModalDestroy = true;
+        ownerEnabledAtModalDestroy =
+            IsWindowEnabled(modalOwner) != FALSE;
+        assert(ownerEnabledAtModalDestroy ==
+            expectedOwnerEnabledAtModalDestroy);
+        RemoveWindowSubclass(window, ModalDestroyProbe, subclassId);
+    }
+    return DefSubclassProc(window, message, wParam, lParam);
+}
+
+void ArmModalDestroyProbe(HWND window) {
+    observedModalDestroy = false;
+    assert(SetWindowSubclass(window, ModalDestroyProbe, 2, 0));
+}
 
 void CALLBACK CancelEditor(HWND, UINT, UINT_PTR timer, DWORD) {
     const HWND editor = FindWindowW(L"ALTRunNext.ShortcutEditor", nullptr);
@@ -54,8 +78,21 @@ void CALLBACK CancelEditor(HWND, UINT, UINT_PTR timer, DWORD) {
     assert(IsWindowVisible(editor));
     assert(!IsWindowEnabled(modalOwner));
     observedEditor = true;
+    ArmModalDestroyProbe(editor);
     KillTimer(nullptr, timer);
     PostMessageW(editor, WM_CLOSE, 0, 0);
+}
+
+void CALLBACK CancelPathConverter(HWND, UINT, UINT_PTR timer, DWORD) {
+    const HWND converter =
+        FindWindowW(L"ALTRunNext.ShortcutPathConverter", nullptr);
+    if (!converter) return;
+    assert(IsWindowVisible(converter));
+    assert(!IsWindowEnabled(modalOwner));
+    observedPathConverter = true;
+    ArmModalDestroyProbe(converter);
+    KillTimer(nullptr, timer);
+    PostMessageW(converter, WM_CLOSE, 0, 0);
 }
 
 } // namespace
@@ -130,16 +167,53 @@ int main() {
         seed.target = L"C:\\fixture.exe";
         for (const bool enabled : {true, false}) {
             EnableWindow(owner, enabled);
+            expectedOwnerEnabledAtModalDestroy = enabled;
             observedEditor = false;
+            observedModalDestroy = false;
             const auto timer = SetTimer(nullptr, 0, 20, CancelEditor);
             assert(timer);
             assert(!ShortcutEditorDialog::ShowNew(app, instance, owner, seed));
             KillTimer(nullptr, timer);
             assert(observedEditor);
+            assert(observedModalDestroy);
+            assert(ownerEnabledAtModalDestroy == enabled);
             assert((IsWindowEnabled(owner) != FALSE) == enabled);
             assert(!IsWindowVisible(owner));
             assert(GetActiveWindow() != owner);
         }
+
+        // A visible Shortcut Manager owner must already be re-enabled before
+        // either modal child is destroyed. The old ordering destroyed the
+        // active popup first, which let USER32 hand activation elsewhere and
+        // then bounce back to the manager as a visible one-frame flash.
+        EnableWindow(owner, TRUE);
+        ShowWindow(owner, SW_SHOWNOACTIVATE);
+        assert(IsWindowVisible(owner));
+        expectedOwnerEnabledAtModalDestroy = true;
+
+        observedEditor = false;
+        observedModalDestroy = false;
+        auto timer = SetTimer(nullptr, 0, 20, CancelEditor);
+        assert(timer);
+        assert(!ShortcutEditorDialog::ShowNew(app, instance, owner, seed));
+        KillTimer(nullptr, timer);
+        assert(observedEditor && observedModalDestroy);
+        assert(ownerEnabledAtModalDestroy);
+        assert(IsWindowEnabled(owner));
+        assert(IsWindowVisible(owner));
+
+        observedPathConverter = false;
+        observedModalDestroy = false;
+        timer = SetTimer(nullptr, 0, 20, CancelPathConverter);
+        assert(timer);
+        assert(!ShortcutPathConverterDialog::Show(app, instance, owner));
+        KillTimer(nullptr, timer);
+        assert(observedPathConverter && observedModalDestroy);
+        assert(ownerEnabledAtModalDestroy);
+        assert(IsWindowEnabled(owner));
+        assert(IsWindowVisible(owner));
+
+        ShowWindow(owner, SW_HIDE);
     }
     DestroyWindow(owner);
     if (SUCCEEDED(com)) CoUninitialize();
