@@ -124,6 +124,45 @@ int main(int argc, char** argv) {
     assert(weixinReload.front().commandIndex == 3);
     assert(engine.PinyinLoaded());
 
+    // Long-running provider refreshes must not make the derived pinyin cache
+    // grow forever. Use a deliberately tiny capacity so eviction is cheap to
+    // exercise in the normal core test suite.
+    {
+        constexpr std::size_t
+            kTestCapacity = 8;
+
+        PinyinSearch boundedPinyin(
+            executableDirectory / "dict",
+            kTestCapacity);
+
+        for (std::size_t index = 0;
+             index < kTestCapacity + 6;
+             ++index) {
+            const std::wstring text =
+                L"测试应用" +
+                std::to_wstring(
+                    index);
+
+            assert(
+                boundedPinyin.FormsFor(
+                    text) != nullptr);
+            assert(
+                boundedPinyin
+                    .CacheEntryCount() <=
+                kTestCapacity);
+        }
+
+        assert(
+            boundedPinyin
+                .CacheEntryCount() ==
+            kTestCapacity);
+
+        boundedPinyin.Unload();
+        assert(
+            boundedPinyin
+                .CacheEntryCount() == 0);
+    }
+
     auto exact = engine.Search(commands, usage, L"chrome", 10);
     assert(!exact.empty());
     assert(exact.front().commandIndex == 0);
