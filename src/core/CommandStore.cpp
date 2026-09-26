@@ -174,7 +174,7 @@ CommandStore::RefreshProviderCache(
         }
     }
 
-    for (const auto& result :
+    for (auto& result :
          results) {
 
         if (!result.success) {
@@ -186,7 +186,8 @@ CommandStore::RefreshProviderCache(
         entry.generatedAtUnix =
             generatedAt;
         entry.commands =
-            result.commands;
+            std::move(
+                result.commands);
 
         cache[result.id] =
             std::move(entry);
