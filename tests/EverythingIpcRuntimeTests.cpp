@@ -220,6 +220,63 @@ std::vector<std::byte> BuildReply(
             }});
     }
 
+    if (query.search == u"v2") {
+        const auto count =
+            std::min<std::uint32_t>(
+                query.maxResults,
+                240U);
+        std::vector<FakeReplyItem>
+            items;
+        items.reserve(count);
+
+        for (std::uint32_t i = 0;
+             i < count;
+             ++i) {
+            FakeReplyItem item;
+
+            if (i == 100U) {
+                item.name =
+                    u"v2rayN.exe";
+                item.path =
+                    u"D:\\v2rayN-windows-64";
+                item.fullPath =
+                    u"D:\\v2rayN-windows-64\\v2rayN.exe";
+            } else {
+                const auto suffix =
+                    std::to_wstring(i);
+                std::u16string number;
+                number.reserve(
+                    suffix.size());
+
+                for (const wchar_t ch :
+                     suffix) {
+                    number.push_back(
+                        static_cast<
+                            char16_t>(ch));
+                }
+
+                item.name =
+                    u"noise-v2-" +
+                    number +
+                    u".txt";
+                item.path =
+                    u"C:\\Noise";
+                item.fullPath =
+                    item.path +
+                    u"\\" +
+                    item.name;
+            }
+
+            items.push_back(
+                std::move(item));
+        }
+
+        return BuildReplyItems(
+            query,
+            items,
+            10000U);
+    }
+
     if (query.search == u"many") {
         const auto count =
             std::min<std::uint32_t>(
@@ -1443,6 +1500,68 @@ int main() {
         assert(
             result.nativeError ==
             ERROR_TIMEOUT);
+    }
+
+    {
+        FakeEverythingServer server(
+            FakeEverythingServer::
+                Mode::Immediate);
+        EverythingProvider provider(
+            OptionsFor(
+                server.WindowClass()));
+
+        std::mutex mutex;
+        std::condition_variable cv;
+        std::optional<
+            DynamicQueryResponse>
+            response;
+
+        provider.QueryAsync(
+            {
+                .generation = 840,
+                .query = L"v2",
+                .limit = 30,
+            },
+            [&](DynamicQueryResponse value) {
+                {
+                    std::scoped_lock lock(
+                        mutex);
+                    response =
+                        std::move(value);
+                }
+                cv.notify_all();
+            });
+
+        {
+            std::unique_lock lock(
+                mutex);
+            assert(
+                cv.wait_for(
+                    lock,
+                    2s,
+                    [&] {
+                        return response
+                            .has_value();
+                    }));
+        }
+
+        assert(response);
+        assert(
+            server.LastMaxResults() ==
+            240);
+        assert(
+            response->status ==
+            DynamicQueryStatus::Success);
+        assert(
+            response->totalMatches ==
+            10000);
+        assert(
+            response->results.size() ==
+            1);
+        assert(
+            response->results.front()
+                .title ==
+            L"v2rayN.exe");
     }
 
     {
