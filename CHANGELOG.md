@@ -13,7 +13,6 @@
 - Extend the real Win32 runtime regression with a repeated Shortcut Manager -> Editor -> Path Conversion lifecycle soak and assert that GDI, USER and process-handle counts do not grow per cycle.
 - Remove the optional search-result icon feature end to end: Settings preference/UI, Launcher HICON worker/cache/async message/rendering branches, LauncherResult icon metadata, ResultIconPipeline and its dedicated test target are gone. Legacy `showResultIcons` JSON is ignored and dropped on the next save without a schema bump.
 - Fix Everything/CJK relevance admission: the 1-2 character strong-match precision gate now applies only to ASCII. A two-character CJK query such as `男主` can match the middle of `系统男主`, while short ASCII noise protection remains unchanged.
-- Make unmodified number keys query text in the Launcher instead of guessing between typing and numbered execution. Numeric quick launch now requires Ctrl/Alt + digit, so names such as `v2rayN`, `cs2` and `7zip` cannot accidentally launch a result while being typed.
 - Overfetch a bounded Everything candidate pool before ALTRun Next applies its own relevance filter/ranking, then trim back to the requested candidate count. This prevents broad short queries such as `v2` from being emptied by provider-side truncation before a strong result such as `v2rayN.exe` is seen.
 - Preserve Settings schema 11, Commands 2, Usage 2 and Provider Cache 22; Windows fixed version `0.8.0.219`.
 
