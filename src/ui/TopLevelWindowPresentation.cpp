@@ -426,7 +426,7 @@ void RevealFullyPainted(
     if (cloaked) {
         DwmFlush();
 
-        SetCloaked(
+        (void)SetCloaked(
             hwnd,
             false);
 
