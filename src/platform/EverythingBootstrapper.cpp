@@ -1544,6 +1544,7 @@ ReadManagedIni(
 [[nodiscard]] bool
 ManagedIniNeedsUpdate(
     const std::filesystem::path& executable,
+    bool showTrayIcon,
     bool& needsUpdate,
     std::uint32_t& nativeError) {
     const auto iniPath =
@@ -1561,7 +1562,8 @@ ManagedIniNeedsUpdate(
 
     needsUpdate =
         ApplyManagedEverythingIniPolicy(
-            existing) != existing;
+            existing,
+            showTrayIcon) != existing;
     nativeError = 0;
     return true;
 }
@@ -1569,6 +1571,7 @@ ManagedIniNeedsUpdate(
 [[nodiscard]] bool
 ConfigureManagedEverything(
     const std::filesystem::path& executable,
+    bool showTrayIcon,
     std::uint32_t& nativeError) {
     const auto iniPath =
         executable.parent_path() /
@@ -1588,7 +1591,8 @@ ConfigureManagedEverything(
 
     const std::string configured =
         ApplyManagedEverythingIniPolicy(
-            existing);
+            existing,
+            showTrayIcon);
 
     if (configured == existing) {
         nativeError = 0;
@@ -1666,6 +1670,7 @@ struct ManagedRuntimeOutcome {
 StartManagedEverything(
     const std::filesystem::path& executable,
     bool allowElevation,
+    bool showTrayIcon,
     EverythingBootstrapSnapshot& snapshot,
     const EverythingBootstrapProgress&
         progress,
@@ -1675,6 +1680,7 @@ StartManagedEverything(
 
     if (!ManagedIniNeedsUpdate(
             executable,
+            showTrayIcon,
             configNeedsUpdate,
             nativeError)) {
         return {
@@ -1824,6 +1830,7 @@ StartManagedEverything(
 
     if (!ConfigureManagedEverything(
             executable,
+            showTrayIcon,
             nativeError)) {
         return {
             ManagedRuntimeResult::
@@ -3521,7 +3528,8 @@ RunEverythingBootstrap(
     const std::filesystem::path& dataDirectory,
     bool allowDownload,
     EverythingBootstrapProgress progress,
-    std::stop_token stopToken) {
+    std::stop_token stopToken,
+    bool showManagedTrayIcon) {
     EverythingBootstrapSnapshot snapshot;
     snapshot.running = true;
 
@@ -3544,6 +3552,7 @@ RunEverythingBootstrap(
                 StartManagedEverything(
                     executable,
                     allowElevation,
+                    showManagedTrayIcon,
                     snapshot,
                     progress,
                     stopToken);
