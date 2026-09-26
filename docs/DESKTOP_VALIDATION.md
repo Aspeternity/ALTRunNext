@@ -17,7 +17,8 @@ Automated coverage preserves all alpha.5.48 presentation regressions and now add
 - [ ] Repeat the `team` / `ts` learning checks from alpha.5.48 and confirm query-scoped preference behavior is unchanged.
 - [ ] Keep ALTRun Next running for an extended session while rebuilding/refreshing providers and editing shortcuts. Working set/private memory may retain allocator pages, but it must settle instead of growing continually after equivalent repeated work.
 - [ ] Open/close Settings, Shortcut Manager, Shortcut Editor and Path Conversion at least 100 cycles total. GDI/USER object counts and process handles must return to a stable plateau rather than increasing with every cycle.
-- [ ] Enable result icons and exercise many distinct search results, then continue searching after cache churn. Icons remain correct and handle usage stabilizes; the existing result-icon cache remains bounded.
+- [ ] Confirm General no longer exposes a result-icon preference and Launcher results stay text-only in both Classic and Modern Compact; repeated searching must not create an icon worker or HICON cache.
+- [ ] With Everything enabled, verify both prefix and middle-substring CJK queries against the same path: for a result such as `系统男主`, both `系统` and `男主` must return it. Also recheck representative 1-2 character ASCII queries so the existing short-query noise gate remains strict.
 - [ ] Exercise Everything dynamic results alongside static application search. Typing stays responsive and no filesystem/Shell work is introduced into the synchronous static-search path.
 - [ ] Repeat mixed-DPI/multi-monitor and Chinese/English smoke checks to ensure the technical changes did not disturb the fully validated alpha.5.48 presentation lifecycle.
 - [ ] Settings schema remains 11; Commands 2, Usage 2, Provider Cache 22; fixed Windows version is 0.8.0.219.
