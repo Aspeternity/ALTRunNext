@@ -171,6 +171,8 @@ public:
         bool enabled);
     bool SetProviderEnabledBatch(
         const ProviderEnableMap& changes);
+    bool SetManagedEverythingShowTrayIcon(
+        bool enabled);
     bool SetUpdateSettings(
         bool autoCheck,
         UpdateChannel channel);
