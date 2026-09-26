@@ -20,7 +20,6 @@
 #include <dwmapi.h>
 #include <shellapi.h>
 #include <uxtheme.h>
-#include <objbase.h>
 
 #include <algorithm>
 #include <array>
@@ -138,111 +137,7 @@ PrimaryResultText(
             ResultKind::Folder;
 }
 
-[[nodiscard]] HICON
-LoadResultIconSource(
-    std::wstring source,
-    const std::filesystem::path&
-        baseDirectory,
-    int desired) {
-    source =
-        win::ResolvePortablePath(
-            source,
-            baseDirectory,
-            false);
-
-    if (source.empty() ||
-        desired <= 0) {
-        return nullptr;
-    }
-
-    std::filesystem::path sourcePath(
-        source);
-
-    if (!sourcePath.has_parent_path()) {
-        std::array<wchar_t, 32768>
-            found{};
-
-        const DWORD length =
-            SearchPathW(
-                nullptr,
-                source.c_str(),
-                nullptr,
-                static_cast<DWORD>(
-                    found.size()),
-                found.data(),
-                nullptr);
-
-        if (length > 0 &&
-            length < found.size()) {
-            source.assign(
-                found.data(),
-                length);
-            sourcePath =
-                std::filesystem::path(
-                    source);
-        }
-    }
-
-    std::wstring extension =
-        sourcePath.extension().wstring();
-
-    std::transform(
-        extension.begin(),
-        extension.end(),
-        extension.begin(),
-        [](wchar_t ch) {
-            return static_cast<wchar_t>(
-                std::towlower(ch));
-        });
-
-    HICON icon = nullptr;
-
-    if (extension == L".ico") {
-        icon =
-            static_cast<HICON>(
-                LoadImageW(
-                    nullptr,
-                    source.c_str(),
-                    IMAGE_ICON,
-                    desired,
-                    desired,
-                    LR_LOADFROMFILE));
-    }
-
-    if (!icon) {
-        SHFILEINFOW info{};
-
-        if (SHGetFileInfoW(
-                source.c_str(),
-                0,
-                &info,
-                sizeof(info),
-                SHGFI_ICON |
-                    SHGFI_SMALLICON) !=
-            0) {
-            icon = info.hIcon;
-        }
-    }
-
-    if (!icon &&
-        (extension == L".exe" ||
-         extension == L".dll")) {
-        HICON smallIcon{};
-
-        if (ExtractIconExW(
-                source.c_str(),
-                0,
-                nullptr,
-                &smallIcon,
-                1) > 0) {
-            icon = smallIcon;
-        }
-    }
-
-    return icon;
-}
-
-constexpr std::array<
+constexpr std::array
     int,
     ui::kClassicGlyphAssetPixelSizes.size()>
     kClassicShortcutResourceIds{
@@ -393,39 +288,6 @@ LauncherWindow::LauncherWindow(App& app, HINSTANCE instance)
 
 LauncherWindow::~LauncherWindow() {
     RemoveTrayIcon();
-
-    {
-        std::lock_guard lock(
-            resultIconWorkerMutex_);
-        resultIconWorkerStop_ = true;
-        resultIconJobs_.clear();
-    }
-
-    resultIconWorkerCv_.notify_all();
-
-    if (resultIconWorker_.joinable()) {
-        resultIconWorker_.join();
-    }
-
-    std::deque<ResultIconCompletion>
-        pendingCompletions;
-
-    {
-        std::lock_guard lock(
-            resultIconWorkerMutex_);
-        pendingCompletions.swap(
-            resultIconCompletions_);
-    }
-
-    for (auto& completion :
-         pendingCompletions) {
-        if (completion.icon) {
-            DestroyIcon(
-                completion.icon);
-        }
-    }
-
-    ClearResultIconCache();
 
     if (normalFont_) DeleteObject(normalFont_);
     if (auxiliaryFont_) DeleteObject(auxiliaryFont_);
@@ -932,9 +794,6 @@ void LauncherWindow::UpdateWindowChrome() {
 }
 
 void LauncherWindow::ApplyAppearance() {
-    ++resultIconEpoch_;
-    CancelPendingResultIconRequests();
-
     const auto metrics =
         IsModern()
             ? ui::kModernCompactLauncherMetrics
@@ -974,23 +833,6 @@ void LauncherWindow::ApplyAppearance() {
 
     if (IsWindowVisible(hwnd_)) {
         Reposition();
-    }
-}
-
-void LauncherWindow::ApplyResultIconPreference() {
-    ++resultIconEpoch_;
-    CancelPendingResultIconRequests();
-
-    if (!app_.SettingsData()
-             .showResultIcons) {
-        ClearResultIconCache();
-    }
-
-    if (list_) {
-        InvalidateRect(
-            list_,
-            nullptr,
-            TRUE);
     }
 }
 
@@ -1561,7 +1403,6 @@ void LauncherWindow::Hide() {
     immediateExecutionPending_ = false;
     dynamicQueryPending_ = false;
     ++searchGeneration_;
-    CancelPendingResultIconRequests();
 
     if (hwnd_) {
         ShowWindow(hwnd_, SW_HIDE);
@@ -1585,7 +1426,6 @@ void LauncherWindow::RefreshResults(
         CurrentQuery();
 
     ++searchGeneration_;
-    CancelPendingResultIconRequests();
 
     const std::size_t
         candidateLimit =
@@ -1643,411 +1483,6 @@ void LauncherWindow::ApplyDynamicResults(
         false;
 }
 
-void LauncherWindow::CancelPendingResultIconRequests() {
-    pendingResultIcons_.clear();
-
-    std::deque<ResultIconCompletion>
-        staleCompletions;
-
-    {
-        std::lock_guard lock(
-            resultIconWorkerMutex_);
-        resultIconJobs_.clear();
-        staleCompletions.swap(
-            resultIconCompletions_);
-    }
-
-    for (auto& completion :
-         staleCompletions) {
-        if (completion.icon) {
-            DestroyIcon(
-                completion.icon);
-        }
-    }
-}
-
-void LauncherWindow::ClearResultIconCache() {
-    for (const auto& [key, entry] :
-         resultIconCache_) {
-        (void)key;
-
-        if (entry.icon) {
-            DestroyIcon(
-                entry.icon);
-        }
-    }
-
-    resultIconCache_.clear();
-    resultIconCacheTick_ = 0;
-}
-
-int LauncherWindow::ResultIconPixelSize()
-    const {
-    return DpiScale(
-        IsModern() ? 20 : 14);
-}
-
-void LauncherWindow::EnsureResultIconWorker() {
-    if (resultIconWorker_.joinable()) {
-        return;
-    }
-
-    resultIconWorkerStop_ = false;
-    resultIconWorker_ =
-        std::thread(
-            &LauncherWindow::
-                ResultIconWorkerLoop,
-            this);
-}
-
-void LauncherWindow::QueueResultIcon(
-    const LauncherResult& result,
-    std::wstring cacheKey,
-    int pixelSize) {
-    if (!app_.SettingsData()
-             .showResultIcons ||
-        result.iconSource.empty() ||
-        pixelSize <= 0 ||
-        !hwnd_) {
-        return;
-    }
-
-    const ResultIconPending pending{
-        searchGeneration_,
-        resultIconEpoch_,
-    };
-
-    const auto existing =
-        pendingResultIcons_.find(
-            cacheKey);
-
-    if (existing !=
-            pendingResultIcons_.end() &&
-        existing->second
-                .searchGeneration ==
-            pending.searchGeneration &&
-        existing->second.iconEpoch ==
-            pending.iconEpoch) {
-        return;
-    }
-
-    pendingResultIcons_[
-        cacheKey] = pending;
-
-    ResultIconJob job;
-    job.stamp.searchGeneration =
-        searchGeneration_;
-    job.stamp.iconEpoch =
-        resultIconEpoch_;
-    job.stamp.pixelSize =
-        pixelSize;
-    job.targetWindow = hwnd_;
-    job.cacheKey =
-        std::move(cacheKey);
-    job.source =
-        result.iconSource;
-    job.baseDirectory =
-        app_.BaseDirectory();
-
-    EnsureResultIconWorker();
-
-    {
-        std::lock_guard lock(
-            resultIconWorkerMutex_);
-        resultIconJobs_.push_back(
-            std::move(job));
-    }
-
-    resultIconWorkerCv_.notify_one();
-}
-
-HICON LauncherWindow::ResultIcon(
-    const LauncherResult& result) {
-    if (!app_.SettingsData()
-             .showResultIcons ||
-        result.iconSource.empty()) {
-        return nullptr;
-    }
-
-    const int pixelSize =
-        ResultIconPixelSize();
-
-    const std::wstring cacheKey =
-        MakeResultIconCacheKey(
-            result.iconSource,
-            pixelSize);
-
-    const auto cached =
-        resultIconCache_.find(
-            cacheKey);
-
-    if (cached !=
-        resultIconCache_.end()) {
-        cached->second.lastUse =
-            ++resultIconCacheTick_;
-        return cached->second.icon;
-    }
-
-    QueueResultIcon(
-        result,
-        cacheKey,
-        pixelSize);
-
-    // Painting never resolves an icon synchronously. Text appears now and the
-    // worker posts kIconReadyMessage after the shell/file work completes.
-    return nullptr;
-}
-
-void LauncherWindow::ResultIconWorkerLoop() {
-    const HRESULT comResult =
-        CoInitializeEx(
-            nullptr,
-            COINIT_MULTITHREADED);
-
-    for (;;) {
-        ResultIconJob job;
-
-        {
-            std::unique_lock lock(
-                resultIconWorkerMutex_);
-
-            resultIconWorkerCv_.wait(
-                lock,
-                [&] {
-                    return
-                        resultIconWorkerStop_ ||
-                        !resultIconJobs_.empty();
-                });
-
-            if (resultIconWorkerStop_) {
-                break;
-            }
-
-            job =
-                std::move(
-                    resultIconJobs_.front());
-            resultIconJobs_.pop_front();
-        }
-
-        HICON icon = nullptr;
-
-        try {
-            icon =
-                LoadResultIconSource(
-                    job.source,
-                    job.baseDirectory,
-                    job.stamp.pixelSize);
-        } catch (...) {
-            // A bad filesystem/icon source must not terminate the background
-            // worker. Cache the miss for this accepted generation instead.
-            icon = nullptr;
-        }
-
-        bool discard = false;
-
-        {
-            std::lock_guard lock(
-                resultIconWorkerMutex_);
-
-            if (resultIconWorkerStop_) {
-                discard = true;
-            } else {
-                ResultIconCompletion
-                    completion;
-                completion.stamp =
-                    job.stamp;
-                completion.cacheKey =
-                    std::move(
-                        job.cacheKey);
-                completion.icon = icon;
-
-                resultIconCompletions_
-                    .push_back(
-                        std::move(
-                            completion));
-                icon = nullptr;
-            }
-        }
-
-        if (discard) {
-            if (icon) {
-                DestroyIcon(icon);
-            }
-            break;
-        }
-
-        if (!PostMessageW(
-                job.targetWindow,
-                kIconReadyMessage,
-                0,
-                0)) {
-            // The completion stays in the protected queue so destruction can
-            // reclaim its HICON even if the HWND vanished before notification.
-        }
-    }
-
-    if (SUCCEEDED(comResult)) {
-        CoUninitialize();
-    }
-}
-
-void LauncherWindow::TrimResultIconCache() {
-    while (resultIconCache_.size() >
-           kResultIconCacheCapacity) {
-        auto victim =
-            resultIconCache_.end();
-        std::uint64_t oldest =
-            std::numeric_limits<
-                std::uint64_t>::max();
-
-        for (auto it =
-                 resultIconCache_.begin();
-             it !=
-                 resultIconCache_.end();
-             ++it) {
-            if (it->second.lastUse <
-                oldest) {
-                oldest =
-                    it->second.lastUse;
-                victim = it;
-            }
-        }
-
-        if (victim ==
-            resultIconCache_.end()) {
-            break;
-        }
-
-        if (victim->second.icon) {
-            DestroyIcon(
-                victim->second.icon);
-        }
-
-        resultIconCache_.erase(
-            victim);
-    }
-}
-
-void LauncherWindow::
-InvalidateResultRowsForIconKey(
-    std::wstring_view cacheKey) {
-    if (!list_ ||
-        !app_.SettingsData()
-             .showResultIcons) {
-        return;
-    }
-
-    const int pixelSize =
-        ResultIconPixelSize();
-
-    for (std::size_t index = 0;
-         index < results_.size();
-         ++index) {
-        const auto& result =
-            results_[index];
-
-        if (result.iconSource.empty() ||
-            MakeResultIconCacheKey(
-                result.iconSource,
-                pixelSize) !=
-                cacheKey) {
-            continue;
-        }
-
-        RECT row{};
-
-        if (SendMessageW(
-                list_,
-                LB_GETITEMRECT,
-                static_cast<WPARAM>(
-                    index),
-                reinterpret_cast<LPARAM>(
-                    &row)) != LB_ERR) {
-            InvalidateRect(
-                list_,
-                &row,
-                FALSE);
-        }
-    }
-}
-
-void LauncherWindow::
-HandleResultIconCompletions() {
-    std::deque<ResultIconCompletion>
-        completions;
-
-    {
-        std::lock_guard lock(
-            resultIconWorkerMutex_);
-        completions.swap(
-            resultIconCompletions_);
-    }
-
-    for (auto& completion :
-         completions) {
-        const auto pending =
-            pendingResultIcons_.find(
-                completion.cacheKey);
-
-        if (pending !=
-                pendingResultIcons_.end() &&
-            pending->second
-                    .searchGeneration ==
-                completion.stamp
-                    .searchGeneration &&
-            pending->second.iconEpoch ==
-                completion.stamp
-                    .iconEpoch) {
-            pendingResultIcons_.erase(
-                pending);
-        }
-
-        if (!ShouldAcceptResultIconCompletion(
-                app_.SettingsData()
-                    .showResultIcons,
-                completion.stamp,
-                searchGeneration_,
-                resultIconEpoch_)) {
-            if (completion.icon) {
-                DestroyIcon(
-                    completion.icon);
-            }
-            continue;
-        }
-
-        const auto existing =
-            resultIconCache_.find(
-                completion.cacheKey);
-
-        if (existing !=
-            resultIconCache_.end()) {
-            if (completion.icon) {
-                DestroyIcon(
-                    completion.icon);
-            }
-
-            existing->second.lastUse =
-                ++resultIconCacheTick_;
-        } else {
-            ResultIconCacheEntry entry;
-            entry.icon =
-                completion.icon;
-            entry.lastUse =
-                ++resultIconCacheTick_;
-
-            completion.icon = nullptr;
-
-            resultIconCache_.emplace(
-                completion.cacheKey,
-                entry);
-        }
-
-        TrimResultIconCache();
-        InvalidateResultRowsForIconKey(
-            completion.cacheKey);
-    }
-}
-
 void LauncherWindow::RebuildVisibleResults(
     bool allowImmediateExecution,
     bool preserveSelection,
@@ -2090,8 +1525,7 @@ void LauncherWindow::RebuildVisibleResults(
            const LauncherResult& right) {
             return left.kind == right.kind &&
                 left.title == right.title &&
-                left.subtitle == right.subtitle &&
-                left.iconSource == right.iconSource;
+                left.subtitle == right.subtitle;
         };
 
     const std::size_t oldCount =
@@ -4231,66 +3665,13 @@ LRESULT LauncherWindow::HandleMessage(
             PrimaryResultText(result);
 
         if (IsModern()) {
-            const bool showIcons =
-                app_.SettingsData()
-                    .showResultIcons;
-
             RECT keywordRect =
                 item->rcItem;
-
-            if (showIcons) {
-                constexpr int
-                    iconColumnLogical = 28;
-
-                RECT iconRect =
-                    item->rcItem;
-                iconRect.left +=
-                    DpiScale(8);
-                iconRect.right =
-                    iconRect.left +
-                    DpiScale(
-                        iconColumnLogical);
-
-                if (HICON icon =
-                        ResultIcon(result)) {
-                    const int iconSize =
-                        DpiScale(20);
-                    const int iconX =
-                        iconRect.left +
-                        (DpiScale(
-                             iconColumnLogical) -
-                         iconSize) / 2;
-                    const int iconY =
-                        item->rcItem.top +
-                        ((item->rcItem.bottom -
-                          item->rcItem.top -
-                          iconSize) / 2);
-
-                    DrawIconEx(
-                        item->hDC,
-                        iconX,
-                        iconY,
-                        icon,
-                        iconSize,
-                        iconSize,
-                        0,
-                        nullptr,
-                        DI_NORMAL);
-                }
-
-                keywordRect.left =
-                    iconRect.right +
-                    DpiScale(4);
-                keywordRect.right =
-                    keywordRect.left +
-                    DpiScale(145);
-            } else {
-                keywordRect.left +=
-                    DpiScale(12);
-                keywordRect.right =
-                    keywordRect.left +
-                    DpiScale(165);
-            }
+            keywordRect.left +=
+                DpiScale(12);
+            keywordRect.right =
+                keywordRect.left +
+                DpiScale(165);
 
             RECT titleRect = item->rcItem;
             titleRect.left =
@@ -4350,10 +3731,6 @@ LRESULT LauncherWindow::HandleMessage(
         const auto& classicMetrics =
             classicDpiMetrics_;
 
-        const bool showIcons =
-            app_.SettingsData()
-                .showResultIcons;
-
         const int firstX =
             item->rcItem.left +
             classicMetrics.numberDividerX;
@@ -4376,52 +3753,6 @@ LRESULT LauncherWindow::HandleMessage(
             secondX -
             DpiScale(
                 textInsetLogical);
-
-        if (showIcons) {
-            constexpr int
-                iconColumnLogical = 18;
-
-            RECT iconRect =
-                item->rcItem;
-            iconRect.left =
-                firstX +
-                DpiScale(1);
-            iconRect.right =
-                iconRect.left +
-                DpiScale(
-                    iconColumnLogical);
-
-            if (HICON icon =
-                    ResultIcon(result)) {
-                const int iconSize =
-                    DpiScale(14);
-                const int iconX =
-                    iconRect.left +
-                    (DpiScale(
-                         iconColumnLogical) -
-                     iconSize) / 2;
-                const int iconY =
-                    item->rcItem.top +
-                    ((item->rcItem.bottom -
-                      item->rcItem.top -
-                      iconSize) / 2);
-
-                DrawIconEx(
-                    item->hDC,
-                    iconX,
-                    iconY,
-                    icon,
-                    iconSize,
-                    iconSize,
-                    0,
-                    nullptr,
-                    DI_NORMAL);
-            }
-
-            keywordRect.left =
-                iconRect.right +
-                DpiScale(2);
-        }
 
         RECT titleRect =
             item->rcItem;
@@ -4556,9 +3887,6 @@ LRESULT LauncherWindow::HandleMessage(
                 dpi_);
         const auto* suggested = reinterpret_cast<RECT*>(lParam);
 
-        ++resultIconEpoch_;
-        CancelPendingResultIconRequests();
-
         SetWindowPos(
             hwnd_,
             nullptr,
@@ -4591,10 +3919,6 @@ LRESULT LauncherWindow::HandleMessage(
 
     case kShortcutIpcMessage:
         ProcessPendingShortcutPaths();
-        return 0;
-
-    case kIconReadyMessage:
-        HandleResultIconCompletions();
         return 0;
 
     case kTrayMessage: {
