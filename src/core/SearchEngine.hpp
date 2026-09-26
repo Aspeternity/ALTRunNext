@@ -81,7 +81,8 @@ private:
         std::wstring_view normalizedPattern);
 
     [[nodiscard]] static int UsageScore(
-        const UsageStat* stat);
+        const UsageStat* stat,
+        std::int64_t nowUnix);
 
     [[nodiscard]] static int IntentUsageScore(
         const UsageStat* stat,
