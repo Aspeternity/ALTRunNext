@@ -304,9 +304,14 @@ struct PinyinSearch::Impl {
     };
 
     explicit Impl(
-        std::filesystem::path directory)
+        std::filesystem::path directory,
+        std::size_t requestedCacheCapacity)
         : dictionaryDirectory(
-              std::move(directory)) {
+              std::move(directory)),
+          cacheCapacity(
+              std::max<std::size_t>(
+                  1,
+                  requestedCacheCapacity)) {
 
         std::error_code ec;
         const auto requiredDictionary =
@@ -399,16 +404,25 @@ struct PinyinSearch::Impl {
     mutable std::atomic<State> state{
         State::Missing};
 
+    struct CacheEntry {
+        PinyinForms forms;
+        std::uint64_t lastUse{0};
+    };
+
+    const std::size_t cacheCapacity;
+    mutable std::uint64_t cacheTick{0};
     mutable std::unordered_map<
         std::wstring,
-        PinyinForms> cache;
+        CacheEntry> cache;
 };
 
 PinyinSearch::PinyinSearch(
-    std::filesystem::path dictionaryDirectory)
+    std::filesystem::path dictionaryDirectory,
+    std::size_t cacheCapacity)
     : impl_(
           std::make_unique<Impl>(
-              std::move(dictionaryDirectory))) {}
+              std::move(dictionaryDirectory),
+              cacheCapacity)) {}
 
 PinyinSearch::~PinyinSearch() = default;
 
@@ -459,6 +473,7 @@ void PinyinSearch::Unload() noexcept {
         impl_->mutex);
 
     impl_->cache.clear();
+    impl_->cacheTick = 0;
     impl_->converter.reset();
 
     const auto state =
@@ -502,7 +517,9 @@ const PinyinForms* PinyinSearch::FormsFor(
         impl_->cache.find(key);
 
     if (existing != impl_->cache.end()) {
-        return &existing->second;
+        existing->second.lastUse =
+            ++impl_->cacheTick;
+        return &existing->second.forms;
     }
 
     PinyinForms forms;
@@ -516,13 +533,46 @@ const PinyinForms* PinyinSearch::FormsFor(
         return nullptr;
     }
 
+    // Provider refreshes and user edits can introduce new searchable
+    // strings over a long-lived tray session. Keep this derived cache bounded
+    // so old catalog text cannot accumulate for the lifetime of the process.
+    if (impl_->cache.size() >=
+        impl_->cacheCapacity) {
+        auto victim =
+            impl_->cache.end();
+
+        for (auto it =
+                 impl_->cache.begin();
+             it != impl_->cache.end();
+             ++it) {
+            if (victim ==
+                    impl_->cache.end() ||
+                it->second.lastUse <
+                    victim->second.lastUse) {
+                victim = it;
+            }
+        }
+
+        if (victim !=
+            impl_->cache.end()) {
+            impl_->cache.erase(
+                victim);
+        }
+    }
+
+    Impl::CacheEntry entry;
+    entry.forms =
+        std::move(forms);
+    entry.lastUse =
+        ++impl_->cacheTick;
+
     const auto [it, inserted] =
         impl_->cache.emplace(
             std::move(key),
-            std::move(forms));
+            std::move(entry));
 
     (void) inserted;
-    return &it->second;
+    return &it->second.forms;
 }
 
 } // namespace altrun
