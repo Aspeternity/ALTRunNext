@@ -285,6 +285,27 @@ FileExists(
         !ec;
 }
 
+[[nodiscard]] std::filesystem::path
+ManagedEverythingRoot(
+    const std::filesystem::path&
+        dataDirectory) {
+    return dataDirectory /
+        L"tools" /
+        L"Everything";
+}
+
+[[nodiscard]] std::filesystem::path
+ManagedEverythingExecutableForVersion(
+    const std::filesystem::path&
+        dataDirectory,
+    std::wstring_view version) {
+    return ManagedEverythingRoot(
+               dataDirectory) /
+        VersionDirectoryName(
+            version) /
+        L"Everything.exe";
+}
+
 [[nodiscard]] std::wstring
 LowerPath(
     const std::filesystem::path& path) {
@@ -2883,11 +2904,67 @@ std::filesystem::path
 ManagedEverythingExecutable(
     const std::filesystem::path&
         dataDirectory) {
-    return dataDirectory /
-        L"tools" /
-        L"Everything" /
-        VersionDirectoryName() /
-        L"Everything.exe";
+    const auto root =
+        ManagedEverythingRoot(
+            dataDirectory);
+
+    std::error_code ec;
+    std::wstring bestVersion;
+    std::filesystem::path
+        bestExecutable;
+
+    if (std::filesystem::is_directory(
+            root,
+            ec) &&
+        !ec) {
+        for (std::filesystem::
+                 directory_iterator it(
+                     root,
+                     ec),
+             end;
+             !ec && it != end;
+             it.increment(ec)) {
+            if (!it->is_directory(ec) ||
+                ec) {
+                ec.clear();
+                continue;
+            }
+
+            const auto executable =
+                it->path() /
+                L"Everything.exe";
+
+            if (!FileExists(
+                    executable)) {
+                continue;
+            }
+
+            const auto version =
+                VersionFromManagedExecutablePath(
+                    executable);
+
+            if (!version) {
+                continue;
+            }
+
+            if (bestVersion.empty() ||
+                CompareEverythingVersions(
+                    *version,
+                    bestVersion) > 0) {
+                bestVersion = *version;
+                bestExecutable =
+                    executable;
+            }
+        }
+    }
+
+    if (!bestExecutable.empty()) {
+        return bestExecutable;
+    }
+
+    return ManagedEverythingExecutableForVersion(
+        dataDirectory,
+        PinnedManagedEverythingVersion());
 }
 
 bool EverythingIpcEndpointAvailable() {
