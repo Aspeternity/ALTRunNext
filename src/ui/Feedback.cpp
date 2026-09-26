@@ -185,54 +185,6 @@ bool ConfirmEverythingSetup(
     return result == IDYES;
 }
 
-bool ConfirmApplicationUninstall(
-    HWND owner,
-    bool chinese) {
-    const TASKDIALOG_BUTTON buttons[]{
-        {IDYES,
-         chinese
-             ? L"继续卸载"
-             : L"Continue uninstalling"},
-        {IDCANCEL,
-         chinese
-             ? L"取消"
-             : L"Cancel"},
-    };
-
-    TASKDIALOGCONFIG config{};
-    config.cbSize = sizeof(config);
-    config.hwndParent = owner;
-    config.dwFlags =
-        TDF_POSITION_RELATIVE_TO_WINDOW |
-        TDF_ALLOW_DIALOG_CANCELLATION;
-    config.pszWindowTitle =
-        chinese
-            ? L"卸载 ALTRun Next"
-            : L"Uninstall ALTRun Next";
-    config.pszMainInstruction =
-        chinese
-            ? L"卸载 ALTRun Next？"
-            : L"Uninstall ALTRun Next?";
-    config.pszContent =
-        chinese
-            ? L"将移除 ALTRun Next，以及由 ALTRun Next 管理的 Everything 组件。\n\n"
-              L"你自己安装的 Everything 不会受到影响。"
-            : L"This removes ALTRun Next and the Everything components managed by ALTRun Next.\n\n"
-              L"Everything installations you manage yourself will not be changed.";
-    config.cButtons =
-        static_cast<UINT>(
-            std::size(buttons));
-    config.pButtons = buttons;
-    config.nDefaultButton = IDCANCEL;
-
-    int result = IDCANCEL;
-    return SUCCEEDED(
-               ShowNativeDialog(
-                   config,
-                   result)) &&
-        result == IDYES;
-}
-
 UninstallDataChoice
 ChooseUninstallData(
     HWND owner,
@@ -271,10 +223,10 @@ ChooseUninstallData(
             : L"Keep your personal data?";
     config.pszContent =
         chinese
-            ? L"快捷项、设置和使用记录可以保留，方便以后重新安装。\n\n"
-              L"“彻底卸载”会同时删除这些数据。"
-            : L"Shortcuts, settings and usage history can be kept for a future reinstall.\n\n"
-              L"“Remove everything” deletes this data as well.";
+            ? L"ALTRun Next 和由其管理的 Everything 组件都会被移除；你自己安装的 Everything 不会受到影响。\n\n"
+              L"快捷项、设置和使用记录可以保留，方便以后重新安装。“彻底卸载”会同时删除这些个人数据。"
+            : L"ALTRun Next and the Everything components it manages will be removed; Everything installations you manage yourself are not changed.\n\n"
+              L"Shortcuts, settings and usage history can be kept for a future reinstall. “Remove everything” deletes this personal data as well.";
     config.cButtons =
         static_cast<UINT>(
             std::size(buttons));
