@@ -4226,12 +4226,8 @@ RunEverythingBootstrap(
     // Failure to resolve the online stable release is intentionally not a
     // setup failure. The pinned build is a CI-validated known-good fallback;
     // its package and official SHA-256 manifest are still verified below.
-    if (snapshot.availableVersion.empty()) {
-        snapshot.availableVersion =
-            snapshot.selectedVersion;
-    }
-
     snapshot.updateAvailable =
+        !snapshot.availableVersion.empty() &&
         !snapshot.installedVersion.empty() &&
         CompareEverythingVersions(
             snapshot.availableVersion,
