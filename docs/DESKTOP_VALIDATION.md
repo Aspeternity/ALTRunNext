@@ -8,6 +8,20 @@ Automated CI covers compilation, Config/Search tests, provider smoke tests, hotk
 
 The checks below are the remaining **real interactive Windows desktop** validation items. Automated geometry/behavior tests reduce regression risk but do not replace observing the actual UI, IME, monitor transitions, providers and hotkey lifecycle on a real desktop.
 
+## v0.8.0-alpha.5.49 Classic Technical Closeout I validation
+
+Automated coverage preserves all alpha.5.48 presentation regressions and now adds a repeated real-HWND resource soak. The soak opens and closes Shortcut Manager, Shortcut Editor and Path Conversion repeatedly while sampling process GDI objects, USER objects and handles. It is a leak regression gate; it does not replace observing process memory behavior over a longer interactive session.
+
+- [ ] Compare cold startup and idle behavior with the validated alpha.5.48 build. There should be no new first-frame delay, background CPU loop or tray/window regression.
+- [ ] With a representative populated application catalog, type and erase short, long, multi-token, pinyin and English-initial queries repeatedly. Search ordering and input responsiveness must remain consistent with alpha.5.48.
+- [ ] Repeat the `team` / `ts` learning checks from alpha.5.48 and confirm query-scoped preference behavior is unchanged.
+- [ ] Keep ALTRun Next running for an extended session while rebuilding/refreshing providers and editing shortcuts. Working set/private memory may retain allocator pages, but it must settle instead of growing continually after equivalent repeated work.
+- [ ] Open/close Settings, Shortcut Manager, Shortcut Editor and Path Conversion at least 100 cycles total. GDI/USER object counts and process handles must return to a stable plateau rather than increasing with every cycle.
+- [ ] Enable result icons and exercise many distinct search results, then continue searching after cache churn. Icons remain correct and handle usage stabilizes; the existing result-icon cache remains bounded.
+- [ ] Exercise Everything dynamic results alongside static application search. Typing stays responsive and no filesystem/Shell work is introduced into the synchronous static-search path.
+- [ ] Repeat mixed-DPI/multi-monitor and Chinese/English smoke checks to ensure the technical changes did not disturb the fully validated alpha.5.48 presentation lifecycle.
+- [ ] Settings schema remains 11; Commands 2, Usage 2, Provider Cache 22; fixed Windows version is 0.8.0.219.
+
 ## v0.8.0-alpha.5.48 Silent Launch + Tray Window Presentation validation
 
 Follow-up automated coverage now creates the actual Settings window, asserts
