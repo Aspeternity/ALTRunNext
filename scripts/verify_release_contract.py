@@ -239,7 +239,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
         if git_blob_sha(asset_path) != expected:
             fail(f"v0.8 alpha.5.43 frozen Classic asset changed: {asset_path}")
 
-    if version.endswith((".44", ".45", ".46", ".47", ".48")):
+    if version.endswith((".44", ".45", ".46", ".47", ".48", ".49")):
         if json.loads(read("config/settings.example.json"))["schemaVersion"] != 11:
             fail("sound settings sample must use schema 11")
         for path in ("src/app/App.cpp", "src/ui/LauncherWindow.cpp", "src/ui/SettingsWindow.cpp",
@@ -251,7 +251,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
             if "0.8.0-alpha.5.44" not in read(path):
                 fail(f"missing alpha.5.44 release documentation: {path}")
 
-    if version.endswith((".45", ".46", ".47", ".48")):
+    if version.endswith((".45", ".46", ".47", ".48", ".49")):
         identity = read("src/platform/AppIdentity.hpp")
         launcher = read("src/ui/LauncherWindow.cpp")
         launcher_hpp = read("src/ui/LauncherWindow.hpp")
@@ -336,7 +336,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
             if "AppIcon.hpp" not in window_source or "LoadApplicationIcon(" not in window_source:
                 fail(f"alpha.5.45 top-level window is not using original ALTRun icon: {path}")
 
-    if version.endswith((".46", ".47", ".48")):
+    if version.endswith((".46", ".47", ".48", ".49")):
         launcher = read("src/ui/LauncherWindow.cpp")
         launcher_hpp = read("src/ui/LauncherWindow.hpp")
         settings_hpp = read("src/core/Settings.hpp")
@@ -416,7 +416,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
             if "0.8.0-alpha.5.46" not in read(path):
                 fail(f"missing alpha.5.46 release documentation: {path}")
 
-    if version.endswith((".47", ".48")):
+    if version.endswith((".47", ".48", ".49")):
         app_cpp = read("src/app/App.cpp")
         app_hpp = read("src/app/App.hpp")
         runtime_smoke = read("scripts/verify_runtime_smoke.ps1")
@@ -596,7 +596,8 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
 
         for token in (
             "kTestCapacity",
-            "CacheEntryCount() <=",
+            "boundedPinyin",
+            "CacheEntryCount()",
         ):
             if token not in search_tests:
                 fail(f"alpha.5.49 pinyin cache regression missing: {token}")
