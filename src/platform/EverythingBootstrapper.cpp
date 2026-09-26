@@ -3117,9 +3117,19 @@ EverythingServiceRepairResult
 ApplyManagedEverythingServiceEnabledPolicy(
     const std::filesystem::path& dataDirectory,
     bool enabled) {
-    const auto managedExecutable =
+    const auto existingManagedExecutable =
         ManagedEverythingExecutable(
             dataDirectory);
+
+    if (FileExists(
+            existingManagedExecutable)) {
+        if (const auto version =
+                VersionFromManagedExecutablePath(
+                    existingManagedExecutable)) {
+            snapshot.installedVersion =
+                *version;
+        }
+    }
 
     if (enabled &&
         !FileExists(
@@ -3703,7 +3713,8 @@ RunEverythingBootstrap(
     bool allowDownload,
     EverythingBootstrapProgress progress,
     std::stop_token stopToken,
-    bool showManagedTrayIcon) {
+    bool showManagedTrayIcon,
+    bool forceManagedUpdate) {
     EverythingBootstrapSnapshot snapshot;
     snapshot.running = true;
 
@@ -3862,27 +3873,32 @@ RunEverythingBootstrap(
 
     if (AnyUsableIpcEndpoint()) {
         if (FileExists(
-                managedExecutable) &&
+                existingManagedExecutable) &&
             ManagedDefaultIpcRunning(
-                managedExecutable)) {
-            return finishManaged(
-                managedExecutable,
-                allowDownload);
+                existingManagedExecutable)) {
+            if (!forceManagedUpdate) {
+                return finishManaged(
+                    existingManagedExecutable,
+                    allowDownload);
+            }
+        } else {
+            // A user-managed/external Everything owns the active endpoint.
+            // Never replace or reconfigure it, even when an update operation
+            // was requested for ALTRun's managed copy.
+            snapshot.stage =
+                EverythingBootstrapStage::
+                    Ready;
+            snapshot.running = false;
+            snapshot.failure =
+                EverythingBootstrapFailure::
+                    None;
+
+            if (progress) {
+                progress(snapshot);
+            }
+
+            return snapshot;
         }
-
-        snapshot.stage =
-            EverythingBootstrapStage::
-                Ready;
-        snapshot.running = false;
-        snapshot.failure =
-            EverythingBootstrapFailure::
-                None;
-
-        if (progress) {
-            progress(snapshot);
-        }
-
-        return snapshot;
     }
 
     const auto candidates =
@@ -3901,22 +3917,30 @@ RunEverythingBootstrap(
         if (candidate.source ==
             EverythingBootstrapSource::
                 Managed) {
-            return finishManaged(
-                candidate.path,
-                allowDownload);
+            if (!forceManagedUpdate) {
+                return finishManaged(
+                    candidate.path,
+                    allowDownload);
+            }
         }
 
-        Report(
-            snapshot,
-            EverythingBootstrapStage::
-                StartingExisting,
-            progress);
+        if (candidate.source ==
+                EverythingBootstrapSource::
+                    Managed &&
+            forceManagedUpdate) {
+            // Continue below to stable-version resolution/download.
+        } else {
+            Report(
+                snapshot,
+                EverythingBootstrapStage::
+                    StartingExisting,
+                progress);
 
-        std::uint32_t launchError = 0;
+            std::uint32_t launchError = 0;
 
-        if (LaunchEverything(
-                candidate.path,
-                launchError)) {
+            if (LaunchEverything(
+                    candidate.path,
+                    launchError)) {
             Report(
                 snapshot,
                 EverythingBootstrapStage::
@@ -3957,12 +3981,13 @@ RunEverythingBootstrap(
                 progress);
         }
 
-        if (!allowDownload) {
-            return NeedsInstall(
-                snapshot,
-                EverythingBootstrapFailure::
-                    IpcUnavailable,
-                progress);
+            if (!allowDownload) {
+                return NeedsInstall(
+                    snapshot,
+                    EverythingBootstrapFailure::
+                        IpcUnavailable,
+                    progress);
+            }
         }
     } else if (!allowDownload) {
         return NeedsInstall(
@@ -3997,6 +4022,8 @@ RunEverythingBootstrap(
                     stableMetadata)) {
             snapshot.selectedVersion =
                 *stableVersion;
+            snapshot.availableVersion =
+                *stableVersion;
             snapshot.usedPinnedVersionFallback =
                 false;
         }
@@ -4013,17 +4040,41 @@ RunEverythingBootstrap(
     // Failure to resolve the online stable release is intentionally not a
     // setup failure. The pinned build is a CI-validated known-good fallback;
     // its package and official SHA-256 manifest are still verified below.
+    if (snapshot.availableVersion.empty()) {
+        snapshot.availableVersion =
+            snapshot.selectedVersion;
+    }
+
+    snapshot.updateAvailable =
+        !snapshot.installedVersion.empty() &&
+        CompareEverythingVersions(
+            snapshot.availableVersion,
+            snapshot.installedVersion) > 0;
+
+    if (forceManagedUpdate &&
+        !snapshot.updateAvailable &&
+        FileExists(
+            existingManagedExecutable)) {
+        return finishManaged(
+            existingManagedExecutable,
+            true);
+    }
+
     const auto spec =
         ManagedEverythingPackage(
             CurrentArchitecture(),
             snapshot.selectedVersion);
 
+    const auto targetManagedExecutable =
+        ManagedEverythingExecutableForVersion(
+            dataDirectory,
+            snapshot.selectedVersion);
     const auto managedDirectory =
-        managedExecutable.parent_path();
+        targetManagedExecutable.parent_path();
 
     const auto toolsRoot =
-        managedDirectory
-            .parent_path();
+        ManagedEverythingRoot(
+            dataDirectory);
 
     std::error_code ec;
     std::filesystem::create_directories(
@@ -4110,8 +4161,7 @@ RunEverythingBootstrap(
         EverythingBootstrapSource::
             Downloaded;
     snapshot.executablePath =
-        ManagedEverythingExecutable(
-            dataDirectory);
+        targetManagedExecutable;
 
     if (!DownloadFile(
             spec.downloadUrl,
@@ -4237,7 +4287,7 @@ RunEverythingBootstrap(
         ec);
 
     if (!FileExists(
-            managedExecutable)) {
+            targetManagedExecutable)) {
         return Fail(
             snapshot,
             EverythingBootstrapFailure::
@@ -4248,10 +4298,48 @@ RunEverythingBootstrap(
 
     snapshot.downloaded = true;
     snapshot.executablePath =
-        managedExecutable;
+        targetManagedExecutable;
+
+    if (FileExists(
+            existingManagedExecutable) &&
+        LowerPath(
+            existingManagedExecutable) !=
+            LowerPath(
+                targetManagedExecutable) &&
+        ManagedDefaultIpcRunning(
+            existingManagedExecutable)) {
+        Report(
+            snapshot,
+            EverythingBootstrapStage::
+                StoppingManaged,
+            progress);
+
+        if (!LaunchEverythingCommand(
+                existingManagedExecutable,
+                L"-exit",
+                true,
+                nativeError) ||
+            !WaitForManagedDefaultIpcToExit(
+                existingManagedExecutable,
+                stopToken)) {
+            return Fail(
+                snapshot,
+                stopToken.stop_requested()
+                    ? EverythingBootstrapFailure::
+                          Cancelled
+                    : EverythingBootstrapFailure::
+                          ManagedStopFailed,
+                stopToken.stop_requested()
+                    ? ERROR_CANCELLED
+                    : (nativeError != 0
+                           ? nativeError
+                           : ERROR_TIMEOUT),
+                progress);
+        }
+    }
 
     return finishManaged(
-        managedExecutable,
+        targetManagedExecutable,
         true);
 }
 
