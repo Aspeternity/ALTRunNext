@@ -4,6 +4,7 @@
 #include <array>
 #include <cctype>
 #include <charconv>
+#include <climits>
 #include <string>
 #include <vector>
 
@@ -223,6 +224,109 @@ ParseEverythingStableUpdateVersion(
         std::to_wstring(*revision) +
         L"." +
         std::to_wstring(*build);
+}
+
+int CompareEverythingVersions(
+    std::wstring_view left,
+    std::wstring_view right) noexcept {
+    const auto component =
+        [](std::wstring_view value,
+           std::size_t& offset)
+            -> std::optional<unsigned long> {
+            if (offset >= value.size()) {
+                return 0UL;
+            }
+
+            const std::size_t start =
+                offset;
+            auto dot =
+                value.find(
+                    L'.',
+                    start);
+
+            if (dot ==
+                std::wstring_view::npos) {
+                dot = value.size();
+            }
+
+            if (dot == start) {
+                return std::nullopt;
+            }
+
+            unsigned long parsed = 0;
+
+            for (std::size_t i = start;
+                 i < dot;
+                 ++i) {
+                const wchar_t ch =
+                    value[i];
+
+                if (ch < L'0' ||
+                    ch > L'9') {
+                    return std::nullopt;
+                }
+
+                const unsigned long digit =
+                    static_cast<unsigned long>(
+                        ch - L'0');
+
+                if (parsed >
+                    (ULONG_MAX - digit) /
+                        10UL) {
+                    return std::nullopt;
+                }
+
+                parsed =
+                    parsed * 10UL +
+                    digit;
+            }
+
+            offset =
+                dot < value.size()
+                    ? dot + 1
+                    : value.size();
+
+            return parsed;
+        };
+
+    std::size_t leftOffset = 0;
+    std::size_t rightOffset = 0;
+
+    for (int i = 0; i < 4; ++i) {
+        const auto leftPart =
+            component(
+                left,
+                leftOffset);
+        const auto rightPart =
+            component(
+                right,
+                rightOffset);
+
+        if (!leftPart ||
+            !rightPart) {
+            // Invalid managed-version strings should never outrank a valid
+            // version. Equal invalid strings remain equal for deterministic
+            // fallback behavior.
+            if (left == right) {
+                return 0;
+            }
+            return left < right
+                ? -1
+                : 1;
+        }
+
+        if (*leftPart <
+            *rightPart) {
+            return -1;
+        }
+
+        if (*leftPart >
+            *rightPart) {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 EverythingArchiveNames
