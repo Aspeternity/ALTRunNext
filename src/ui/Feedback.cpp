@@ -3,6 +3,7 @@
 
 #include <commctrl.h>
 #include <mmsystem.h>
+#include <iterator>
 #include <string>
 
 namespace altrun::ui {
