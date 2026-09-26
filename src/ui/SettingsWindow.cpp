@@ -2607,8 +2607,11 @@ void SettingsWindow::RefreshProviderStatus() {
         case win::EverythingBootstrapStage::StartingExisting:
             text += T(L"启动已有版本", L"Starting existing copy");
             break;
+        case win::EverythingBootstrapStage::ResolvingStableVersion:
+            text += T(L"检查官方稳定版", L"Checking latest stable release");
+            break;
         case win::EverythingBootstrapStage::DownloadingManifest:
-            text += T(L"获取校验清单", L"Fetching checksums");
+            text += T(L"准备安全下载", L"Preparing secure download");
             break;
         case win::EverythingBootstrapStage::DownloadingPackage:
             text += T(L"下载便携版", L"Downloading portable build");
@@ -2624,21 +2627,22 @@ void SettingsWindow::RefreshProviderStatus() {
             }
             break;
         case win::EverythingBootstrapStage::VerifyingPackage:
-            text += T(L"校验 SHA-256", L"Verifying SHA-256");
+            text += T(L"验证下载文件", L"Verifying download");
             break;
         case win::EverythingBootstrapStage::ExtractingPackage:
-            text += T(L"解压文件", L"Extracting");
+            text += T(L"准备文件", L"Preparing files");
             break;
         case win::EverythingBootstrapStage::InstallingService:
         case win::EverythingBootstrapStage::RepairingService:
-            text += T(L"配置 Service，请确认 UAC", L"Configuring Service; confirm UAC");
+            text += T(L"启用文件索引，请确认 Windows 提示",
+                      L"Enabling file indexing; confirm the Windows prompt");
             break;
         case win::EverythingBootstrapStage::WaitingForService:
-            text += T(L"等待 Service", L"Waiting for Service");
+            text += T(L"启动文件索引", L"Starting file index");
             break;
         case win::EverythingBootstrapStage::StartingManaged:
         case win::EverythingBootstrapStage::WaitingForIpc:
-            text += T(L"等待 IPC", L"Waiting for IPC");
+            text += T(L"连接 Everything", L"Connecting to Everything");
             break;
         default:
             text += T(L"应用配置", L"Applying configuration");
@@ -2652,15 +2656,15 @@ void SettingsWindow::RefreshProviderStatus() {
                 win::EverythingBootstrapFailure::
                     ServiceRepairRequired) {
             text =
-                T(L"⚠ Everything Service 需要修复",
-                  L"⚠ Everything Service needs repair");
+                T(L"⚠ 需要管理员权限修复文件索引组件",
+                  L"⚠ Administrator approval is needed to repair file indexing");
         } else if (
             bootstrap.failure ==
                 win::EverythingBootstrapFailure::
                     ServiceRequired) {
             text =
-                T(L"⚠ Everything Service 尚未安装",
-                  L"⚠ Everything Service is not installed");
+                T(L"⚠ 需要管理员权限启用文件索引",
+                  L"⚠ Administrator approval is needed to enable file indexing");
         } else if (
             bootstrap.stage ==
                 win::EverythingBootstrapStage::
@@ -2726,18 +2730,12 @@ void SettingsWindow::AcquireEverything() {
         return;
     }
 
-    const int answer =
-        altrun::ui::ShowMessage(
-            hwnd_,
-            T(L"ALTRun Next 会先尝试复用本机已有的 Everything。\n\n如果需要自己的托管便携版，会从 voidtools 官方获取 Everything 1.4.1.1032 标准版（不是 Lite）并校验 SHA-256。托管版会安装 / 启动 Everything Service 来完成 NTFS 索引，以普通用户后台运行，并隐藏 Everything 托盘图标。\n\n首次安装服务时 Windows 会弹出一次 UAC，请确认后继续。\n\n继续吗？",
-              L"ALTRun Next will first try to reuse an existing Everything copy.\n\nIf its managed portable copy is needed, it will fetch the official Everything 1.4.1.1032 standard build (not Lite) from voidtools and verify SHA-256. The managed copy installs / starts the Everything Service for NTFS indexing, runs in the background as a standard user, and hides the Everything tray icon.\n\nWindows will show one UAC prompt when the service is first installed.\n\nContinue?"),
-            T(L"获取并启动 Everything",
-              L"Get and start Everything"),
-            MB_YESNO |
-                MB_ICONINFORMATION |
-                MB_DEFBUTTON2);
-
-    if (answer != IDYES) {
+    if (!altrun::ui::
+             ConfirmEverythingSetup(
+                 hwnd_,
+                 app_.SettingsData()
+                         .language ==
+                     Language::ZhCN)) {
         return;
     }
 
