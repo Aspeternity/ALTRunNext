@@ -94,7 +94,9 @@ public:
     EverythingBootstrapStatus() const;
 
     bool StartEverythingBootstrap(
-        bool allowDownload);
+        bool allowDownload,
+        bool forceManagedUpdate = false);
+    bool StartEverythingUpdateCheck();
 
     [[nodiscard]] std::wstring
     DataCompatibilityWarning() const;
