@@ -591,6 +591,16 @@ bool AdmitLaunchSurfaceNormalized(
     const std::size_t length =
         normalizedQuery.size();
 
+    // The two-character strong-match gate exists to suppress noisy short
+    // ASCII filesystem/tool queries such as "he". Applying the same gate to
+    // CJK text rejects valid contiguous substrings (for example searching
+    // "男主" inside "系统男主"), because those naturally classify as
+    // Substring rather than Prefix. Keep the precision gate ASCII-only.
+    const bool requireStrongShortMatch =
+        length <= 2 &&
+        IsAsciiQuery(
+            normalizedQuery);
+
     switch (surface) {
     case LaunchSurfaceClass::UserCommand:
     case LaunchSurfaceClass::
@@ -600,14 +610,14 @@ bool AdmitLaunchSurfaceNormalized(
 
     case LaunchSurfaceClass::SystemUtility:
         return length >= 2 &&
-            (length > 2 ||
+            (!requireStrongShortMatch ||
              StrongShortMatch(
                  match.kind));
 
     case LaunchSurfaceClass::DeveloperTool:
     case LaunchSurfaceClass::CommandLineTool:
         return length >= 2 &&
-            (length > 2 ||
+            (!requireStrongShortMatch ||
              StrongShortMatch(
                  match.kind));
 
@@ -619,7 +629,7 @@ bool AdmitLaunchSurfaceNormalized(
 
     case LaunchSurfaceClass::FilesystemItem:
         return length >= 2 &&
-            (length > 2 ||
+            (!requireStrongShortMatch ||
              StrongShortMatch(
                  match.kind));
     }
