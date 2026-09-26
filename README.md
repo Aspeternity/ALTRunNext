@@ -29,7 +29,9 @@ This build starts the post-Classic performance and memory closeout on top of the
 
 Search also prepares normalized query state and pinyin eligibility once per request instead of repeatedly rebuilding that state for every candidate field. Dynamic filesystem ranking reuses the same prepared-query pattern and uses a non-owning filename stem. The derived pinyin-form cache is now bounded to 4096 LRU-style entries so a long-lived tray process cannot accumulate stale forms indefinitely as provider contents change.
 
-Windows runtime validation now includes a repeated real-HWND Shortcut Manager -> Shortcut Editor -> Path Conversion lifecycle soak and samples GDI objects, USER objects and process handles before/after the loop. This phase intentionally avoids a broad architecture rewrite: Classic behavior, ranking precedence, UI geometry and desktop presentation remain frozen while measured allocator/resource costs are removed locally.
+Real-machine validation exposed two closeout issues. The optional result-icon surface was visually inconsistent across mixed static/Everything results, so alpha.5.49 removes that feature completely instead of retaining an idle worker/cache path. Everything relevance also no longer applies the short-ASCII strong-match gate to two-character CJK substrings: `男主` correctly remains eligible inside a result such as `系统男主`, while short ASCII precision behavior remains strict.
+
+Windows runtime validation now includes a repeated real-HWND Shortcut Manager -> Shortcut Editor -> Path Conversion lifecycle soak and samples GDI objects, USER objects and process handles before/after the loop. This phase intentionally avoids a broad architecture rewrite: Classic geometry and desktop presentation remain frozen while measured allocator/resource costs and confirmed search regressions are removed locally.
 
 Settings schema remains **11**; Commands **2**, Usage **2** and Provider Cache **22** are unchanged. Windows fixed FileVersion/ProductVersion is `0.8.0.219`.
 
