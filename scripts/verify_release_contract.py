@@ -42,12 +42,12 @@ channel = match.group(4)
 
 
 
-if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.0-alpha.5.46", "0.8.0-alpha.5.47", "0.8.0-alpha.5.48"):
+if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.0-alpha.5.46", "0.8.0-alpha.5.47", "0.8.0-alpha.5.48", "0.8.0-alpha.5.49"):
     import hashlib
     import subprocess
 
     expected_schemas = {
-        "kSettingsSchemaVersion": 11 if version.endswith((".44", ".45", ".46", ".47", ".48")) else 10,
+        "kSettingsSchemaVersion": 11 if version.endswith((".44", ".45", ".46", ".47", ".48", ".49")) else 10,
         "kCommandsSchemaVersion": 2,
         "kUsageSchemaVersion": 2,
     }
@@ -159,7 +159,8 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
             fail(f"v0.8 alpha.5.43 Provider Cache regression missing: {token}")
 
     fixed_revision = (
-        "218" if version.endswith(".48")
+        "219" if version.endswith(".49")
+        else "218" if version.endswith(".48")
         else "217" if version.endswith(".47")
         else "216" if version.endswith(".46")
         else "215" if version.endswith(".45")
@@ -478,7 +479,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
             if "0.8.0-alpha.5.47" not in read(path):
                 fail(f"missing alpha.5.47 release documentation: {path}")
 
-    if version.endswith(".48"):
+    if version.endswith((".48", ".49")):
         app_cpp = read("src/app/App.cpp")
         feedback_policy = read("src/core/FeedbackPolicy.hpp")
         launcher = read("src/ui/LauncherWindow.cpp")
@@ -555,6 +556,67 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
         for path in ("README.md", "ROADMAP.md", "CHANGELOG.md", "docs/DESKTOP_VALIDATION.md"):
             if "0.8.0-alpha.5.48" not in read(path):
                 fail(f"missing alpha.5.48 release documentation: {path}")
+
+    if version.endswith(".49"):
+        app_cpp = read("src/app/App.cpp")
+        search_hpp = read("src/core/SearchEngine.hpp")
+        search_cpp = read("src/core/SearchEngine.cpp")
+        relevance_hpp = read("src/core/RelevancePolicy.hpp")
+        relevance_cpp = read("src/core/RelevancePolicy.cpp")
+        pinyin_hpp = read("src/core/PinyinSearch.hpp")
+        pinyin_cpp = read("src/core/PinyinSearch.cpp")
+        search_tests = read("tests/SearchEngineTests.cpp")
+        runtime_tests = read("tests/WindowPresentationRuntimeTests.cpp")
+
+        for token in (
+            "std::span<const Command>",
+            "requiresContextWorkingSet",
+            "sourceIndexFor",
+        ):
+            if token not in app_cpp + search_hpp:
+                fail(f"alpha.5.49 non-owning search catalog path missing: {token}")
+
+        for token in (
+            "MatchTextNormalizedQuery",
+            "MatchNormalizedText",
+            "MatchNormalizedInitials",
+            "AdmitLaunchSurfaceNormalized",
+        ):
+            if token not in relevance_hpp + relevance_cpp + search_cpp:
+                fail(f"alpha.5.49 prepared relevance path missing: {token}")
+
+        for token in (
+            "kDefaultPinyinCacheCapacity",
+            "cacheCapacity",
+            "lastUse",
+            "cacheTick",
+        ):
+            if token not in pinyin_hpp + pinyin_cpp:
+                fail(f"alpha.5.49 bounded pinyin cache missing: {token}")
+
+        for token in (
+            "kTestCapacity",
+            "CacheEntryCount() <=",
+        ):
+            if token not in search_tests:
+                fail(f"alpha.5.49 pinyin cache regression missing: {token}")
+
+        for token in (
+            "ProcessResourceSnapshot",
+            "GetGuiResources(",
+            "GetProcessHandleCount(",
+            "kSoakCycles",
+            "ShortcutPathConverterDialog::",
+        ):
+            if token not in runtime_tests:
+                fail(f"alpha.5.49 resource lifecycle soak missing: {token}")
+
+        if '"0.8.0-alpha.5.49"' not in update_tests:
+            fail("alpha.5.49 update ordering/default coverage missing")
+
+        for path in ("README.md", "ROADMAP.md", "CHANGELOG.md", "docs/DESKTOP_VALIDATION.md"):
+            if "0.8.0-alpha.5.49" not in read(path):
+                fail(f"missing alpha.5.49 release documentation: {path}")
 
     print(
         version + " shared release contract verified:",
