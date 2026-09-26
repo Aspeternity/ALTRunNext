@@ -71,6 +71,10 @@ struct Settings {
     ProviderEnableMap providerEnabled{
         providers::DefaultEnabled()};
 
+    // Applies only to the Everything copy downloaded and managed by ALTRun
+    // Next. External Everything installations keep their own UI preference.
+    bool managedEverythingShowTrayIcon{false};
+
     bool autoCheckUpdates{true};
     UpdateChannel updateChannel{
         UpdateChannel::Stable};
@@ -115,6 +119,8 @@ public:
         bool enabled);
     bool SetProviderEnabledBatch(
         const ProviderEnableMap& changes);
+    bool SetManagedEverythingShowTrayIcon(
+        bool enabled);
     bool SetUpdateSettings(
         bool autoCheck,
         UpdateChannel channel);
