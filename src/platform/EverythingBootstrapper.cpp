@@ -3203,9 +3203,18 @@ ApplyManagedEverythingServiceEnabledPolicy(
     const bool detachedAlpha91 =
         DetachedAlpha91ServiceExecutable(
             serviceExecutable);
+    const bool olderManagedPath =
+        IsManagedEverythingServiceExecutable(
+            dataDirectory,
+            serviceExecutable) &&
+        LowerPath(
+            serviceExecutable) !=
+            LowerPath(
+                managedExecutable);
 
     if (enabled &&
-        detachedAlpha91) {
+        (detachedAlpha91 ||
+         olderManagedPath)) {
         return RepairManagedEverythingServicePath(
             dataDirectory);
     }
@@ -3485,12 +3494,18 @@ RepairManagedEverythingServicePath(
     const bool detachedAlpha91 =
         DetachedAlpha91ServiceExecutable(
             previousExecutable);
+    const bool previousManaged =
+        IsManagedEverythingServiceExecutable(
+            dataDirectory,
+            previousExecutable);
 
-    // Never retarget a healthy external/user-installed service. Missing
-    // executables retain alpha.8.4's stale-path repair behavior.
+    // Never retarget a healthy external/user-installed service. Older
+    // versioned executables under ALTRun's own managed root are safe to
+    // retarget during an explicit user-requested stable update.
     if (previousExecutableExists &&
         !alreadyPortable &&
-        !detachedAlpha91) {
+        !detachedAlpha91 &&
+        !previousManaged) {
         return {
             false,
             ERROR_ACCESS_DENIED,
