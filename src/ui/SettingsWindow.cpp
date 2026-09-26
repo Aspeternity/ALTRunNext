@@ -1313,7 +1313,7 @@ void SettingsWindow::ApplyLanguage() {
 
     SetWindowTextW(searchBehaviorTitle_, T(L"搜索与执行", L"Search & execution"));
     SetWindowTextW(pinyinSearch_, T(L"启用拼音搜索", L"Enable Pinyin search"));
-    SetWindowTextW(numericQuickLaunch_, T(L"Ctrl/Alt + 数字键快速执行结果", L"Quick launch with Ctrl/Alt + number"));
+    SetWindowTextW(numericQuickLaunch_, T(L"数字键快速执行结果", L"Quick launch with number keys"));
     SetWindowTextW(executeSingleResult_,
         T(L"仅剩一个结果时立即执行", L"Execute immediately when one result remains"));
 
@@ -6023,8 +6023,8 @@ void SettingsWindow::DrawGeneralToggle(
         break;
     case kIdNumericQuickLaunch:
         title =
-            T(L"Ctrl/Alt + 数字键快速执行结果",
-              L"Quick launch with Ctrl/Alt + number");
+            T(L"数字键快速执行结果",
+              L"Quick launch with number keys");
         break;
     case kIdExecuteSingleResult:
         title =
