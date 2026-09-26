@@ -111,7 +111,8 @@ int SearchEngine::WildcardMatchScore(
 }
 
 int SearchEngine::UsageScore(
-    const UsageStat* stat) {
+    const UsageStat* stat,
+    std::int64_t nowUnix) {
 
     if (stat == nullptr ||
         stat->launches == 0) {
@@ -129,15 +130,6 @@ int SearchEngine::UsageScore(
                     24.0));
 
     if (stat->lastUsedUnix > 0) {
-        const auto now =
-            std::chrono::system_clock::now();
-
-        const auto nowUnix =
-            std::chrono::duration_cast<
-                std::chrono::seconds>(
-                now.time_since_epoch())
-                .count();
-
         const auto age =
             std::max<std::int64_t>(
                 0,
@@ -880,6 +872,16 @@ SearchEngine::Search(
         IsPinyinQuery(
             normalizedQuery);
 
+    const std::int64_t nowUnix =
+        normalizedQuery.empty()
+            ? std::chrono::duration_cast<
+                  std::chrono::seconds>(
+                  std::chrono::system_clock::
+                      now()
+                      .time_since_epoch())
+                  .count()
+            : 0;
+
     for (std::size_t i = 0;
          i < commands.size();
          ++i) {
@@ -896,7 +898,9 @@ SearchEngine::Search(
 
         const int usageScore =
             normalizedQuery.empty()
-                ? UsageScore(stat)
+                ? UsageScore(
+                      stat,
+                      nowUnix)
                 : (explicitSyntax || allowTarget
                        ? 0
                        : IntentUsageScore(stat, normalizedQuery));
