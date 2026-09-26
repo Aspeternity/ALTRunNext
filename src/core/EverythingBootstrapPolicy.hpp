@@ -26,6 +26,9 @@ struct EverythingArchiveNames {
 [[nodiscard]] std::wstring_view
 PinnedManagedEverythingVersion() noexcept;
 
+[[nodiscard]] std::wstring_view
+EverythingStableUpdateMetadataUrl() noexcept;
+
 [[nodiscard]] EverythingPackageSpec
 ManagedEverythingPackage(
     EverythingPackageArchitecture architecture,
