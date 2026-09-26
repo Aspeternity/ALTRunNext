@@ -1608,7 +1608,8 @@ void LauncherWindow::RefreshResults(
 
     RebuildVisibleResults(
         immediateExecutionPending_,
-        preserveSelection);
+        preserveSelection,
+        query.empty());
 
     if (dynamicQueryPending_) {
         app_.BeginDynamicSearch(
@@ -1635,7 +1636,8 @@ void LauncherWindow::ApplyDynamicResults(
 
     RebuildVisibleResults(
         immediateExecutionPending_,
-        true);
+        true,
+        false);
 
     immediateExecutionPending_ =
         false;
@@ -2048,7 +2050,8 @@ HandleResultIconCompletions() {
 
 void LauncherWindow::RebuildVisibleResults(
     bool allowImmediateExecution,
-    bool preserveSelection) {
+    bool preserveSelection,
+    bool queryEmpty) {
     std::wstring selectedId;
     std::string selectedProvider;
 
@@ -2307,9 +2310,6 @@ void LauncherWindow::RebuildVisibleResults(
     }
 
     UpdatePreview();
-
-    const bool queryEmpty =
-        CurrentQuery().empty();
 
     if (classic_behavior::
             ShouldExecuteSingleResult(
