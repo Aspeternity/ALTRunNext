@@ -11,6 +11,7 @@ enum class EverythingBootstrapStage {
     Idle,
     Discovering,
     StartingExisting,
+    ResolvingStableVersion,
     DownloadingManifest,
     DownloadingPackage,
     VerifyingPackage,
@@ -110,6 +111,8 @@ struct EverythingBootstrapSnapshot {
     std::uint64_t totalBytes{0};
     std::uint32_t nativeError{0};
     std::filesystem::path executablePath;
+    std::wstring selectedVersion;
+    bool usedPinnedVersionFallback{false};
 };
 
 using EverythingBootstrapProgress =
