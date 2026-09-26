@@ -127,7 +127,8 @@ private:
         std::wstring_view cacheKey);
     void RebuildVisibleResults(
         bool allowImmediateExecution,
-        bool preserveSelection = true);
+        bool preserveSelection,
+        bool queryEmpty);
     void ExecuteSelection(
         LauncherExecutionIntent intent =
             LauncherExecutionIntent::Default);
