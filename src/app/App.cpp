@@ -868,11 +868,6 @@ std::vector<LauncherResult> App::Search(
                 : command.keyword;
         result.subtitle = command.title;
         result.target = command.target;
-        result.iconSource =
-            command.icon.empty() ||
-            command.icon == L"auto"
-                ? command.target
-                : command.icon;
         result.detail =
             CommandDetail(command);
         result.score = match.score;
@@ -2915,26 +2910,6 @@ void App::SetLanguage(Language language) {
     if (shortcutManagerWindow_) {
         shortcutManagerWindow_->ApplyLanguage();
     }
-}
-
-bool App::SetShowResultIcons(
-    bool enabled) {
-    if (!settingsStore_.SetShowResultIcons(
-            enabled)) {
-        return false;
-    }
-
-    if (window_) {
-        window_->
-            ApplyResultIconPreference();
-    }
-
-    if (settingsWindow_) {
-        settingsWindow_->
-            RefreshFromSettings();
-    }
-
-    return true;
 }
 
 bool App::SetStartWithWindows(bool enabled) {
