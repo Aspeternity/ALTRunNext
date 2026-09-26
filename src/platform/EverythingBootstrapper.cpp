@@ -3797,9 +3797,51 @@ RunEverythingBootstrap(
             progress);
     }
 
+    snapshot.selectedVersion =
+        std::wstring(
+            PinnedManagedEverythingVersion());
+    snapshot.usedPinnedVersionFallback =
+        true;
+
+    Report(
+        snapshot,
+        EverythingBootstrapStage::
+            ResolvingStableVersion,
+        progress);
+
+    std::string stableMetadata;
+    std::uint32_t stableMetadataError = 0;
+
+    if (DownloadText(
+            EverythingStableUpdateMetadataUrl(),
+            stableMetadata,
+            stableMetadataError,
+            stopToken)) {
+        if (const auto stableVersion =
+                ParseEverythingStableUpdateVersion(
+                    stableMetadata)) {
+            snapshot.selectedVersion =
+                *stableVersion;
+            snapshot.usedPinnedVersionFallback =
+                false;
+        }
+    } else if (
+        stopToken.stop_requested()) {
+        return Fail(
+            snapshot,
+            EverythingBootstrapFailure::
+                Cancelled,
+            ERROR_CANCELLED,
+            progress);
+    }
+
+    // Failure to resolve the online stable release is intentionally not a
+    // setup failure. The pinned build is a CI-validated known-good fallback;
+    // its package and official SHA-256 manifest are still verified below.
     const auto spec =
         ManagedEverythingPackage(
-            CurrentArchitecture());
+            CurrentArchitecture(),
+            snapshot.selectedVersion);
 
     const auto managedDirectory =
         managedExecutable.parent_path();
