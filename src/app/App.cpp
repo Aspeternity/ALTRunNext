@@ -1100,7 +1100,8 @@ App::EverythingBootstrapStatus() const {
 }
 
 bool App::StartEverythingBootstrap(
-    bool allowDownload) {
+    bool allowDownload,
+    bool forceManagedUpdate) {
     if (!providers::IsEnabled(
             settingsStore_.Data()
                 .providerEnabled,
@@ -1154,6 +1155,7 @@ bool App::StartEverythingBootstrap(
              dataDirectory,
              allowDownload,
              showManagedTrayIcon,
+             forceManagedUpdate,
              targetThread,
              generation](
                 std::stop_token stopToken) {
@@ -1174,7 +1176,111 @@ bool App::StartEverythingBootstrap(
                         allowDownload,
                         progress,
                         stopToken,
-                        showManagedTrayIcon);
+                        showManagedTrayIcon,
+                        forceManagedUpdate);
+
+                {
+                    std::scoped_lock lock(
+                        everythingBootstrapMutex_);
+                    everythingBootstrapStatus_ =
+                        result;
+                }
+
+                if (targetThread != 0) {
+                    PostThreadMessageW(
+                        targetThread,
+                        kEverythingBootstrapMessage,
+                        static_cast<WPARAM>(
+                            generation),
+                        0);
+                }
+            });
+
+    if (settingsWindow_) {
+        settingsWindow_->
+            OnDynamicProviderStatusChanged();
+    }
+
+    return true;
+}
+
+bool App::StartEverythingUpdateCheck() {
+    if (!providers::IsEnabled(
+            settingsStore_.Data()
+                .providerEnabled,
+            providers::
+                kEverythingFilesystem,
+            false)) {
+        return false;
+    }
+
+    const auto bootstrap =
+        EverythingBootstrapStatus();
+
+    if (bootstrap.running ||
+        (bootstrap.source !=
+             win::EverythingBootstrapSource::
+                 Managed &&
+         bootstrap.source !=
+             win::EverythingBootstrapSource::
+                 Downloaded)) {
+        return false;
+    }
+
+    if (everythingBootstrapThread_
+            .joinable()) {
+        everythingBootstrapThread_
+            .join();
+    }
+
+    {
+        std::scoped_lock lock(
+            everythingBootstrapMutex_);
+
+        everythingBootstrapStatus_
+            .stage =
+            win::EverythingBootstrapStage::
+                ResolvingStableVersion;
+        everythingBootstrapStatus_
+            .running = true;
+        everythingBootstrapStatus_
+            .failure =
+            win::EverythingBootstrapFailure::
+                None;
+        everythingBootstrapStatus_
+            .nativeError = 0;
+    }
+
+    const auto dataDirectory =
+        dataDirectory_;
+    const DWORD targetThread =
+        uiThreadId_;
+    const std::uint64_t generation =
+        ++everythingBootstrapGeneration_;
+
+    everythingBootstrapThread_ =
+        std::jthread(
+            [this,
+             dataDirectory,
+             targetThread,
+             generation](
+                std::stop_token stopToken) {
+                const auto progress =
+                    [this](
+                        const win::
+                            EverythingBootstrapSnapshot&
+                                snapshot) {
+                        std::scoped_lock lock(
+                            everythingBootstrapMutex_);
+                        everythingBootstrapStatus_ =
+                            snapshot;
+                    };
+
+                const auto result =
+                    win::CheckManagedEverythingUpdate(
+                        dataDirectory,
+                        progress,
+                        stopToken);
 
                 {
                     std::scoped_lock lock(
