@@ -138,18 +138,97 @@ CurrentArchitecture() {
 #endif
 }
 
-[[nodiscard]] std::wstring
-VersionDirectoryName() {
-    const auto spec =
-        ManagedEverythingPackage(
-            CurrentArchitecture());
+[[nodiscard]] std::wstring_view
+ArchitectureDirectorySuffix() {
+    return CurrentArchitecture() ==
+            EverythingPackageArchitecture::
+                Arm64
+        ? L"-ARM64"
+        : L"-x64";
+}
 
-    return spec.version +
-        (CurrentArchitecture() ==
-                 EverythingPackageArchitecture::
-                     Arm64
-             ? L"-ARM64"
-             : L"-x64");
+[[nodiscard]] std::wstring
+VersionDirectoryName(
+    std::wstring_view version) {
+    return std::wstring(version) +
+        std::wstring(
+            ArchitectureDirectorySuffix());
+}
+
+[[nodiscard]] bool
+IsNumericEverythingVersion(
+    std::wstring_view version) {
+    int components = 0;
+    bool hasDigit = false;
+
+    for (const wchar_t ch : version) {
+        if (ch >= L'0' &&
+            ch <= L'9') {
+            hasDigit = true;
+            continue;
+        }
+
+        if (ch != L'.' ||
+            !hasDigit) {
+            return false;
+        }
+
+        ++components;
+        hasDigit = false;
+    }
+
+    return hasDigit &&
+        components == 3;
+}
+
+[[nodiscard]] std::optional<std::wstring>
+VersionFromManagedExecutablePath(
+    const std::filesystem::path& executable) {
+    std::wstring fileName =
+        executable.filename().wstring();
+
+    std::transform(
+        fileName.begin(),
+        fileName.end(),
+        fileName.begin(),
+        [](wchar_t ch) {
+            return static_cast<wchar_t>(
+                std::towlower(ch));
+        });
+
+    if (fileName !=
+        L"everything.exe") {
+        return std::nullopt;
+    }
+
+    const std::wstring directory =
+        executable.parent_path()
+            .filename()
+            .wstring();
+    const std::wstring suffix(
+        ArchitectureDirectorySuffix());
+
+    if (directory.size() <=
+            suffix.size() ||
+        directory.substr(
+            directory.size() -
+                suffix.size()) !=
+            suffix) {
+        return std::nullopt;
+    }
+
+    std::wstring version =
+        directory.substr(
+            0,
+            directory.size() -
+                suffix.size());
+
+    if (!IsNumericEverythingVersion(
+            version)) {
+        return std::nullopt;
+    }
+
+    return version;
 }
 
 void Report(
