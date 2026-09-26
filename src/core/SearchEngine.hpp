@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -43,7 +44,7 @@ public:
 
     [[nodiscard]]
     std::vector<SearchResult> Search(
-        const std::vector<Command>& commands,
+        std::span<const Command> commands,
         const UsageMap& usage,
         std::wstring_view query,
         std::size_t limit = 12,
@@ -113,7 +114,7 @@ private:
     CommandTextScore(
         const Command& command,
         std::wstring_view normalizedQuery,
-        bool allowPinyin,
+        bool usePinyin,
         bool allowTarget) const;
 
     [[nodiscard]] static relevance::Match
@@ -124,12 +125,16 @@ private:
     [[nodiscard]] static bool
     HasDistinctiveCatalogIntent(
         const Command& command,
-        std::wstring_view query);
+        std::wstring_view normalizedQuery,
+        std::span<const std::wstring>
+            normalizedQueryTokens);
 
     [[nodiscard]] static bool
     AdmitCatalogEntry(
         const Command& command,
-        std::wstring_view query,
+        std::wstring_view normalizedQuery,
+        std::span<const std::wstring>
+            normalizedQueryTokens,
         const relevance::Match& match,
         bool explicitSyntax);
 
