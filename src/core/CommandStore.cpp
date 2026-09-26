@@ -1,5 +1,7 @@
 #include "CommandStore.hpp"
 
+#include "CommandTemplate.hpp"
+
 #include <chrono>
 #include <optional>
 #include <utility>
@@ -435,6 +437,18 @@ bool CommandStore::ExportUserCommands(
 
 void CommandStore::RebuildMergedCommands(
     const ProviderCacheData& cache) {
+    const auto& userCommands =
+        userCommandStore_.Commands();
+
+    hasContextFolderTemplates_ =
+        std::any_of(
+            userCommands.begin(),
+            userCommands.end(),
+            [](const Command& command) {
+                return UsesFolderTemplate(
+                    command);
+            });
+
     // Provider cache Commands are intentionally transient. The supplied
     // snapshot is merged and published as one synchronous command vector;
     // callers never expose a provider-by-provider intermediate state.
