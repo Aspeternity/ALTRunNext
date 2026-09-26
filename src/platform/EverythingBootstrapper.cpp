@@ -3698,6 +3698,101 @@ StopManagedEverything(
 }
 
 EverythingBootstrapSnapshot
+CheckManagedEverythingUpdate(
+    const std::filesystem::path& dataDirectory,
+    EverythingBootstrapProgress progress,
+    std::stop_token stopToken) {
+    EverythingBootstrapSnapshot snapshot;
+    snapshot.running = true;
+    snapshot.source =
+        EverythingBootstrapSource::
+            Managed;
+    snapshot.executablePath =
+        ManagedEverythingExecutable(
+            dataDirectory);
+
+    if (!FileExists(
+            snapshot.executablePath)) {
+        return NeedsInstall(
+            snapshot,
+            EverythingBootstrapFailure::
+                NotFound,
+            progress);
+    }
+
+    if (const auto version =
+            VersionFromManagedExecutablePath(
+                snapshot.executablePath)) {
+        snapshot.installedVersion =
+            *version;
+    }
+
+    Report(
+        snapshot,
+        EverythingBootstrapStage::
+            ResolvingStableVersion,
+        progress);
+
+    std::string metadata;
+    std::uint32_t nativeError = 0;
+
+    if (!DownloadText(
+            EverythingStableUpdateMetadataUrl(),
+            metadata,
+            nativeError,
+            stopToken)) {
+        return Fail(
+            snapshot,
+            stopToken.stop_requested()
+                ? EverythingBootstrapFailure::
+                      Cancelled
+                : EverythingBootstrapFailure::
+                      ManifestDownloadFailed,
+            stopToken.stop_requested()
+                ? ERROR_CANCELLED
+                : nativeError,
+            progress);
+    }
+
+    const auto stableVersion =
+        ParseEverythingStableUpdateVersion(
+            metadata);
+
+    if (!stableVersion) {
+        return Fail(
+            snapshot,
+            EverythingBootstrapFailure::
+                ManifestDownloadFailed,
+            ERROR_INVALID_DATA,
+            progress);
+    }
+
+    snapshot.selectedVersion =
+        *stableVersion;
+    snapshot.availableVersion =
+        *stableVersion;
+    snapshot.usedPinnedVersionFallback =
+        false;
+    snapshot.updateAvailable =
+        snapshot.installedVersion.empty() ||
+        CompareEverythingVersions(
+            snapshot.availableVersion,
+            snapshot.installedVersion) > 0;
+    snapshot.stage =
+        EverythingBootstrapStage::Ready;
+    snapshot.failure =
+        EverythingBootstrapFailure::None;
+    snapshot.nativeError = 0;
+    snapshot.running = false;
+
+    if (progress) {
+        progress(snapshot);
+    }
+
+    return snapshot;
+}
+
+EverythingBootstrapSnapshot
 RunEverythingBootstrap(
     const std::filesystem::path& dataDirectory,
     bool allowDownload,
