@@ -3840,6 +3840,19 @@ RunEverythingBootstrap(
 
             switch (outcome.result) {
             case ManagedRuntimeResult::Ready:
+                if (const auto version =
+                        VersionFromManagedExecutablePath(
+                            executable)) {
+                    snapshot.installedVersion =
+                        *version;
+                }
+
+                snapshot.updateAvailable =
+                    !snapshot.availableVersion.empty() &&
+                    !snapshot.installedVersion.empty() &&
+                    CompareEverythingVersions(
+                        snapshot.availableVersion,
+                        snapshot.installedVersion) > 0;
                 snapshot.stage =
                     EverythingBootstrapStage::
                         Ready;
