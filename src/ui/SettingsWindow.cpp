@@ -2699,6 +2699,11 @@ void SettingsWindow::RefreshProviderStatus() {
                 text +=
                     bootstrap.availableVersion;
             } else if (
+                bootstrap.usedPinnedVersionFallback) {
+                text +=
+                    T(L" · 当前无法检查最新版本",
+                      L" · latest version could not be checked");
+            } else if (
                 !bootstrap.availableVersion.empty() &&
                 bootstrap.stage ==
                     win::EverythingBootstrapStage::
