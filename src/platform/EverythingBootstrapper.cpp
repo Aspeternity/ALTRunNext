@@ -1768,6 +1768,7 @@ struct ManagedRuntimeOutcome {
 
 [[nodiscard]] ManagedRuntimeOutcome
 StartManagedEverything(
+    const std::filesystem::path& dataDirectory,
     const std::filesystem::path& executable,
     bool allowElevation,
     bool showTrayIcon,
@@ -1852,9 +1853,20 @@ StartManagedEverything(
 
         servicePathStale =
             !serviceExecutableExists;
+
+        const bool olderManagedPath =
+            IsManagedEverythingServiceExecutable(
+                dataDirectory,
+                serviceExecutable) &&
+            LowerPath(
+                serviceExecutable) !=
+                LowerPath(
+                    executable);
+
         servicePathNeedsPortableRepair =
             DetachedAlpha91ServiceExecutable(
-                serviceExecutable);
+                serviceExecutable) ||
+            olderManagedPath;
     }
 
     const bool servicePathNeedsRepair =
@@ -3712,6 +3724,7 @@ RunEverythingBootstrap(
 
             const auto outcome =
                 StartManagedEverything(
+                    dataDirectory,
                     executable,
                     allowElevation,
                     showManagedTrayIcon,
