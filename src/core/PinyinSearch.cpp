@@ -7,6 +7,7 @@
 #include <atomic>
 #include <cctype>
 #include <cstdint>
+#include <functional>
 #include <mutex>
 #include <unordered_map>
 #include <utility>
@@ -14,6 +15,26 @@
 namespace altrun {
 
 namespace {
+
+struct TransparentWideStringHash {
+    using is_transparent = void;
+
+    [[nodiscard]] std::size_t operator()(
+        std::wstring_view value) const noexcept {
+        return std::hash<std::wstring_view>{}(
+            value);
+    }
+};
+
+struct TransparentWideStringEqual {
+    using is_transparent = void;
+
+    [[nodiscard]] bool operator()(
+        std::wstring_view left,
+        std::wstring_view right) const noexcept {
+        return left == right;
+    }
+};
 
 bool ContainsSupportedHanzi(std::wstring_view text) {
     return std::any_of(
@@ -234,14 +255,12 @@ void AppendAsciiForms(
     }
 
     for (const auto& word : words) {
-        const std::wstring normalized =
+        std::wstring normalized =
             NormalizeAsciiPiece(word);
 
         if (normalized.empty()) {
             continue;
         }
-
-        forms.syllables.push_back(normalized);
 
         if (IsShortUpperAcronym(word)) {
             forms.initials += normalized;
@@ -249,6 +268,9 @@ void AppendAsciiForms(
             forms.initials.push_back(
                 normalized.front());
         }
+
+        forms.syllables.push_back(
+            std::move(normalized));
     }
 }
 
@@ -275,7 +297,7 @@ PinyinForms BuildForms(
             continue;
         }
 
-        const std::wstring normalized =
+        std::wstring normalized =
             NormalizeAsciiPiece(
                 item.pinyin);
 
@@ -287,7 +309,7 @@ PinyinForms BuildForms(
         forms.initials.push_back(
             normalized.front());
         forms.syllables.push_back(
-            normalized);
+            std::move(normalized));
     }
 
     return forms;
@@ -413,7 +435,10 @@ struct PinyinSearch::Impl {
     mutable std::uint64_t cacheTick{0};
     mutable std::unordered_map<
         std::wstring,
-        CacheEntry> cache;
+        CacheEntry,
+        TransparentWideStringHash,
+        TransparentWideStringEqual>
+        cache;
 };
 
 PinyinSearch::PinyinSearch(
@@ -511,10 +536,8 @@ const PinyinForms* PinyinSearch::FormsFor(
         return nullptr;
     }
 
-    std::wstring key(text);
-
     const auto existing =
-        impl_->cache.find(key);
+        impl_->cache.find(text);
 
     if (existing != impl_->cache.end()) {
         existing->second.lastUse =
@@ -568,7 +591,7 @@ const PinyinForms* PinyinSearch::FormsFor(
 
     const auto [it, inserted] =
         impl_->cache.emplace(
-            std::move(key),
+            std::wstring(text),
             std::move(entry));
 
     (void) inserted;
