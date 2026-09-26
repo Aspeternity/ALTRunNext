@@ -2979,10 +2979,16 @@ IsManagedEverythingServiceExecutable(
         return false;
     }
 
-    return LowerPath(executable) ==
-            LowerPath(
-                ManagedEverythingExecutable(
-                    dataDirectory)) ||
+    const bool versionedManaged =
+        PathStartsWithDirectory(
+            executable,
+            ManagedEverythingRoot(
+                dataDirectory)) &&
+        VersionFromManagedExecutablePath(
+            executable)
+            .has_value();
+
+    return versionedManaged ||
         DetachedAlpha91ServiceExecutable(
             executable);
 }
