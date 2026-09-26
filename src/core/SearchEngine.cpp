@@ -311,8 +311,14 @@ int SearchEngine::HybridPinyinPrefixScore(
         std::numeric_limits<int>::min() /
         4;
 
+    const std::size_t stateCount =
+        normalizedQuery.size() + 1;
+
     std::vector<int> states(
-        normalizedQuery.size() + 1,
+        stateCount,
+        kImpossible);
+    std::vector<int> next(
+        stateCount,
         kImpossible);
 
     states[0] = 0;
@@ -326,8 +332,9 @@ int SearchEngine::HybridPinyinPrefixScore(
             continue;
         }
 
-        std::vector<int> next(
-            normalizedQuery.size() + 1,
+        std::fill(
+            next.begin(),
+            next.end(),
             kImpossible);
 
         for (std::size_t pos = 0;
@@ -395,7 +402,7 @@ int SearchEngine::HybridPinyinPrefixScore(
             }
         }
 
-        states = std::move(next);
+        states.swap(next);
 
         if (states[
                 normalizedQuery.size()] !=
