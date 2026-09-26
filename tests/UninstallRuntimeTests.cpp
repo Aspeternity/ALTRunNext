@@ -91,7 +91,6 @@ int main() {
         RemovalFailure failure;
         assert(RemoveAllWithRetry(junction, failure));
         assert(std::filesystem::exists(sentinel));
-        // A dangling junction is removed too, without following its target.
     }
     RemovalFailure failure;
     assert(RemoveAllWithRetry(base, failure));

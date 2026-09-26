@@ -828,17 +828,13 @@ StopAndDeleteOwnedEverythingService(
         OpenServiceW(
             manager.value,
             kEverythingService,
-            SERVICE_QUERY_CONFIG |
-                SERVICE_QUERY_STATUS |
-                SERVICE_STOP |
-                DELETE);
+            SERVICE_QUERY_CONFIG);
 
     if (!service.value) {
         const DWORD error =
             GetLastError();
 
-        if (error ==
-            ERROR_SERVICE_DOES_NOT_EXIST) {
+        if (error == ERROR_SERVICE_DOES_NOT_EXIST || error == ERROR_SERVICE_MARKED_FOR_DELETE) {
             return result;
         }
 
@@ -884,8 +880,25 @@ StopAndDeleteOwnedEverythingService(
         return result;
     }
 
-    result.detachedAlpha91 =
-        ownedDetached;
+    result.detachedAlpha91 = ownedDetached;
+    ServiceHandle controlled;
+    controlled.value = OpenServiceW(manager.value, kEverythingService,
+        SERVICE_QUERY_CONFIG | SERVICE_QUERY_STATUS | SERVICE_STOP | DELETE);
+    if (!controlled.value) {
+        const DWORD error = GetLastError();
+        if (error == ERROR_SERVICE_MARKED_FOR_DELETE || error == ERROR_SERVICE_DOES_NOT_EXIST) return result;
+        result.success = false;
+        result.error = error;
+        return result;
+    }
+    std::filesystem::path controlledExecutable;
+    if (!QueryEverythingServiceExecutable(controlled.value, controlledExecutable) ||
+        LowerPath(controlledExecutable) != LowerPath(serviceExecutable)) {
+        result.success = false;
+        result.error = ERROR_RETRY;
+        return result;
+    }
+    std::swap(service.value, controlled.value);
 
     SERVICE_STATUS_PROCESS status{};
     DWORD bytes = 0;

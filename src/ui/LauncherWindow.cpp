@@ -1360,6 +1360,8 @@ void LauncherWindow::Show() {
     const bool wasVisible = IsWindowVisible(hwnd_) != FALSE;
     CancelPendingNumericIntent();
     lastTextInputTick_ = 0;
+    consumedNumericVirtualKey_ = 0;
+    consumedNumericChar_ = 0;
 
     // Do not carry an interrupted IME composition across launcher hides.
     imeComposing_ = false;
@@ -3203,7 +3205,8 @@ LRESULT LauncherWindow::HandleEditMessage(
             DWORD selectionStart = 0, selectionEnd = 0;
             SendMessageW(edit_, EM_GETSEL, reinterpret_cast<WPARAM>(&selectionStart),
                 reinterpret_cast<LPARAM>(&selectionEnd));
-            context.editingText = selectionStart != selectionEnd || selectionEnd != query.size();
+            context.editingText = selectionStart != selectionEnd || selectionEnd != query.size() ||
+                relevance::HasExplicitSyntax(query) || query.find_first_of(L"|!<>\"") != std::wstring::npos;
 
             const auto decision =
                 classic_behavior::
