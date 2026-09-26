@@ -2080,38 +2080,39 @@ BeginUninstall() {
         return 11;
     }
 
-    const int confirm =
-        altrun::ui::ShowMessage(
-            nullptr,
-            ChineseUi()
-                ? L"将卸载 ALTRun Next，并移除由 ALTRun Next 安装的 Everything 客户端及 Windows Service。\n\n你自己安装的外部 Everything 不会被修改。\n\n是否继续？"
-                : L"This will uninstall ALTRun Next and remove the Everything client and Windows Service installed by ALTRun Next.\n\nExternal Everything installations are not modified.\n\nContinue?",
-            L"卸载 ALTRun Next / Uninstall ALTRun Next",
-            MB_YESNO |
-                MB_ICONWARNING |
-                MB_DEFBUTTON2);
+    const bool chinese =
+        ChineseUi();
 
-    if (confirm != IDYES) {
+    if (!altrun::ui::
+             ConfirmApplicationUninstall(
+                 nullptr,
+                 chinese)) {
         return 0;
     }
 
-    const int dataChoice =
-        altrun::ui::ShowMessage(
+    const auto dataChoice =
+        altrun::ui::ChooseUninstallData(
             nullptr,
-            ChineseUi()
-                ? L"是否同时删除设置、快捷词、使用记录等用户数据？\n\n“是” = 全部删除\n“否” = 保留 data 用户数据\n“取消” = 退出卸载"
-                : L"Also delete settings, shortcuts, usage history and other user data?\n\nYes = delete everything\nNo = preserve user data in data\nCancel = stop uninstalling",
-            L"用户数据 / User data",
-            MB_YESNOCANCEL |
-                MB_ICONQUESTION |
-                MB_DEFBUTTON2);
+            chinese);
 
-    if (dataChoice == IDCANCEL) {
+    if (dataChoice ==
+        altrun::ui::
+            UninstallDataChoice::Cancel) {
         return 0;
     }
 
     const bool deleteData =
-        dataChoice == IDYES;
+        dataChoice ==
+        altrun::ui::
+            UninstallDataChoice::Delete;
+
+    if (deleteData &&
+        !altrun::ui::
+             ConfirmPermanentUserDataDeletion(
+                 nullptr,
+                 chinese)) {
+        return 0;
+    }
 
     std::array<wchar_t, 32768>
         tempPath{};
