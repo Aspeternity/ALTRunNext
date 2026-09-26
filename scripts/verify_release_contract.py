@@ -524,6 +524,13 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
         if "GrantForegroundToWindow(target)" not in app_cpp:
             fail("alpha.5.48 external shortcut forwarding must grant foreground permission")
         runtime_tests = read("tests/WindowPresentationRuntimeTests.cpp")
+        result_ranking_tests = read("tests/ResultRankingTests.cpp")
+        launcher_cpp = read("src/ui/LauncherWindow.cpp")
+        launcher_hpp = read("src/ui/LauncherWindow.hpp")
+        settings_cpp = read("src/core/Settings.cpp")
+        settings_hpp = read("src/core/Settings.hpp")
+        settings_window_cpp = read("src/ui/SettingsWindow.cpp")
+        cmake = read("CMakeLists.txt")
         for token in ("settings.Create()", "!IsWindowVisible(window)",
                       "HasAboutHeading(window)", "ShortcutEditorDialog::ShowNew"):
             if token not in runtime_tests:
@@ -611,6 +618,42 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.
         ):
             if token not in runtime_tests:
                 fail(f"alpha.5.49 resource lifecycle soak missing: {token}")
+
+        for token in (
+            'L"系统男主"',
+            'L"男主"',
+            "MatchKind::Substring",
+        ):
+            if token not in result_ranking_tests:
+                fail(f"alpha.5.49 CJK Everything substring regression missing: {token}")
+
+        icon_surface = (
+            app_cpp +
+            launcher_cpp +
+            launcher_hpp +
+            settings_cpp +
+            settings_hpp +
+            settings_window_cpp +
+            cmake
+        )
+        for forbidden in (
+            "showResultIcons",
+            "SetShowResultIcons",
+            "ResultIconPipeline",
+            "ResultIconWorkerLoop",
+            "result_icon_pipeline_tests",
+            "kIconReadyMessage",
+        ):
+            if forbidden in icon_surface:
+                fail(f"alpha.5.49 removed result-icon feature survived: {forbidden}")
+
+        for removed in (
+            "src/core/ResultIconPipeline.cpp",
+            "src/core/ResultIconPipeline.hpp",
+            "tests/ResultIconPipelineTests.cpp",
+        ):
+            if (ROOT / removed).exists():
+                fail(f"alpha.5.49 obsolete result-icon file remains: {removed}")
 
         if '"0.8.0-alpha.5.49"' not in update_tests:
             fail("alpha.5.49 update ordering/default coverage missing")
