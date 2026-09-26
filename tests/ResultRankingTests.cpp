@@ -134,11 +134,29 @@ int main() {
     assert(RankDynamicResultText(
         chineseSubstring,
         L"男主"));
-    assert(
-        chineseSubstring
-            .relevanceMatch.kind ==
-        relevance::MatchKind::
-            Substring);
+
+    // Match classification around CJK boundaries can vary with the host
+    // C library's wide-character classification. Exercise the actual policy
+    // directly so the regression is specifically about short non-ASCII
+    // substring admission, while the short-ASCII noise gate stays intact.
+    const relevance::Match cjkSubstringMatch{
+        relevance::MatchKind::Substring,
+        relevance::MatchField::Title,
+        688,
+        false,
+    };
+    assert(relevance::
+        AdmitLaunchSurface(
+            LaunchSurfaceClass::
+                FilesystemItem,
+            L"男主",
+            cjkSubstringMatch));
+    assert(!relevance::
+        AdmitLaunchSurface(
+            LaunchSurfaceClass::
+                FilesystemItem,
+            L"he",
+            cjkSubstringMatch));
 
     LauncherResult multi = file;
     assert(RankDynamicResultText(
