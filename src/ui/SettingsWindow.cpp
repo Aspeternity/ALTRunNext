@@ -921,6 +921,10 @@ void SettingsWindow::CreateProviderPage() {
         CreateButton(
             L"",
             kIdProviderGetEverything);
+    providerUpdateEverything_ =
+        CreateButton(
+            L"",
+            kIdProviderUpdateEverything);
     providerRecheckEverything_ =
         CreateButton(
             L"",
@@ -942,6 +946,7 @@ void SettingsWindow::CreateProviderPage() {
         managedEverythingTrayIcon_,
         providerStatus_,
         providerGetEverything_,
+        providerUpdateEverything_,
         providerRecheckEverything_,
         providerNote_,
     };
@@ -1494,6 +1499,10 @@ void SettingsWindow::ApplyLanguage() {
         providerGetEverything_,
         T(L"获取并启动 Everything",
           L"Get and start Everything"));
+    SetWindowTextW(
+        providerUpdateEverything_,
+        T(L"检查更新",
+          L"Check for updates"));
     SetWindowTextW(
         providerRecheckEverything_,
         T(L"重新检测",
@@ -2750,6 +2759,26 @@ void SettingsWindow::AcquireEverything() {
 
 void SettingsWindow::RecheckEverything() {
     app_.StartEverythingBootstrap(false);
+    RefreshProviderStatus();
+}
+
+void SettingsWindow::
+CheckOrUpdateEverything() {
+    const auto bootstrap =
+        app_.EverythingBootstrapStatus();
+
+    if (bootstrap.running) {
+        return;
+    }
+
+    if (bootstrap.updateAvailable) {
+        app_.StartEverythingBootstrap(
+            true,
+            true);
+    } else {
+        app_.StartEverythingUpdateCheck();
+    }
+
     RefreshProviderStatus();
 }
 
@@ -4655,6 +4684,14 @@ void SettingsWindow::Layout() {
 
         MoveWindow(
             providerGetEverything_,
+            contentLeft + Scale(18),
+            filesTop + Scale(166),
+            Scale(210),
+            Scale(34),
+            TRUE);
+
+        MoveWindow(
+            providerUpdateEverything_,
             contentLeft + Scale(18),
             filesTop + Scale(166),
             Scale(210),
@@ -7189,6 +7226,12 @@ LRESULT SettingsWindow::HandleMessage(
         case kIdProviderRecheckEverything:
             if (notify == BN_CLICKED) {
                 RecheckEverything();
+            }
+            return 0;
+
+        case kIdProviderUpdateEverything:
+            if (notify == BN_CLICKED) {
+                CheckOrUpdateEverything();
             }
             return 0;
 
