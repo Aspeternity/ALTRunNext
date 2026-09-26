@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0-alpha.5.46
+
+- Simplify the native tray menu to Show launcher, Shortcut Manager…, Settings…, About and Exit; remove Reload and group management entries together.
+- Make Show launcher the native default menu item and display the effective enabled hotkeys for Show launcher, Shortcut Manager and Settings.
+- Default Start with Windows, Add to Send To menu and Numeric quick launch to on for fresh settings and Restore defaults.
+- Preserve existing persisted user choices and the historical off baseline when upgrading older settings that did not yet carry these fields.
+- Keep Settings schema 11, Commands 2, Usage 2 and Provider Cache 22; Windows fixed version `0.8.0.216`.
+
 ## 0.8.0-alpha.5.45
 
 - Set the explicit process AppUserModelID to `Aspeternity.ALTRunNext` so portable shell-facing surfaces share one stable product identity.

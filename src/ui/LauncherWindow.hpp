@@ -60,7 +60,6 @@ private:
     static constexpr UINT_PTR
         kNumericIntentTimerId = 0xA176;
     static constexpr UINT kMenuShow = 40001;
-    static constexpr UINT kMenuReload = 40002;
     static constexpr UINT kMenuSettings = 40003;
     static constexpr UINT kMenuShortcuts = 40004;
     static constexpr UINT kMenuAbout = 40005;

@@ -31,12 +31,12 @@ struct Settings {
     Language language{Language::ZhCN};
     bool showResultIcons{false};
 
-    bool startWithWindows{false};
+    bool startWithWindows{true};
     StartupBehavior startupBehavior{
         StartupBehavior::Notification};
     bool showTrayIcon{true};
     bool soundEnabled{true};
-    bool addToSendToMenu{false};
+    bool addToSendToMenu{true};
     std::string popupMonitor{"cursor"};
     std::string launcherPlacement{"top"};
     std::string settingsPlacement{"center"};
@@ -66,7 +66,7 @@ struct Settings {
         DefaultHotkeyBindings()};
 
     bool pinyinSearch{true};
-    bool numericQuickLaunch{false};
+    bool numericQuickLaunch{true};
     bool executeSingleResultImmediately{false};
 
     ProviderEnableMap providerEnabled{

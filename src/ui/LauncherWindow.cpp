@@ -49,6 +49,52 @@ void InitializeTrayIconIdentity(
         app_identity::kTrayIconGuid;
 }
 
+[[nodiscard]] std::wstring
+FormatTrayHotkey(
+    const HotkeyBinding& binding) {
+
+    if (!binding.enabled ||
+        binding.key.empty()) {
+        return {};
+    }
+
+    std::wstring result;
+
+    const auto append =
+        [&](std::wstring_view text) {
+            if (!result.empty()) {
+                result += L"+";
+            }
+            result += text;
+        };
+
+    for (const auto& modifier :
+         binding.modifiers) {
+        if (modifier == "ctrl") {
+            append(L"Ctrl");
+        } else if (modifier == "alt") {
+            append(L"Alt");
+        } else if (modifier == "shift") {
+            append(L"Shift");
+        } else if (modifier == "win") {
+            append(L"Win");
+        }
+    }
+
+    const UINT key =
+        hotkey::KeyFromName(
+            binding.key);
+
+    append(
+        key != 0
+            ? hotkey::KeyDisplayName(key)
+            : std::wstring(
+                  binding.key.begin(),
+                  binding.key.end()));
+
+    return result;
+}
+
 constexpr DWORD kDwmWindowCornerPreference = 33;
 constexpr int kDwmDoNotRound = 1;
 constexpr int kDwmRound = 2;
@@ -3287,26 +3333,60 @@ void LauncherWindow::ShowResultContextMenu(
 
 void LauncherWindow::ShowTrayMenu(POINT point) {
     HMENU menu = CreatePopupMenu();
+    if (!menu) {
+        return;
+    }
 
     const bool zh =
         app_.SettingsData().language ==
         Language::ZhCN;
 
-    AppendMenuW(
-        menu,
-        MF_STRING,
-        kMenuShow,
-        zh
-            ? L"显示主界面"
-            : L"Show launcher");
+    const auto itemText =
+        [&](std::wstring_view zhText,
+            std::wstring_view enText,
+            std::string_view actionId) {
+
+            std::wstring text(
+                zh ? zhText : enText);
+
+            const auto binding =
+                EffectiveHotkeyBinding(
+                    app_.SettingsData()
+                        .hotkeyBindings,
+                    actionId);
+
+            if (binding.enabled &&
+                app_.IsHotkeyActionRegistered(
+                    actionId)) {
+                const auto hotkey =
+                    FormatTrayHotkey(
+                        binding);
+
+                if (!hotkey.empty()) {
+                    text += L"\t";
+                    text += hotkey;
+                }
+            }
+
+            return text;
+        };
+
+    const auto showText =
+        itemText(
+            L"显示主界面",
+            L"Show launcher",
+            hotkey_actions::kActivate);
 
     AppendMenuW(
         menu,
         MF_STRING,
-        kMenuShortcuts,
-        zh
-            ? L"快捷项管理..."
-            : L"Shortcut Manager...");
+        kMenuShow,
+        showText.c_str());
+
+    SetMenuDefaultItem(
+        menu,
+        kMenuShow,
+        FALSE);
 
     AppendMenuW(
         menu,
@@ -3314,21 +3394,30 @@ void LauncherWindow::ShowTrayMenu(POINT point) {
         0,
         nullptr);
 
-    AppendMenuW(
-        menu,
-        MF_STRING,
-        kMenuSettings,
-        zh
-            ? L"设置...\tF2"
-            : L"Settings...\tF2");
+    const auto shortcutsText =
+        itemText(
+            L"快捷项管理…",
+            L"Shortcut Manager…",
+            hotkey_actions::
+                kOpenShortcutManager);
 
     AppendMenuW(
         menu,
         MF_STRING,
-        kMenuReload,
-        zh
-            ? L"重新加载"
-            : L"Reload");
+        kMenuShortcuts,
+        shortcutsText.c_str());
+
+    const auto settingsText =
+        itemText(
+            L"设置…",
+            L"Settings…",
+            hotkey_actions::kOpenSettings);
+
+    AppendMenuW(
+        menu,
+        MF_STRING,
+        kMenuSettings,
+        settingsText.c_str());
 
     AppendMenuW(
         menu,
@@ -3341,8 +3430,8 @@ void LauncherWindow::ShowTrayMenu(POINT point) {
         MF_STRING,
         kMenuAbout,
         zh
-            ? L"关于..."
-            : L"About...");
+            ? L"关于"
+            : L"About");
 
     AppendMenuW(
         menu,
@@ -3804,9 +3893,6 @@ LRESULT LauncherWindow::HandleMessage(
         switch (LOWORD(wParam)) {
         case kMenuShow:
             Show();
-            return 0;
-        case kMenuReload:
-            app_.ReloadCommands();
             return 0;
         case kMenuShortcuts:
             Hide();

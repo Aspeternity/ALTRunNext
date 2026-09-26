@@ -42,12 +42,12 @@ channel = match.group(4)
 
 
 
-if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45"):
+if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45", "0.8.0-alpha.5.46"):
     import hashlib
     import subprocess
 
     expected_schemas = {
-        "kSettingsSchemaVersion": 11 if version.endswith((".44", ".45")) else 10,
+        "kSettingsSchemaVersion": 11 if version.endswith((".44", ".45", ".46")) else 10,
         "kCommandsSchemaVersion": 2,
         "kUsageSchemaVersion": 2,
     }
@@ -159,7 +159,8 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45"):
             fail(f"v0.8 alpha.5.43 Provider Cache regression missing: {token}")
 
     fixed_revision = (
-        "215" if version.endswith(".45")
+        "216" if version.endswith(".46")
+        else "215" if version.endswith(".45")
         else "214" if version.endswith(".44")
         else "213"
     )
@@ -235,7 +236,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45"):
         if git_blob_sha(asset_path) != expected:
             fail(f"v0.8 alpha.5.43 frozen Classic asset changed: {asset_path}")
 
-    if version.endswith((".44", ".45")):
+    if version.endswith((".44", ".45", ".46")):
         if json.loads(read("config/settings.example.json"))["schemaVersion"] != 11:
             fail("sound settings sample must use schema 11")
         for path in ("src/app/App.cpp", "src/ui/LauncherWindow.cpp", "src/ui/SettingsWindow.cpp",
@@ -247,7 +248,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45"):
             if "0.8.0-alpha.5.44" not in read(path):
                 fail(f"missing alpha.5.44 release documentation: {path}")
 
-    if version.endswith(".45"):
+    if version.endswith((".45", ".46")):
         identity = read("src/platform/AppIdentity.hpp")
         launcher = read("src/ui/LauncherWindow.cpp")
         launcher_hpp = read("src/ui/LauncherWindow.hpp")
@@ -331,6 +332,86 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45"):
             window_source = read(path)
             if "AppIcon.hpp" not in window_source or "LoadApplicationIcon(" not in window_source:
                 fail(f"alpha.5.45 top-level window is not using original ALTRun icon: {path}")
+
+    if version.endswith(".46"):
+        launcher = read("src/ui/LauncherWindow.cpp")
+        launcher_hpp = read("src/ui/LauncherWindow.hpp")
+        settings_hpp = read("src/core/Settings.hpp")
+        settings_cpp = read("src/core/Settings.cpp")
+        app_cpp = read("src/app/App.cpp")
+        settings_example = json.loads(read("config/settings.example.json"))
+
+        for token in (
+            'L"显示主界面"',
+            'L"快捷项管理…"',
+            'L"设置…"',
+            'L"关于"',
+            "SetMenuDefaultItem(",
+            "FormatTrayHotkey(",
+            "kActivate",
+            "kOpenShortcutManager",
+            "kOpenSettings",
+        ):
+            if token not in launcher:
+                fail(f"alpha.5.46 tray menu contract missing: {token}")
+
+        for forbidden in (
+            "kMenuReload",
+            'L"重新加载"',
+            'L"Reload"',
+            'L"关于…"',
+            'L"About…"',
+            'L"关于 ALTRun Next"',
+        ):
+            if forbidden in launcher + launcher_hpp:
+                fail(f"alpha.5.46 removed tray-menu surface returned: {forbidden}")
+
+        for token in (
+            "bool startWithWindows{true};",
+            "bool addToSendToMenu{true};",
+            "bool numericQuickLaunch{true};",
+        ):
+            if token not in settings_hpp:
+                fail(f"alpha.5.46 fresh default missing: {token}")
+
+        if settings_example["general"]["startWithWindows"] is not True:
+            fail("alpha.5.46 sample must default startWithWindows=true")
+        if settings_example["general"]["addToSendToMenu"] is not True:
+            fail("alpha.5.46 sample must default addToSendToMenu=true")
+        if settings_example["behavior"]["numericQuickLaunch"] is not True:
+            fail("alpha.5.46 sample must default numericQuickLaunch=true")
+
+        for token in (
+            "settings_.startWithWindows = false;",
+            "settings_.addToSendToMenu = false;",
+            "settings_.numericQuickLaunch = false;",
+            "load.schemaVersion <",
+        ):
+            if token not in settings_cpp:
+                fail(f"alpha.5.46 legacy default preservation missing: {token}")
+
+        for token in (
+            "defaults.addToSendToMenu",
+            "defaults.startWithWindows",
+        ):
+            if token not in app_cpp:
+                fail(f"alpha.5.46 reset integration default missing: {token}")
+
+        for token in (
+            "settings-explicit-opt-out.json",
+            "assert(!explicitOptOut.Data().startWithWindows)",
+            "assert(!explicitOptOut.Data().addToSendToMenu)",
+            "assert(!explicitOptOut.Data().numericQuickLaunch)",
+        ):
+            if token not in config_tests:
+                fail(f"alpha.5.46 opt-out regression missing: {token}")
+
+        if '"0.8.0-alpha.5.46"' not in update_tests:
+            fail("alpha.5.46 update ordering/default coverage missing")
+
+        for path in ("README.md", "ROADMAP.md", "CHANGELOG.md", "docs/DESKTOP_VALIDATION.md"):
+            if "0.8.0-alpha.5.46" not in read(path):
+                fail(f"missing alpha.5.46 release documentation: {path}")
 
     print(
         version + " shared release contract verified:",

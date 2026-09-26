@@ -23,6 +23,14 @@ The latest successful `main` build is always published to the fixed prerelease t
 
 You no longer need to find the correct GitHub Actions run. The `dev-latest` release is replaced automatically only after a successful build and test run.
 
+## v0.8.0-alpha.5.46 — Tray Menu Polish + Default Behavior
+
+The notification-area menu is reduced to the user-facing essentials. **Show launcher / 显示主界面** is the native default item, followed by one management group containing **Shortcut Manager… / 快捷项管理…** and **Settings… / 设置…**, then **About / 关于** and **Exit / 退出**. The old Reload entry is removed. The three actionable entries display their effective current hotkey when that binding is enabled and available, so customized bindings are reflected when the menu opens.
+
+Fresh settings now default **Start with Windows**, **Add to Send To menu**, and **Numeric quick launch** to on. These are product defaults, not an upgrade override: existing current-schema choices remain unchanged, older settings keep the historical off baseline for fields they did not yet store, and **Restore defaults** intentionally applies the new defaults including the Windows startup and SendTo integrations.
+
+Settings schema remains **11**; Commands **2**, Usage **2** and Provider Cache **22** are unchanged. Windows fixed FileVersion/ProductVersion is `0.8.0.216`.
+
 ## v0.8.0-alpha.5.45 — Stable Shell Identity + Tray Lifecycle
 
 ALTRun Next now publishes the explicit AppUserModelID `Aspeternity.ALTRunNext` before creating shell-facing UI, giving portable builds one stable Windows Shell identity instead of relying only on executable-path heuristics. The notification-area icon also uses a stable GUID, keeps its normal tooltip under `NOTIFYICON_VERSION_4`, and supports keyboard selection without changing the existing double-click workflow.

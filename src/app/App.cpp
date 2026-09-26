@@ -2752,12 +2752,14 @@ bool App::RestoreDefaultSettings() {
         return false;
     }
 
-    if (!ApplySendToRegistration(false)) {
+    if (!ApplySendToRegistration(
+            defaults.addToSendToMenu)) {
         rollbackHotkeys();
         return false;
     }
 
-    if (!ApplyStartupRegistration(false)) {
+    if (!ApplyStartupRegistration(
+            defaults.startWithWindows)) {
         ApplySendToRegistration(
             previous.addToSendToMenu);
         rollbackHotkeys();
