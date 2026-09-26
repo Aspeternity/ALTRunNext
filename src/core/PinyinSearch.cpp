@@ -497,7 +497,12 @@ void PinyinSearch::Unload() noexcept {
     std::scoped_lock lock(
         impl_->mutex);
 
-    impl_->cache.clear();
+    // clear() destroys entries but is allowed to retain the hash bucket
+    // array. Unload is called when the user disables pinyin search, so swap
+    // with a fresh map to return both entry storage and bucket capacity.
+    decltype(impl_->cache) emptyCache;
+    impl_->cache.swap(
+        emptyCache);
     impl_->cacheTick = 0;
     impl_->converter.reset();
 
