@@ -130,7 +130,7 @@ CommandStore::RefreshProviderCache(
     ProviderCacheData cache =
         providerCache_.Load();
 
-    const auto results =
+    auto results =
         providerRegistry_.Discover(
             enabled,
             selectedIds);
