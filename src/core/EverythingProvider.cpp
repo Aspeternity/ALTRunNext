@@ -69,20 +69,39 @@ void EverythingProvider::QueryAsync(
     std::wstring rankingQuery =
         request.query;
 
+    const std::size_t outputLimit =
+        request.limit;
+
+    // Everything truncates before ALTRun Next applies its own relevance
+    // policy. For broad short queries that can starve the post-filtered set:
+    // a relevant prefix such as v2rayN may sit outside Everything's first
+    // few dozen rows while unrelated path/name hits occupy the initial page.
+    // Overfetch a bounded candidate pool, rank locally, then trim back to the
+    // launcher's requested candidate count.
+    const std::size_t scaledLimit =
+        outputLimit >= 125
+            ? 1000
+            : outputLimit * 8;
+    const std::size_t fetchLimit =
+        std::min<std::size_t>(
+            1000,
+            std::max<std::size_t>(
+                200,
+                scaledLimit));
+
     ipcRequest.query =
         std::move(request.query);
     ipcRequest.limit =
         static_cast<std::uint32_t>(
-            std::min<std::size_t>(
-                request.limit,
-                1000));
+            fetchLimit);
 
     client_.QueryAsync(
         std::move(ipcRequest),
         [completion =
              std::move(completion),
          rankingQuery =
-             std::move(rankingQuery)](
+             std::move(rankingQuery),
+         outputLimit](
             EverythingQueryResult
                 ipcResult) mutable {
             DynamicQueryResponse response;
@@ -154,6 +173,22 @@ void EverythingProvider::QueryAsync(
 
                 response.results.push_back(
                     std::move(result));
+            }
+
+            std::stable_sort(
+                response.results.begin(),
+                response.results.end(),
+                [](const LauncherResult& left,
+                   const LauncherResult& right) {
+                    return BetterLauncherResult(
+                        left,
+                        right);
+                });
+
+            if (response.results.size() >
+                outputLimit) {
+                response.results.resize(
+                    outputLimit);
             }
 
             if (completion) {
