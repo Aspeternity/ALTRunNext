@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <charconv>
 #include <string>
 #include <vector>
 
@@ -51,14 +52,48 @@ TrimAscii(
     return value;
 }
 
+[[nodiscard]] std::optional<int>
+ParseNonNegativeInt(
+    std::string_view value) {
+    value = TrimAscii(value);
+
+    if (value.empty()) {
+        return std::nullopt;
+    }
+
+    int parsed = 0;
+    const auto [end, error] =
+        std::from_chars(
+            value.data(),
+            value.data() + value.size(),
+            parsed);
+
+    if (error != std::errc{} ||
+        end != value.data() +
+            value.size() ||
+        parsed < 0) {
+        return std::nullopt;
+    }
+
+    return parsed;
+}
+
 } // namespace
+
+std::wstring_view
+PinnedManagedEverythingVersion() noexcept {
+    return kVersion;
+}
 
 EverythingPackageSpec
 ManagedEverythingPackage(
-    EverythingPackageArchitecture architecture) {
+    EverythingPackageArchitecture architecture,
+    std::wstring_view version) {
     EverythingPackageSpec spec;
     spec.version =
-        std::wstring(kVersion);
+        version.empty()
+            ? std::wstring(kVersion)
+            : std::wstring(version);
 
     spec.fileName =
         L"Everything-" +
@@ -80,6 +115,107 @@ ManagedEverythingPackage(
         L".sha256";
 
     return spec;
+}
+
+std::optional<std::wstring>
+ParseEverythingStableUpdateVersion(
+    std::string_view updateIni) {
+    bool inEverything = false;
+    std::optional<int> major;
+    std::optional<int> minor;
+    std::optional<int> revision;
+    std::optional<int> build;
+
+    std::size_t offset = 0;
+
+    while (offset <= updateIni.size()) {
+        const auto newline =
+            updateIni.find('\n', offset);
+
+        std::string_view line =
+            newline ==
+                    std::string_view::npos
+                ? updateIni.substr(offset)
+                : updateIni.substr(
+                      offset,
+                      newline - offset);
+
+        if (!line.empty() &&
+            line.back() == '\r') {
+            line.remove_suffix(1);
+        }
+
+        line = TrimAscii(line);
+
+        if (!line.empty() &&
+            line.front() != ';' &&
+            line.front() != '#') {
+            if (line.size() >= 2 &&
+                line.front() == '[' &&
+                line.back() == ']') {
+                const auto section =
+                    LowerAscii(
+                        TrimAscii(
+                            line.substr(
+                                1,
+                                line.size() - 2)));
+                inEverything =
+                    section == "everything";
+            } else if (inEverything) {
+                const auto equals =
+                    line.find('=');
+
+                if (equals !=
+                    std::string_view::npos) {
+                    const auto key =
+                        LowerAscii(
+                            TrimAscii(
+                                line.substr(
+                                    0,
+                                    equals)));
+                    const auto value =
+                        ParseNonNegativeInt(
+                            line.substr(
+                                equals + 1));
+
+                    if (value) {
+                        if (key == "major") {
+                            major = value;
+                        } else if (
+                            key == "minor") {
+                            minor = value;
+                        } else if (
+                            key == "revision") {
+                            revision = value;
+                        } else if (
+                            key == "build") {
+                            build = value;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (newline ==
+            std::string_view::npos) {
+            break;
+        }
+
+        offset = newline + 1;
+    }
+
+    if (!major || !minor ||
+        !revision || !build) {
+        return std::nullopt;
+    }
+
+    return std::to_wstring(*major) +
+        L"." +
+        std::to_wstring(*minor) +
+        L"." +
+        std::to_wstring(*revision) +
+        L"." +
+        std::to_wstring(*build);
 }
 
 EverythingArchiveNames
@@ -179,20 +315,27 @@ FindSha256ForFile(
 
 std::string
 ApplyManagedEverythingIniPolicy(
-    std::string_view existing) {
+    std::string_view existing,
+    bool showTrayIcon) {
     struct RequiredValue {
         std::string_view key;
         std::string_view value;
     };
 
-    constexpr std::array<
+    const std::string_view
+        trayIconValue =
+            showTrayIcon
+                ? "1"
+                : "0";
+
+    const std::array<
         RequiredValue,
         6>
         required{{
             {"app_data", "0"},
             {"run_as_admin", "0"},
             {"run_in_background", "1"},
-            {"show_tray_icon", "0"},
+            {"show_tray_icon", trayIconValue},
             {"check_for_updates_on_startup", "0"},
             {"ipc", "1"},
         }};
