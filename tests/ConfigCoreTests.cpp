@@ -631,12 +631,26 @@ int main() {
         featureSettings.Data().providerEnabled,
         providers::kPath));
 
+    assert(
+        !featureSettings.Data()
+             .managedEverythingShowTrayIcon);
+    assert(
+        featureSettings
+            .SetManagedEverythingShowTrayIcon(
+                true));
+    assert(
+        featureSettings.Data()
+            .managedEverythingShowTrayIcon);
+
     SettingsStore providerSettingsReloaded(
         data / "settings-features.json");
     providerSettingsReloaded.Load();
     assert(!providers::IsEnabled(
         providerSettingsReloaded.Data().providerEnabled,
         providers::kPath));
+    assert(
+        providerSettingsReloaded.Data()
+            .managedEverythingShowTrayIcon);
     assert(
         providerSettingsReloaded.Data()
             .startupBehavior ==
@@ -1717,6 +1731,9 @@ int main() {
             .providerEnabled,
         providers::kEverythingFilesystem,
         false));
+    assert(
+        !featureSettings.Data()
+             .managedEverythingShowTrayIcon);
     assert(featureSettings.Data().hotkeyModifiers.size() == 1);
     assert(featureSettings.Data().hotkeyModifiers[0] == "alt");
     assert(featureSettings.Data().hotkeyKey == "space");
