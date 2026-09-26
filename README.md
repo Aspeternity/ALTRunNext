@@ -1,6 +1,6 @@
 # ALTRun Next
 
-ALTRun Next is an independently implemented Windows launcher inspired by classic ALTRun: small, keyboard-first, fast, and intentionally low-noise. Classic mode includes the original launcher background and two corner glyph assets used with permission from the original author.
+ALTRun Next is an independently implemented Windows launcher inspired by classic ALTRun: small, keyboard-first, fast, and intentionally low-noise. Classic mode includes the original launcher background and two corner glyph assets, and the product uses the original ALTRun application icon and Popup.wav; these original assets are included with permission from the original author.
 
 ## Downloads
 
@@ -22,6 +22,16 @@ The latest successful `main` build is always published to the fixed prerelease t
 - ARM64 direct download: https://github.com/Aspeternity/ALTRunNext/releases/download/dev-latest/ALTRunNext-ARM64.zip
 
 You no longer need to find the correct GitHub Actions run. The `dev-latest` release is replaced automatically only after a successful build and test run.
+
+## v0.8.0-alpha.5.45 — Stable Shell Identity + Tray Lifecycle
+
+ALTRun Next now publishes the explicit AppUserModelID `Aspeternity.ALTRunNext` before creating shell-facing UI, giving portable builds one stable Windows Shell identity instead of relying only on executable-path heuristics. The notification-area icon also uses a stable GUID, keeps its normal tooltip under `NOTIFYICON_VERSION_4`, and supports keyboard selection without changing the existing double-click workflow.
+
+If Explorer / the taskbar restarts, a configured persistent tray icon is restored automatically. A temporary tray icon created only to host the startup notification is deliberately not restored, preventing a one-shot notification surface from becoming an orphaned permanent icon.
+
+The product now uses the authorized original ALTRun `MAINICON` (byte-identical to the original repository's `Res/Carracho.ico`) for the executable, top-level ALTRun Next windows and notification-area icon. Sound feedback likewise uses the authorized original `Res/Popup.wav` instead of the temporary generated alpha.5.44 tones; the existing ALTRun Next sound toggle, asynchronous playback and cue-admission policy remain unchanged.
+
+Settings schema **11**, Commands **2**, Usage **2** and Provider Cache **22** remain unchanged. Windows fixed FileVersion/ProductVersion is `0.8.0.215`. Real-Windows Explorer-restart, icon scaling/identity, notification-area keyboard/tooltip and original-sound validation are required before closeout.
 
 ## v0.8.0-alpha.5.44 — Consistent Confirmation + Sound Feedback
 

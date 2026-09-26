@@ -8,6 +8,19 @@ Automated CI covers compilation, Config/Search tests, provider smoke tests, hotk
 
 The checks below are the remaining **real interactive Windows desktop** validation items. Automated geometry/behavior tests reduce regression risk but do not replace observing the actual UI, IME, monitor transitions, providers and hotkey lifecycle on a real desktop.
 
+## v0.8.0-alpha.5.45 Stable Shell Identity + Tray Lifecycle validation
+
+- [ ] With **Show system tray icon** enabled, confirm the ALTRun Next tray icon has the `ALTRun Next` tooltip and no duplicate icon appears after repeated hide/show cycles.
+- [ ] Restart Explorer / Windows Explorer while ALTRun Next remains running. The persistent tray icon returns automatically once the taskbar is recreated, with its context menu and double-click launcher activation still working.
+- [ ] Navigate to the notification area by keyboard and activate the ALTRun Next icon; the launcher opens without requiring a mouse double-click.
+- [ ] With **Show system tray icon** disabled and startup behavior set to Notification, confirm the temporary icon hosts the startup notification and normally disappears with the notification lifecycle.
+- [ ] Repeat the previous case while restarting Explorer during/just after the startup notification. The one-shot icon must not be restored as a permanent orphaned tray icon.
+- [ ] Confirm Settings, Shortcut Manager and launcher remain grouped as ALTRun Next shell surfaces and no taskbar button is introduced for the existing tool-window launcher.
+- [ ] Confirm the executable, Launcher, Settings, Shortcut Manager, Shortcut Editor, Path Conversion dialog and persistent tray icon all use the original ALTRun MAINICON at normal Windows sizes without falling back to the generic application icon.
+- [ ] At 100/125/150/175/200% display scaling, confirm Windows selects a clean embedded original-icon size and no blurry custom resampling path is introduced.
+- [ ] Recheck alpha.5.44 startup/reveal/execute/failure feedback routing: every accepted ALTRun Next cue now plays the same authorized original ALTRun `Popup.wav`; the Sound effects toggle still stops playback immediately and notification `NIIF_NOSOUND` prevents an additional Windows notification sound.
+- [ ] Settings schema remains 11; Commands 2, Usage 2, Provider Cache 22; fixed Windows version is 0.8.0.215. The icon and Popup.wav must remain byte-identical to their authorized original ALTRun assets.
+
 ## v0.8.0-alpha.5.44 Confirmation + Sound Feedback validation
 
 - [ ] Launcher and Manager deletion show the same canonical name, Delete / Cancel buttons and target-file-retained text. Cancel has initial focus; Enter, Esc and X retain the shortcut. Explicit Delete removes only the shortcut; no success popup or sound.

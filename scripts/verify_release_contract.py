@@ -42,12 +42,12 @@ channel = match.group(4)
 
 
 
-if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44"):
+if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44", "0.8.0-alpha.5.45"):
     import hashlib
     import subprocess
 
     expected_schemas = {
-        "kSettingsSchemaVersion": 11 if version.endswith(".44") else 10,
+        "kSettingsSchemaVersion": 11 if version.endswith((".44", ".45")) else 10,
         "kCommandsSchemaVersion": 2,
         "kUsageSchemaVersion": 2,
     }
@@ -158,17 +158,22 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44"):
         if token not in config_tests:
             fail(f"v0.8 alpha.5.43 Provider Cache regression missing: {token}")
 
+    fixed_revision = (
+        "215" if version.endswith(".45")
+        else "214" if version.endswith(".44")
+        else "213"
+    )
     for token in (
-        "FILEVERSION 0,8,0," + ("214" if version.endswith(".44") else "213"),
-        "PRODUCTVERSION 0,8,0," + ("214" if version.endswith(".44") else "213"),
+        "FILEVERSION 0,8,0," + fixed_revision,
+        "PRODUCTVERSION 0,8,0," + fixed_revision,
         version,
     ):
         if token not in resources:
             fail(f"v0.8 alpha.5.43 resource version missing: {token}")
 
-    fixed_version = "0.8.0.214" if version.endswith(".44") else "0.8.0.213"
+    fixed_version = "0.8.0." + fixed_revision
     if f'version="{fixed_version}"' not in manifest:
-        fail("v0.8 alpha.5.43 manifest fixed version must be 0.8.0.213")
+        fail(f"{version} manifest fixed version must be {fixed_version}")
 
     for token in (
         '"0.8.0-alpha.5.42"',
@@ -230,7 +235,7 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44"):
         if git_blob_sha(asset_path) != expected:
             fail(f"v0.8 alpha.5.43 frozen Classic asset changed: {asset_path}")
 
-    if version.endswith(".44"):
+    if version.endswith((".44", ".45")):
         if json.loads(read("config/settings.example.json"))["schemaVersion"] != 11:
             fail("sound settings sample must use schema 11")
         for path in ("src/app/App.cpp", "src/ui/LauncherWindow.cpp", "src/ui/SettingsWindow.cpp",
@@ -238,10 +243,94 @@ if version in ("0.8.0-alpha.5.43", "0.8.0-alpha.5.44"):
                      "src/ui/ShortcutPathConverterDialog.cpp", "src/uninstaller/UninstallMain.cpp"):
             if "MessageBoxW(" in read(path):
                 fail(f"stock system-sound dialog bypasses feedback policy: {path}")
-        subprocess.run([sys.executable, str(ROOT / "scripts/generate_feedback_sounds.py"), "--verify"], check=True)
         for path in ("README.md", "ROADMAP.md", "CHANGELOG.md", "docs/DESKTOP_VALIDATION.md"):
             if "0.8.0-alpha.5.44" not in read(path):
-                fail(f"missing current release documentation: {path}")
+                fail(f"missing alpha.5.44 release documentation: {path}")
+
+    if version.endswith(".45"):
+        identity = read("src/platform/AppIdentity.hpp")
+        launcher = read("src/ui/LauncherWindow.cpp")
+        launcher_hpp = read("src/ui/LauncherWindow.hpp")
+        app_cpp = read("src/app/App.cpp")
+        for token in (
+            "Aspeternity.ALTRunNext",
+            "kTrayIconGuid",
+            "0x8a395c23",
+        ):
+            if token not in identity:
+                fail(f"alpha.5.45 shell identity contract missing: {token}")
+        for token in (
+            "SetCurrentProcessExplicitAppUserModelID",
+            "app_identity::kAppUserModelId",
+        ):
+            if token not in app_cpp:
+                fail(f"alpha.5.45 process identity wiring missing: {token}")
+        for token in (
+            'RegisterWindowMessageW(',
+            'L"TaskbarCreated"',
+            "NIF_GUID",
+            "NIF_SHOWTIP",
+            "NIN_KEYSELECT",
+            "restorePersistentIcon",
+            "app_identity::kTrayIconGuid",
+        ):
+            if token not in launcher:
+                fail(f"alpha.5.45 tray lifecycle wiring missing: {token}")
+        if "taskbarCreatedMessage_" not in launcher_hpp:
+            fail("alpha.5.45 launcher no longer stores TaskbarCreated message")
+        for path in ("README.md", "ROADMAP.md", "CHANGELOG.md", "docs/DESKTOP_VALIDATION.md"):
+            if "0.8.0-alpha.5.45" not in read(path):
+                fail(f"missing alpha.5.45 release documentation: {path}")
+        if '"0.8.0-alpha.5.45"' not in update_tests:
+            fail("alpha.5.45 update ordering/default coverage missing")
+
+        authorized_assets = {
+            "src/resources/altrun_original.ico": "9557a8e1371674c34a69a8d4c210de0073b9001f",
+            "src/resources/altrun_popup.wav": "37860c02c6bbe413681cfd56c1c2942d5677de96",
+        }
+        for asset_path, expected in authorized_assets.items():
+            if git_blob_sha(asset_path) != expected:
+                fail(f"alpha.5.45 authorized original asset changed: {asset_path}")
+
+        for removed in (
+            "src/resources/feedback_startup.wav",
+            "src/resources/feedback_reveal.wav",
+            "src/resources/feedback_execute.wav",
+            "src/resources/feedback_failure.wav",
+            "scripts/generate_feedback_sounds.py",
+        ):
+            if (ROOT / removed).exists():
+                fail(f"alpha.5.45 temporary generated sound asset remains: {removed}")
+
+        resource_ids = read("src/ResourceIds.h")
+        feedback_cpp = read("src/ui/Feedback.cpp")
+        for token in (
+            "IDI_ALTRUN_APP",
+            "IDW_ALTRUN_POPUP",
+            'ICON "resources/altrun_original.ico"',
+            'WAVE "resources/altrun_popup.wav"',
+        ):
+            if token not in resource_ids + resources:
+                fail(f"alpha.5.45 original asset resource wiring missing: {token}")
+        if "IDW_ALTRUN_POPUP" not in feedback_cpp:
+            fail("alpha.5.45 feedback no longer uses original ALTRun Popup.wav resource")
+        for forbidden in ("IDW_STARTUP", "IDW_REVEAL", "IDW_EXECUTE", "IDW_FAILURE"):
+            if forbidden in feedback_cpp or forbidden in resource_ids:
+                fail(f"alpha.5.45 legacy generated cue ID remains: {forbidden}")
+
+        app_icon_header = read("src/ui/AppIcon.hpp")
+        if "IDI_ALTRUN_APP" not in app_icon_header or "LoadImageW(" not in app_icon_header:
+            fail("alpha.5.45 application icon loader is not wired to original MAINICON")
+        for path in (
+            "src/ui/LauncherWindow.cpp",
+            "src/ui/SettingsWindow.cpp",
+            "src/ui/ShortcutManagerWindow.cpp",
+            "src/ui/ShortcutEditorDialog.cpp",
+            "src/ui/ShortcutPathConverterDialog.cpp",
+        ):
+            window_source = read(path)
+            if "AppIcon.hpp" not in window_source or "LoadApplicationIcon(" not in window_source:
+                fail(f"alpha.5.45 top-level window is not using original ALTRun icon: {path}")
 
     print(
         version + " shared release contract verified:",
