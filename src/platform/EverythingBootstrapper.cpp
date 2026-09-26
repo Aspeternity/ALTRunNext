@@ -3117,19 +3117,9 @@ EverythingServiceRepairResult
 ApplyManagedEverythingServiceEnabledPolicy(
     const std::filesystem::path& dataDirectory,
     bool enabled) {
-    const auto existingManagedExecutable =
+    const auto managedExecutable =
         ManagedEverythingExecutable(
             dataDirectory);
-
-    if (FileExists(
-            existingManagedExecutable)) {
-        if (const auto version =
-                VersionFromManagedExecutablePath(
-                    existingManagedExecutable)) {
-            snapshot.installedVersion =
-                *version;
-        }
-    }
 
     if (enabled &&
         !FileExists(
@@ -3718,9 +3708,19 @@ RunEverythingBootstrap(
     EverythingBootstrapSnapshot snapshot;
     snapshot.running = true;
 
-    const auto managedExecutable =
+    const auto existingManagedExecutable =
         ManagedEverythingExecutable(
             dataDirectory);
+
+    if (FileExists(
+            existingManagedExecutable)) {
+        if (const auto version =
+                VersionFromManagedExecutablePath(
+                    existingManagedExecutable)) {
+            snapshot.installedVersion =
+                *version;
+        }
+    }
 
     const auto finishManaged =
         [&](const std::filesystem::path&
