@@ -103,6 +103,24 @@ int main() {
     assert(
         stem.relevanceMatch.field ==
         relevance::MatchField::FileStem);
+
+    LauncherResult versioned =
+        Result(
+            ResultKind::File,
+            std::string(
+                providers::
+                    kEverythingFilesystem),
+            L"v2rayN.exe",
+            L"D:\\v2rayN-windows-64",
+            L"D:\\v2rayN-windows-64\\v2rayN.exe");
+
+    assert(RankDynamicResultText(
+        versioned,
+        L"v2"));
+    assert(
+        versioned.relevanceMatch.kind ==
+        relevance::MatchKind::Prefix);
+
     assert(BetterLauncherResult(
         exact,
         stem));
