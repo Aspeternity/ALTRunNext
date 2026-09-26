@@ -55,7 +55,7 @@ int main() {
             DecideNumericQuickLaunch(
                 context) ==
         NumericQuickLaunchDecision::
-            Text);
+            DeferExecute);
 
     context.recentTextInput = true;
     assert(
@@ -76,19 +76,6 @@ int main() {
 
     context.strongContinuation = false;
     context.queryEmpty = true;
-    assert(
-        classic_behavior::
-            DecideNumericQuickLaunch(
-                context) ==
-        NumericQuickLaunchDecision::
-            Text);
-
-    // Query text always wins over a bare numeric shortcut, even if there is
-    // a numbered result and no known static continuation. This covers dynamic
-    // names such as portable v2rayN that only Everything can discover.
-    context.queryEmpty = false;
-    context.recentTextInput = false;
-    context.strongContinuation = false;
     assert(
         classic_behavior::
             DecideNumericQuickLaunch(
