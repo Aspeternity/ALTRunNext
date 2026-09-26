@@ -922,3 +922,14 @@ Use an installed/extracted alpha.9-or-newer build for these checks. The first tr
 - [ ] Simulate a launch/health failure in a test build and verify the updater restores the previous application files and relaunches the previous version.
 - [ ] After successful health confirmation, the backup/staging state is cleaned and the running VERSION matches the requested manifest version.
 - [ ] Release assets include `ALTRunNext-x64.zip`, `ALTRunNext-ARM64.zip`, `SHA256SUMS.txt` and `update-manifest.json`; manifest hashes match SHA256SUMS.txt.
+
+### alpha.5.49 numeric intent / uninstall follow-up
+
+- Everything-only portable `v2rayN`: type `v`, pause over 420ms, press `2`; it becomes `v2`, never the old second result. Continue `r` during the probe and verify `v2r` without duplicated/lost characters.
+- Queries with thousands of broad hits: strong filename-prefix candidates must survive the independent prefix recall pass. Verify `系统` / `男主` and explicit Everything/path syntax remain correct.
+- A confirmed absent continuation retains bare-number execution after the 90ms grace. Unknown/timeout has a 240ms initial budget and commits text; profile this budget on real cold/warm Everything installations before tuning.
+- Move caret, select/replace text, paste, Backspace, Escape, focus loss, long-held digits, provider disable/restart and late replies: no unintended or delayed execution. Numeric text commits must not invoke single-result auto-execution.
+- Uninstall from Chinese/spaced paths, both preserve-data and full-delete: read-only packaged files, Explorer open inside the install, managed service already stopping, a briefly locked file and a permanently locked file.
+- After a partial deletion failure, release the reported lock and run the retained/restored Uninstall.exe again. Verify recovery works when the main executable/VERSION was already deleted.
+- Directory junctions are removed as links; targets outside the installation must remain intact. Preserve-data mode must retain user commands/settings. Never terminate external Everything by name alone.
+- Windows CI exercises the production cleanup routines against isolated temporary fixtures (read-only files, sharing locks, final-stage recovery, junctions), plus real EDIT messages and provider IPC replies for numeric intent.

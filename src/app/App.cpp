@@ -609,6 +609,12 @@ int App::Run() {
 
     MSG msg{};
     while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
+        if (msg.message == kNumericProbeMessage && msg.hwnd == nullptr) {
+            if (window_) window_->ApplyNumericContinuation(
+                static_cast<std::uint64_t>(msg.wParam),
+                static_cast<classic_behavior::ContinuationEvidence>(msg.lParam));
+            continue;
+        }
         if (msg.message ==
                 kDynamicQueryMessage &&
             msg.hwnd == nullptr) {
@@ -1022,6 +1028,15 @@ bool App::DynamicSearchEnabled()
             providers::
                 kEverythingFilesystem,
             false);
+}
+
+void App::BeginNumericContinuationProbe(std::uint64_t token, std::wstring query) {
+    if (!DynamicSearchEnabled()) return; // The bounded UI deadline resolves unknown as text.
+    everythingProvider_->ProbeContinuation(token, std::move(query),
+        [this](std::uint64_t generation, classic_behavior::ContinuationEvidence evidence) {
+            if (uiThreadId_ != 0) PostThreadMessageW(uiThreadId_, kNumericProbeMessage,
+                static_cast<WPARAM>(generation), static_cast<LPARAM>(evidence));
+        });
 }
 
 void App::BeginDynamicSearch(

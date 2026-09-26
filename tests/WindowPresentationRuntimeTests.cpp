@@ -1,4 +1,5 @@
 #include "app/App.hpp"
+#include "NumericIntentRuntimeFixture.hpp"
 #include "platform/InstanceIpc.hpp"
 #include "ui/SettingsWindow.hpp"
 #include "ui/ShortcutEditorDialog.hpp"
@@ -180,6 +181,7 @@ int main() {
         // Exercise the actual Settings implementation, not just rectangle
         // math: the pre-fix Create() made this HWND visible via WM_SETREDRAW.
         App app(instance);
+        NumericIntentRuntimeFixture::Run(app, instance);
         SettingsWindow settings(app, instance);
         for (int attempt = 0; attempt < 6; ++attempt) {
             assert(settings.Create());

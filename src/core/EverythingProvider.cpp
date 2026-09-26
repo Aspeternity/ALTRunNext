@@ -42,7 +42,12 @@ EverythingResultId(
 
 EverythingProvider::EverythingProvider(
     EverythingIpcClientOptions options)
-    : client_(std::move(options)) {}
+    : client_(options), probeClient_([&] {
+          options.debounce = std::chrono::milliseconds(0);
+          options.sendTimeout = std::chrono::milliseconds(100);
+          options.replyTimeout = std::chrono::milliseconds(200);
+          return options;
+      }()) {}
 
 std::string_view
 EverythingProvider::Id() const noexcept {
@@ -60,9 +65,65 @@ EverythingProvider::Status() const {
     return client_.Status();
 }
 
-void EverythingProvider::QueryAsync(
-    DynamicQueryRequest request,
-    Completion completion) {
+void EverythingProvider::ProbeContinuation(
+    std::uint64_t generation, std::wstring query, ProbeCompletion completion) {
+    auto search = classic_behavior::BuildFilenameContinuationQuery(query);
+    if (search.empty()) {
+        completion(generation, classic_behavior::ContinuationEvidence::Unknown);
+        return;
+    }
+    probeClient_.QueryAsync({generation, std::move(search), 16},
+        [query = std::move(query), completion = std::move(completion)](EverythingQueryResult result) {
+            using classic_behavior::ContinuationEvidence;
+            auto evidence = ContinuationEvidence::Unknown;
+            if (result.status == EverythingQueryStatus::Success) {
+                for (const auto& item : result.items) {
+                    if (classic_behavior::StrongNameContinuation(item.name, query)) {
+                        evidence = ContinuationEvidence::Present;
+                        break;
+                    }
+                }
+                // A bounded, filtered page with no match is not proof of absence.
+                if (evidence != ContinuationEvidence::Present && result.totalMatches == 0 && result.items.empty())
+                    evidence = ContinuationEvidence::Absent;
+            }
+            completion(result.generation, evidence);
+        });
+}
+
+void EverythingProvider::QueryAsync(DynamicQueryRequest request, Completion completion) {
+    const auto prefixQuery = classic_behavior::BuildFilenameContinuationQuery(request.query);
+    if (prefixQuery.empty()) {
+        QueryBroad(std::move(request), std::move(completion));
+        return;
+    }
+    EverythingQueryRequest prefix{request.generation, prefixQuery,
+        static_cast<std::uint32_t>(std::clamp<std::size_t>(request.limit, 16, 1000))};
+    client_.QueryAsync(std::move(prefix),
+        [this, request = std::move(request), completion = std::move(completion)](EverythingQueryResult found) mutable {
+            std::vector<LauncherResult> prefixes;
+            if (found.status == EverythingQueryStatus::Success) {
+                for (auto& item : found.items) {
+                    LauncherResult result;
+                    result.id = EverythingResultId(item.fullPath);
+                    result.providerId = std::string(providers::kEverythingFilesystem);
+                    result.kind = item.kind == EverythingItemKind::Folder ? ResultKind::Folder : ResultKind::File;
+                    result.title = std::move(item.name);
+                    result.subtitle = std::move(item.parentPath);
+                    result.target = std::move(item.fullPath);
+                    result.detail = result.target;
+                    result.action.kind = result.kind == ResultKind::Folder ? LauncherActionKind::OpenFolder : LauncherActionKind::OpenFile;
+                    result.action.payload = result.target;
+                    if (RankDynamicResultText(result, request.query)) prefixes.push_back(std::move(result));
+                }
+            }
+            QueryBroad(std::move(request), std::move(completion), std::move(prefixes));
+        });
+}
+
+void EverythingProvider::QueryBroad(
+    DynamicQueryRequest request, Completion completion,
+    std::vector<LauncherResult> prefixes) {
     EverythingQueryRequest ipcRequest;
     ipcRequest.generation =
         request.generation;
@@ -101,7 +162,8 @@ void EverythingProvider::QueryAsync(
              std::move(completion),
          rankingQuery =
              std::move(rankingQuery),
-         outputLimit](
+         outputLimit,
+         prefixes = std::move(prefixes)](
             EverythingQueryResult
                 ipcResult) mutable {
             DynamicQueryResponse response;
@@ -126,6 +188,7 @@ void EverythingProvider::QueryAsync(
             response.nativeError =
                 ipcResult.nativeError;
 
+            response.results = std::move(prefixes);
             response.results.reserve(
                 ipcResult.items.size());
 
@@ -171,8 +234,9 @@ void EverythingProvider::QueryAsync(
                 result.action.payload =
                     result.target;
 
-                response.results.push_back(
-                    std::move(result));
+                if (std::none_of(response.results.begin(), response.results.end(),
+                        [&](const LauncherResult& existing) { return existing.id == result.id; }))
+                    response.results.push_back(std::move(result));
             }
 
             std::stable_sort(

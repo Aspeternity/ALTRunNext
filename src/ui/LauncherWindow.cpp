@@ -1,6 +1,7 @@
 #include "Feedback.hpp"
 #include "AppIcon.hpp"
 #include "LauncherWindow.hpp"
+#include "../core/RelevancePolicy.hpp"
 #include "../app/App.hpp"
 #include "../core/ClassicBehavior.hpp"
 #include "../core/ContextActions.hpp"
@@ -1425,6 +1426,7 @@ void LauncherWindow::RefreshResults(
     const std::wstring query =
         CurrentQuery();
 
+    CancelPendingNumericIntent();
     ++searchGeneration_;
 
     const std::size_t
@@ -1440,7 +1442,7 @@ void LauncherWindow::RefreshResults(
     dynamicResults_.clear();
 
     dynamicQueryPending_ =
-        !query.empty() &&
+        relevance::ShouldRunDynamicFilesystemQuery(query) &&
         app_.DynamicSearchEnabled();
 
     immediateExecutionPending_ =
@@ -2075,20 +2077,25 @@ QueuePendingNumericIntent(
         digit;
     pendingNumericIntent_.result =
         result;
-    pendingNumericIntent_.query =
-        CurrentQuery();
+    pendingNumericIntent_.query = CurrentQuery();
+    pendingNumericIntent_.token = ++numericIntentToken_;
+    pendingNumericIntent_.started = GetTickCount64();
+    pendingNumericIntent_.selection = static_cast<DWORD>(SendMessageW(edit_, EM_GETSEL, 0, 0));
+    pendingNumericIntent_.probeRequired = app_.DynamicSearchEnabled();
 
     ConsumeNumericKey(
         virtualKey,
         digit);
 
-    SetTimer(
-        hwnd_,
-        kNumericIntentTimerId,
-        static_cast<UINT>(
-            classic_behavior::
-                kNumericIntentGraceMs),
-        nullptr);
+    if (!SetTimer(hwnd_, kNumericIntentTimerId, 15, nullptr)) {
+        CommitPendingNumericIntentAsText();
+        return;
+    }
+    if (pendingNumericIntent_.probeRequired) {
+        auto candidate = pendingNumericIntent_.query;
+        candidate.push_back(digit);
+        app_.BeginNumericContinuationProbe(pendingNumericIntent_.token, std::move(candidate));
+    }
 }
 
 void LauncherWindow::
@@ -2125,10 +2132,28 @@ CommitPendingNumericIntentAsText() {
         GetTickCount64();
 }
 
+void LauncherWindow::ApplyNumericContinuation(
+    std::uint64_t token, classic_behavior::ContinuationEvidence evidence) {
+    if (!pendingNumericIntent_.active || token != pendingNumericIntent_.token) return;
+    pendingNumericIntent_.evidence = evidence;
+    ExecutePendingNumericIntent();
+}
+
 void LauncherWindow::
 ExecutePendingNumericIntent() {
-
-    if (!pendingNumericIntent_.active) {
+    if (!pendingNumericIntent_.active) return;
+    if (!IsVisible() || GetFocus() != edit_ || imeComposing_ ||
+        CurrentQuery() != pendingNumericIntent_.query ||
+        static_cast<DWORD>(SendMessageW(edit_, EM_GETSEL, 0, 0)) != pendingNumericIntent_.selection) {
+        CancelPendingNumericIntent();
+        return;
+    }
+    const auto decision = classic_behavior::ResolvePendingNumericIntent(
+        pendingNumericIntent_.evidence, pendingNumericIntent_.probeRequired,
+        GetTickCount64() - pendingNumericIntent_.started);
+    if (decision == classic_behavior::PendingNumericDecision::Wait) return;
+    if (decision == classic_behavior::PendingNumericDecision::Text) {
+        CommitPendingNumericIntentAsText();
         return;
     }
 
@@ -2359,6 +2384,7 @@ ProcessPendingShortcutPaths() {
 }
 
 void LauncherWindow::ApplyGeneralSettings() {
+    CancelPendingNumericIntent();
     if (app_.SettingsData().showTrayIcon) {
         AddTrayIcon();
     } else {
@@ -2956,12 +2982,18 @@ LRESULT LauncherWindow::HandleEditMessage(
 
     if (message ==
             WM_IME_STARTCOMPOSITION) {
+        CommitPendingNumericIntentAsText();
         imeComposing_ = true;
     } else if (
         message ==
             WM_IME_ENDCOMPOSITION) {
         imeComposing_ = false;
     }
+
+    if (message == WM_KILLFOCUS) CancelPendingNumericIntent();
+    if (message == WM_LBUTTONDOWN || message == WM_RBUTTONDOWN ||
+        message == WM_CUT || message == WM_CLEAR)
+        CommitPendingNumericIntentAsText();
 
     if (message == WM_CHAR && !imeComposing_ &&
         (wParam == L'\r' || wParam == L'\t' || wParam == 27)) {
@@ -2977,8 +3009,8 @@ LRESULT LauncherWindow::HandleEditMessage(
             return 0;
         }
 
-        if (message == WM_CHAR &&
-            wParam >= L' ') {
+        if (message == WM_CHAR && wParam >= L' ') {
+            CommitPendingNumericIntentAsText();
             lastTextInputTick_ =
                 GetTickCount64();
         }
@@ -3026,10 +3058,19 @@ LRESULT LauncherWindow::HandleEditMessage(
                 return 0;
             }
 
-            // Any distinct key before the very short grace expires means the
-            // user is continuing a query. Commit the pending digit as text
-            // first, then process the new key normally.
-            CommitPendingNumericIntentAsText();
+            switch (wParam) {
+            case VK_SHIFT: case VK_CONTROL: case VK_MENU: case VK_LWIN: case VK_RWIN:
+                // A modifier alone gives no evidence of typing or launch intent.
+                return CallWindowProcW(oldEditProc_, hwnd, message, wParam, lParam);
+            case VK_ESCAPE: case VK_RETURN: case VK_TAB:
+            case VK_UP: case VK_DOWN: case VK_PRIOR: case VK_NEXT:
+                CancelPendingNumericIntent();
+                break;
+            default:
+                // Text/editing keys retain the digit before applying the new action.
+                CommitPendingNumericIntentAsText();
+                break;
+            }
         }
 
         const bool controlDown =
@@ -3158,8 +3199,11 @@ LRESULT LauncherWindow::HandleEditMessage(
                 HasRecentTextInput();
             context.strongContinuation =
                 strongContinuation;
-            context.resultAvailable =
-                resultAvailable;
+            context.resultAvailable = resultAvailable;
+            DWORD selectionStart = 0, selectionEnd = 0;
+            SendMessageW(edit_, EM_GETSEL, reinterpret_cast<WPARAM>(&selectionStart),
+                reinterpret_cast<LPARAM>(&selectionEnd));
+            context.editingText = selectionStart != selectionEnd || selectionEnd != query.size();
 
             const auto decision =
                 classic_behavior::

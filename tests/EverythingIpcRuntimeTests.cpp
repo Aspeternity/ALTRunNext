@@ -165,6 +165,16 @@ std::vector<std::byte> BuildReplyItems(
 
 std::vector<std::byte> BuildReply(
     const Query2WireRequest& query) {
+    if (query.search == uR"(nopath:regex:"^[\s_-]*v[\s_-]*2")") {
+        return BuildReplyItems(query, {{.name = u"v2rayN.exe", .path = u"D:\\Portable",
+            .fullPath = u"D:\\Portable\\v2rayN.exe"}});
+    }
+    if (query.search.starts_with(u"nopath:regex:")) {
+        // The probe fixture supports a confirmed empty set and a truncated unknown set.
+        if (query.search.find(u"[\\s_-]*x[\\s_-]*9") != std::u16string::npos)
+            return BuildReplyItems(query, {}, 9000);
+        return BuildReplyItems(query, {});
+    }
     if (query.search == u"folder") {
         return BuildReplyItems(
             query,
@@ -234,7 +244,7 @@ std::vector<std::byte> BuildReply(
              ++i) {
             FakeReplyItem item;
 
-            if (i == 100U) {
+            if (i == 2000U) { // outside even the bounded 1000-row broad pool
                 item.name =
                     u"v2rayN.exe";
                 item.path =
@@ -1767,6 +1777,56 @@ int main() {
             LauncherActionKind::
                 OpenFolder);
         assert(result.score > 0);
+    }
+
+    {
+        // Independent endpoints: probing v2 must not cancel a visible folder query.
+        FakeEverythingServer server(FakeEverythingServer::Mode::Immediate);
+        EverythingProvider provider(OptionsFor(server.WindowClass()));
+        std::mutex mutex;
+        std::condition_variable cv;
+        bool visible = false;
+        int probes = 0;
+        provider.QueryAsync({900, L"folder", 8}, [&](DynamicQueryResponse value) {
+            std::scoped_lock lock(mutex);
+            visible = value.generation == 900 && value.results.size() == 1;
+            cv.notify_all();
+        });
+        using classic_behavior::ContinuationEvidence;
+        for (const auto& item : std::vector<std::pair<std::wstring, ContinuationEvidence>>{
+                {L"v2", ContinuationEvidence::Present},
+                {L"zzz9", ContinuationEvidence::Absent},
+                {L"x9", ContinuationEvidence::Unknown},
+                {L"ext:exe", ContinuationEvidence::Unknown}}) {
+            const int expected = probes + 1;
+            provider.ProbeContinuation(static_cast<std::uint64_t>(expected), item.first,
+                [&, expected, evidence = item.second](std::uint64_t token, ContinuationEvidence result) {
+                    std::scoped_lock lock(mutex);
+                    assert(token == static_cast<std::uint64_t>(expected));
+                    assert(result == evidence);
+                    ++probes;
+                    cv.notify_all();
+                });
+            std::unique_lock lock(mutex);
+            assert(cv.wait_for(lock, 2s, [&] { return probes == expected; }));
+        }
+        std::unique_lock lock(mutex);
+        assert(cv.wait_for(lock, 2s, [&] { return visible; }));
+    }
+    {
+        FakeEverythingServer server(FakeEverythingServer::Mode::NoReply);
+        EverythingProvider provider(OptionsFor(server.WindowClass()));
+        std::mutex mutex;
+        std::condition_variable cv;
+        bool completed = false;
+        provider.ProbeContinuation(1, L"v2", [&](std::uint64_t, classic_behavior::ContinuationEvidence evidence) {
+            std::scoped_lock lock(mutex);
+            assert(evidence == classic_behavior::ContinuationEvidence::Unknown);
+            completed = true;
+            cv.notify_all();
+        });
+        std::unique_lock lock(mutex);
+        assert(cv.wait_for(lock, 2s, [&] { return completed; }));
     }
 
     return 0;

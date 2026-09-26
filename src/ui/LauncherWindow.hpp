@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/LauncherResult.hpp"
+#include "../core/ClassicBehavior.hpp"
 #include "UiMetrics.hpp"
 #include "UiTheme.hpp"
 
@@ -28,6 +29,7 @@ public:
     void RefreshResults(
         bool allowImmediateExecution = false,
         bool preserveSelection = true);
+    void ApplyNumericContinuation(std::uint64_t token, classic_behavior::ContinuationEvidence evidence);
     void ApplyDynamicResults(
         std::uint64_t generation,
         std::vector<LauncherResult> results);
@@ -47,6 +49,7 @@ public:
     }
 
 private:
+    friend struct NumericIntentRuntimeFixture;
     static constexpr UINT kTrayMessage = WM_APP + 17;
     static constexpr UINT kShortcutIpcMessage = WM_APP + 19;
     static constexpr UINT_PTR
@@ -179,10 +182,17 @@ private:
         wchar_t digit{0};
         LauncherResult result{};
         std::wstring query;
+        std::uint64_t token{0};
+        std::uint64_t started{0};
+        DWORD selection{0};
+        bool probeRequired{false};
+        classic_behavior::ContinuationEvidence evidence{classic_behavior::ContinuationEvidence::Unknown};
     };
 
     PendingNumericIntent
         pendingNumericIntent_{};
+
+    std::uint64_t numericIntentToken_{0};
 
     UINT dpi_{96};
     ui::ClassicLauncherDpiMetrics

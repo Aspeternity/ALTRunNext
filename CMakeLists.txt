@@ -936,6 +936,19 @@ if(BUILD_TESTING)
         add_test(NAME window_presentation_runtime_tests COMMAND window_presentation_runtime_tests)
         set_tests_properties(window_presentation_runtime_tests PROPERTIES TIMEOUT 30 RUN_SERIAL TRUE)
 
+        add_executable(uninstall_runtime_tests tests/UninstallRuntimeTests.cpp src/ui/Feedback.cpp)
+        get_target_property(uninstall_libraries ALTRunNextUninstaller LINK_LIBRARIES)
+        get_target_property(uninstall_definitions ALTRunNextUninstaller COMPILE_DEFINITIONS)
+        target_link_libraries(uninstall_runtime_tests PRIVATE ${uninstall_libraries})
+        target_compile_definitions(uninstall_runtime_tests PRIVATE ${uninstall_definitions})
+        target_include_directories(uninstall_runtime_tests PRIVATE src)
+        if(MSVC)
+            target_compile_options(uninstall_runtime_tests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+        endif()
+        altrun_enable_test_assertions(uninstall_runtime_tests)
+        add_test(NAME uninstall_runtime_tests COMMAND uninstall_runtime_tests)
+        set_tests_properties(uninstall_runtime_tests PROPERTIES TIMEOUT 60 RUN_SERIAL TRUE)
+
         add_executable(feedback_runtime_tests
             tests/FeedbackRuntimeTests.cpp
             src/ui/Feedback.cpp

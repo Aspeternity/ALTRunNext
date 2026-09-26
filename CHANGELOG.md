@@ -2578,3 +2578,11 @@
 ## 0.1.0
 
 - Created the clean-room C++23/Win32 development baseline.
+
+### alpha.5.49 follow-up — numeric intent and uninstall recovery
+
+- Preserve bare-number quick launch while probing Everything for strong filename continuations on an independent IPC channel. Distinguish confirmed absence from unavailable/truncated/failed queries; cancel stale intents on editing/session changes.
+- Recall filename-prefix candidates before broad Everything results are locally filtered; keep explicit syntax semantics and bounded candidate pools.
+- Fix the elevated uninstaller working-directory pointer lifetime, already-stopping services, process-exit races and ignored process wait timeouts.
+- Clear read-only attributes on owned ordinary entries, unlink reparse points without traversing their targets, retain retry anchors until late cleanup and restore an uninstall recovery entry after partial failure.
+- Add Windows production-EDIT/IPC and real filesystem uninstall regression coverage. Versions and data schemas remain unchanged.

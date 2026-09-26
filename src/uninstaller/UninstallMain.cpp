@@ -20,6 +20,7 @@
 #include <cwchar>
 #include <cwctype>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -362,6 +363,46 @@ WaitForProcess(
     return wait == WAIT_OBJECT_0;
 }
 
+constexpr wchar_t kRecoveryMarker[] = L".altrun-uninstall-recovery";
+constexpr char kRecoverySignature[] = "ALTRunNext uninstall recovery v1";
+
+[[nodiscard]] bool IsPlainFile(const std::filesystem::path& path) {
+    const DWORD attributes = GetFileAttributesW(path.c_str());
+    return attributes != INVALID_FILE_ATTRIBUTES &&
+        !(attributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT));
+}
+
+[[nodiscard]] bool HasRecoveryMarker(const std::filesystem::path& install) {
+    if (!IsPlainFile(install / kRecoveryMarker) || !IsPlainFile(install / L"Uninstall.exe")) return false;
+    std::ifstream input(install / kRecoveryMarker);
+    std::string signature;
+    std::getline(input, signature);
+    return signature == kRecoverySignature;
+}
+
+[[nodiscard]] bool WriteRecoveryMarker(const std::filesystem::path& install) {
+    const auto marker = install / kRecoveryMarker;
+    const DWORD attributes = GetFileAttributesW(marker.c_str());
+    if (attributes != INVALID_FILE_ATTRIBUTES &&
+        (attributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY))) return false;
+    std::ofstream out(marker, std::ios::trunc);
+    out << kRecoverySignature << '\n';
+    out.flush();
+    return out.good();
+}
+
+// Keep a usable retry entry if a lock/ACL blocks cleanup after the EXE was removed.
+void RestoreUninstallEntry(const std::filesystem::path& install) {
+    const DWORD error = GetLastError();
+    const auto destination = install / L"Uninstall.exe";
+    const auto current = CurrentExecutable();
+    const DWORD attributes = GetFileAttributesW(destination.c_str());
+    if (!current.empty() && attributes == INVALID_FILE_ATTRIBUTES)
+        (void)CopyFileW(current.c_str(), destination.c_str(), TRUE);
+    (void)WriteRecoveryMarker(install);
+    SetLastError(error);
+}
+
 [[nodiscard]] bool
 ValidateInstallRoot(
     const std::filesystem::path& install) {
@@ -377,17 +418,18 @@ ValidateInstallRoot(
         return false;
     }
 
+    const DWORD rootAttributes = GetFileAttributesW(install.c_str());
+    if (rootAttributes == INVALID_FILE_ATTRIBUTES ||
+        (rootAttributes & FILE_ATTRIBUTE_REPARSE_POINT)) return false;
+    if (HasRecoveryMarker(install)) return true;
+
     for (const auto* name : {
              L"ALTRunNext.exe",
              L"VERSION",
          }) {
         ec.clear();
 
-        if (!std::filesystem::
-                 is_regular_file(
-                     install / name,
-                     ec) ||
-            ec) {
+        if (!IsPlainFile(install / name)) {
             return false;
         }
     }
@@ -575,6 +617,25 @@ void RemoveStartupRegistration(
     RegCloseKey(key);
 }
 
+[[nodiscard]] bool StopOwnedProcess(DWORD pid, const std::filesystem::path& expected) {
+    EventHandle process;
+    process.value = OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+    if (!process.value) return GetLastError() == ERROR_INVALID_PARAMETER;
+    if (WaitForSingleObject(process.value, 0) == WAIT_OBJECT_0) return true;
+    std::array<wchar_t, 32768> buffer{};
+    DWORD size = static_cast<DWORD>(buffer.size());
+    if (!QueryFullProcessImageNameW(process.value, 0, buffer.data(), &size))
+        return WaitForSingleObject(process.value, 0) == WAIT_OBJECT_0;
+    // Revalidate the opened handle, not just a potentially recycled snapshot PID.
+    if (LowerPath(std::filesystem::path(std::wstring(buffer.data(), size))) != LowerPath(expected)) return true;
+    if (!TerminateProcess(process.value, ERROR_CANCELLED) &&
+        WaitForSingleObject(process.value, 0) != WAIT_OBJECT_0) return false;
+    const DWORD waited = WaitForSingleObject(process.value, 5000);
+    if (waited == WAIT_OBJECT_0) return true;
+    SetLastError(waited == WAIT_TIMEOUT ? ERROR_TIMEOUT : ERROR_GEN_FAILURE);
+    return false;
+}
+
 [[nodiscard]] bool
 GracefullyCloseALTRun(
     const std::filesystem::path& install) {
@@ -650,27 +711,7 @@ GracefullyCloseALTRun(
                 actual) &&
             LowerPath(actual) ==
                 LowerPath(expected)) {
-            HANDLE process =
-                OpenProcess(
-                    PROCESS_TERMINATE |
-                        SYNCHRONIZE,
-                    FALSE,
-                    entry.th32ProcessID);
-
-            if (!process) {
-                success = false;
-            } else {
-                if (!TerminateProcess(
-                        process,
-                        ERROR_CANCELLED)) {
-                    success = false;
-                } else {
-                    WaitForSingleObject(
-                        process,
-                        5000);
-                }
-                CloseHandle(process);
-            }
+            if (!StopOwnedProcess(entry.th32ProcessID, actual)) success = false;
         }
 
         more =
@@ -866,10 +907,8 @@ StopAndDeleteOwnedEverythingService(
         SERVICE_STOPPED) {
         SERVICE_STATUS stopStatus{};
 
-        if (!ControlService(
-                service.value,
-                SERVICE_CONTROL_STOP,
-                &stopStatus)) {
+        if (status.dwCurrentState != SERVICE_STOP_PENDING &&
+            !ControlService(service.value, SERVICE_CONTROL_STOP, &stopStatus)) {
             const DWORD error =
                 GetLastError();
 
@@ -978,27 +1017,7 @@ TerminateManagedEverythingProcesses(
             PathStartsWithDirectory(
                 actual,
                 root)) {
-            HANDLE process =
-                OpenProcess(
-                    PROCESS_TERMINATE |
-                        SYNCHRONIZE,
-                    FALSE,
-                    entry.th32ProcessID);
-
-            if (!process) {
-                success = false;
-            } else {
-                if (!TerminateProcess(
-                        process,
-                        ERROR_CANCELLED)) {
-                    success = false;
-                } else {
-                    WaitForSingleObject(
-                        process,
-                        5000);
-                }
-                CloseHandle(process);
-            }
+            if (!StopOwnedProcess(entry.th32ProcessID, actual)) success = false;
         }
 
         more =
@@ -1352,10 +1371,8 @@ RequestShellRelease(
         return false;
     }
 
-    // The normal-integrity broker still holds its own DELETE-capable directory
-    // handle at this point. Acquire the elevated worker's matching lease before
-    // acknowledging the handoff, so there is never a window in which Explorer
-    // or another Shell component can reopen the root without FILE_SHARE_DELETE.
+    // The broker has navigated Explorer away and released its working directory.
+    // Acquire the worker lease before allowing the original uninstaller to exit.
     if (!AcquireDirectoryDeleteLease(
             args.install,
             rootLease,
@@ -1628,7 +1645,7 @@ AcquireDirectoryDeleteLease(
                     FILE_SHARE_DELETE,
                 nullptr,
                 OPEN_EXISTING,
-                FILE_FLAG_BACKUP_SEMANTICS,
+                FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
                 nullptr);
 
         if (handle !=
@@ -1696,20 +1713,15 @@ DeleteDirectoryThroughLease(
     disposition.DeleteFile =
         TRUE;
 
-    if (!SetFileInformationByHandle(
-            lease.value,
-            FileDispositionInfo,
-            &disposition,
-            sizeof(disposition))) {
-        const DWORD error =
-            GetLastError();
-
-        failure.error =
-            error != ERROR_SUCCESS
-                ? error
-                : ERROR_GEN_FAILURE;
-        failure.path = path;
-        return false;
+    for (int attempt = 0; ; ++attempt) {
+        if (SetFileInformationByHandle(lease.value, FileDispositionInfo, &disposition, sizeof(disposition))) break;
+        const DWORD error = GetLastError();
+        if (!IsTransientRemovalError(error) || attempt >= 24) {
+            failure = {error != ERROR_SUCCESS ? error : ERROR_GEN_FAILURE, path,
+                RestartManagerLockOwners(path)};
+            return false;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 
     lease.Reset();
@@ -1724,25 +1736,23 @@ RemoveOneWithRetry(
     constexpr auto delay =
         std::chrono::milliseconds(200);
 
-    for (int attempt = 0;
-         attempt < attempts;
-         ++attempt) {
-        std::error_code ec;
-
-        const bool removed =
-            std::filesystem::remove(
-                path,
-                ec);
-
-        if (!ec) {
-            return removed ||
-                !std::filesystem::exists(
-                    path,
-                    ec);
+    for (int attempt = 0; attempt < attempts; ++attempt) {
+        const DWORD attributes = GetFileAttributesW(path.c_str());
+        if (attributes == INVALID_FILE_ATTRIBUTES) {
+            const DWORD error = GetLastError();
+            if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND) return true;
+            failure.error = error;
+            failure.path = path;
+            return false;
         }
-
-        const DWORD error =
-            NativeFilesystemError(ec);
+        // Do not change attributes on a reparse target outside this installation.
+        if ((attributes & FILE_ATTRIBUTE_READONLY) && !(attributes & FILE_ATTRIBUTE_REPARSE_POINT))
+            (void)SetFileAttributesW(path.c_str(), attributes & ~FILE_ATTRIBUTE_READONLY);
+        const BOOL removed = (attributes & FILE_ATTRIBUTE_DIRECTORY)
+            ? RemoveDirectoryW(path.c_str()) : DeleteFileW(path.c_str());
+        if (removed) return true;
+        const DWORD error = GetLastError();
+        if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND) return true;
 
         if (!IsTransientRemovalError(
                 error) ||
@@ -1781,141 +1791,27 @@ RemoveOneWithRetry(
 RemoveAllWithRetry(
     const std::filesystem::path& path,
     RemovalFailure& failure) {
+    const DWORD attributes = GetFileAttributesW(path.c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES) {
+        const DWORD error = GetLastError();
+        if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND) return true;
+        failure = {error, path, {}};
+        return false;
+    }
+    // Junctions and all other directory reparse points are links, not subtrees.
+    if (!(attributes & FILE_ATTRIBUTE_DIRECTORY) || (attributes & FILE_ATTRIBUTE_REPARSE_POINT))
+        return RemoveOneWithRetry(path, failure);
     std::error_code ec;
-
-    if (!std::filesystem::exists(
-            path,
-            ec)) {
-        return !ec;
-    }
-
-    const bool isSymlink =
-        std::filesystem::is_symlink(
-            path,
-            ec);
-
+    std::vector<std::filesystem::path> children;
+    for (std::filesystem::directory_iterator it(path, ec), end; !ec && it != end; it.increment(ec))
+        children.push_back(it->path());
     if (ec) {
-        failure.error =
-            NativeFilesystemError(ec);
-        failure.path = path;
+        failure = {NativeFilesystemError(ec), path, {}};
         return false;
     }
-
-    const bool isDirectory =
-        std::filesystem::is_directory(
-            path,
-            ec);
-
-    if (ec) {
-        failure.error =
-            NativeFilesystemError(ec);
-        failure.path = path;
-        return false;
-    }
-
-    if (!isDirectory ||
-        isSymlink) {
-        return RemoveOneWithRetry(
-            path,
-            failure);
-    }
-
-    std::vector<std::filesystem::path>
-        files;
-    std::vector<std::filesystem::path>
-        directories;
-
-    {
-        std::filesystem::
-            recursive_directory_iterator
-            it(
-                path,
-                std::filesystem::
-                    directory_options::
-                        skip_permission_denied,
-                ec);
-        const std::filesystem::
-            recursive_directory_iterator
-            endIterator;
-
-        while (!ec &&
-               it != endIterator) {
-            std::error_code typeError;
-            const bool childSymlink =
-                it->is_symlink(
-                    typeError);
-
-            if (typeError) {
-                failure.error =
-                    NativeFilesystemError(
-                        typeError);
-                failure.path =
-                    it->path();
-                return false;
-            }
-
-            const bool childDirectory =
-                it->is_directory(
-                    typeError);
-
-            if (typeError) {
-                failure.error =
-                    NativeFilesystemError(
-                        typeError);
-                failure.path =
-                    it->path();
-                return false;
-            }
-
-            if (childDirectory &&
-                !childSymlink) {
-                directories.push_back(
-                    it->path());
-            } else {
-                files.push_back(
-                    it->path());
-            }
-
-            it.increment(ec);
-        }
-    }
-
-    if (ec) {
-        failure.error =
-            NativeFilesystemError(ec);
-        failure.path = path;
-        return false;
-    }
-
-    for (const auto& file : files) {
-        if (!RemoveOneWithRetry(
-                file,
-                failure)) {
-            return false;
-        }
-    }
-
-    std::sort(
-        directories.begin(),
-        directories.end(),
-        [](const auto& left,
-           const auto& right) {
-            return left.native().size() >
-                right.native().size();
-        });
-
-    for (const auto& directory :
-         directories) {
-        if (!RemoveOneWithRetry(
-                directory,
-                failure)) {
-            return false;
-        }
-    }
-
-    return RemoveOneWithRetry(
-        path,
-        failure);
+    for (const auto& child : children)
+        if (!RemoveAllWithRetry(child, failure)) return false;
+    return RemoveOneWithRetry(path, failure);
 }
 
 [[nodiscard]] bool
@@ -1924,14 +1820,28 @@ RemoveInstallation(
     bool deleteData,
     RemovalFailure& failure,
     DirectoryHandle* rootLease) {
-    const auto data =
-        install /
-        L"data";
+    if (!WriteRecoveryMarker(install)) {
+        failure = {ERROR_ACCESS_DENIED, install / kRecoveryMarker, {}};
+        return false;
+    }
+    bool completed = false;
+    struct RecoveryGuard {
+        const std::filesystem::path& install;
+        bool& completed;
+        ~RecoveryGuard() { if (!completed) RestoreUninstallEntry(install); }
+    } recovery{install, completed};
+    const auto data = install / L"data";
+    const DWORD dataAttributes = GetFileAttributesW(data.c_str());
+    const DWORD toolsAttributes = GetFileAttributesW((data / L"tools").c_str());
+    const bool linkedData = dataAttributes != INVALID_FILE_ATTRIBUTES &&
+        (dataAttributes & FILE_ATTRIBUTE_REPARSE_POINT);
+    const bool linkedTools = toolsAttributes != INVALID_FILE_ATTRIBUTES &&
+        (toolsAttributes & FILE_ATTRIBUTE_REPARSE_POINT);
 
     // A stopped service can race with final image/database handle release.
     // Antivirus/indexing can also briefly hold a freshly stopped Everything
     // file. Retry only normal transient Windows delete failures.
-    if (!RemoveAllWithRetry(
+    if (!linkedData && !linkedTools && !RemoveAllWithRetry(
             data /
                 L"tools" /
                 L"Everything",
@@ -1939,14 +1849,14 @@ RemoveInstallation(
         return false;
     }
 
-    if (!RemoveAllWithRetry(
+    if (!linkedData && !RemoveAllWithRetry(
             data /
                 L"update",
             failure)) {
         return false;
     }
 
-    {
+    if (!linkedData && !linkedTools) {
         std::error_code ignored;
         std::filesystem::remove(
             data /
@@ -1972,8 +1882,7 @@ RemoveInstallation(
             continue;
         }
 
-        entries.push_back(
-            it->path());
+        if (it->path().filename() != kRecoveryMarker) entries.push_back(it->path());
     }
 
     if (ec) {
@@ -1983,6 +1892,14 @@ RemoveInstallation(
         return false;
     }
 
+    // Delete retry/validation anchors last, independent of directory enumeration order.
+    const auto anchor = [](const auto& path) {
+        const auto name = LowerPath(path.filename());
+        return name == L"altrunnext.exe" || name == L"uninstall.exe" || name == L"version";
+    };
+    std::stable_sort(entries.begin(), entries.end(), [&](const auto& a, const auto& b) {
+        return anchor(a) < anchor(b);
+    });
     for (const auto& entry : entries) {
         if (!RemoveAllWithRetry(
                 entry,
@@ -1991,6 +1908,7 @@ RemoveInstallation(
         }
     }
 
+    if (!RemoveOneWithRetry(install / kRecoveryMarker, failure)) return false;
     if (deleteData) {
         if (!rootLease) {
             failure.error =
@@ -2000,12 +1918,10 @@ RemoveInstallation(
             return false;
         }
 
-        return DeleteDirectoryThroughLease(
-            *rootLease,
-            install,
-            failure);
+        completed = DeleteDirectoryThroughLease(*rootLease, install, failure);
+        return completed;
     }
-
+    completed = true;
     return true;
 }
 
@@ -2298,6 +2214,7 @@ BeginUninstall() {
                 shellLeaseAcquiredName);
     }
 
+    const auto workerDirectory = tempExe.parent_path();
     SHELLEXECUTEINFOW info{};
     info.cbSize = sizeof(info);
     info.fMask =
@@ -2308,9 +2225,7 @@ BeginUninstall() {
         tempExe.c_str();
     info.lpParameters =
         arguments.c_str();
-    info.lpDirectory =
-        tempExe.parent_path()
-            .c_str();
+    info.lpDirectory = workerDirectory.c_str();
     info.nShow = SW_SHOWNORMAL;
 
     if (!ShellExecuteExW(
