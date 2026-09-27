@@ -8,6 +8,7 @@
 #include <shellapi.h>
 #include <aclapi.h>
 
+#include "../platform/SecureArchive.hpp"
 #include "../platform/SecureElevation.hpp"
 #include "UpdaterTransaction.hpp"
 
@@ -30,6 +31,9 @@ namespace {
 struct Arguments {
     DWORD parentPid{0};
     std::filesystem::path source;
+    std::filesystem::path archive;
+    std::wstring sha256;
+    bool secureReextract{false};
     std::filesystem::path install;
     std::filesystem::path backup;
     std::wstring version;
@@ -99,6 +103,28 @@ ParseArguments() {
             args.source =
                 std::wstring(value);
         } else if (
+            key == L"--archive") {
+            args.archive =
+                std::wstring(value);
+        } else if (
+            key == L"--sha256") {
+            args.sha256 =
+                value;
+        } else if (
+            key ==
+                L"--secure-reextract") {
+            if (value == L"1") {
+                args.secureReextract =
+                    true;
+            } else if (
+                value == L"0") {
+                args.secureReextract =
+                    false;
+            } else {
+                cleanup();
+                return std::nullopt;
+            }
+        } else if (
             key == L"--install") {
             args.install =
                 std::wstring(value);
@@ -126,6 +152,8 @@ ParseArguments() {
     if (!apply ||
         args.parentPid == 0 ||
         args.source.empty() ||
+        args.archive.empty() ||
+        args.sha256.empty() ||
         args.install.empty() ||
         args.backup.empty() ||
         args.version.empty() ||
@@ -134,6 +162,110 @@ ParseArguments() {
     }
 
     return args;
+}
+
+[[nodiscard]] bool
+AsciiSha256(
+    std::wstring_view value,
+    std::string& output) {
+    if (value.size() != 64) {
+        return false;
+    }
+
+    output.clear();
+    output.reserve(value.size());
+
+    for (const wchar_t ch : value) {
+        const bool digit =
+            ch >= L'0' &&
+            ch <= L'9';
+        const bool lower =
+            ch >= L'a' &&
+            ch <= L'f';
+        const bool upper =
+            ch >= L'A' &&
+            ch <= L'F';
+
+        if (!digit &&
+            !lower &&
+            !upper) {
+            output.clear();
+            return false;
+        }
+
+        output.push_back(
+            static_cast<char>(ch));
+    }
+
+    return true;
+}
+
+[[nodiscard]] bool
+CreateProtectedWorkRoot(
+    const std::filesystem::path& install,
+    std::filesystem::path& root,
+    std::uint32_t& nativeError) {
+    const DWORD installAttributes =
+        GetFileAttributesW(
+            install.c_str());
+
+    if (installAttributes ==
+            INVALID_FILE_ATTRIBUTES ||
+        (installAttributes &
+         FILE_ATTRIBUTE_DIRECTORY) == 0 ||
+        (installAttributes &
+         FILE_ATTRIBUTE_REPARSE_POINT) !=
+            0) {
+        nativeError =
+            installAttributes ==
+                    INVALID_FILE_ATTRIBUTES
+                ? static_cast<
+                      std::uint32_t>(
+                      GetLastError())
+                : ERROR_REPARSE_TAG_INVALID;
+        return false;
+    }
+
+    for (int attempt = 0;
+         attempt < 16;
+         ++attempt) {
+        std::wstring token;
+
+        if (!altrun::win::
+                 GenerateSecureToken(
+                     token,
+                     nativeError)) {
+            return false;
+        }
+
+        root =
+            install /
+            (L".altrun-update-work." +
+             token);
+
+        if (CreateDirectoryW(
+                root.c_str(),
+                nullptr)) {
+            nativeError = 0;
+            return true;
+        }
+
+        const DWORD error =
+            GetLastError();
+
+        if (error !=
+            ERROR_ALREADY_EXISTS) {
+            nativeError =
+                static_cast<
+                    std::uint32_t>(
+                    error);
+            return false;
+        }
+    }
+
+    nativeError =
+        ERROR_ALREADY_EXISTS;
+    return false;
 }
 
 [[nodiscard]] bool
@@ -500,19 +632,132 @@ int WINAPI wWinMain(
     const Arguments& args =
         *parsed;
 
-    const altrun::updater::
+    if (!WaitForParent(
+            args.parentPid)) {
+        return 2;
+    }
+
+    std::string expectedSha256;
+
+    if (!AsciiSha256(
+            args.sha256,
+            expectedSha256)) {
+        return 2;
+    }
+
+    altrun::win::
+        LockedVerifiedFile archiveLock;
+    std::uint32_t archiveError = 0;
+
+    if (!altrun::win::
+             LockAndVerifySha256(
+                 args.archive,
+                 expectedSha256,
+                 archiveLock,
+                 archiveError)) {
+        SetLastError(
+            archiveError != 0
+                ? archiveError
+                : ERROR_CRC);
+        return 2;
+    }
+
+    std::filesystem::path
+        protectedWorkRoot;
+    std::filesystem::path
+        transactionSource =
+            args.source;
+    std::filesystem::path
+        transactionBackup =
+            args.backup;
+    std::error_code cleanupError;
+
+    const auto cleanupWork =
+        [&]() {
+            archiveLock.Reset();
+
+            if (!protectedWorkRoot
+                     .empty()) {
+                std::filesystem::
+                    remove_all(
+                        protectedWorkRoot,
+                        cleanupError);
+                cleanupError.clear();
+            }
+        };
+
+    if (args.secureReextract) {
+        if (!IsElevated()) {
+            return 2;
+        }
+
+        std::uint32_t workError = 0;
+
+        if (!CreateProtectedWorkRoot(
+                args.install,
+                protectedWorkRoot,
+                workError)) {
+            SetLastError(
+                workError != 0
+                    ? workError
+                    : ERROR_ACCESS_DENIED);
+            return 2;
+        }
+
+        transactionSource =
+            protectedWorkRoot /
+            L"stage";
+        transactionBackup =
+            protectedWorkRoot /
+            L"backup";
+
+        std::uint32_t extractionError =
+            0;
+
+        if (!altrun::win::
+                 ExtractZipWithShellSecure(
+                     args.archive,
+                     transactionSource,
+                     extractionError)) {
+            SetLastError(
+                extractionError != 0
+                    ? extractionError
+                    : ERROR_INVALID_DATA);
+            cleanupWork();
+            return 2;
+        }
+
+        // The source tree now lives under the protected install root.
+        // The user-writable archive can be released and deleted before any
+        // elevated destination replacement starts.
+        archiveLock.Reset();
+        std::filesystem::remove(
+            args.archive,
+            cleanupError);
+        cleanupError.clear();
+    } else {
+        // No privilege boundary is crossed for a writable portable install.
+        // Still re-verify the archive after the old process exits so a stale
+        // or modified handoff never gets applied accidentally.
+        archiveLock.Reset();
+    }
+
+    altrun::updater::
         TransactionPaths transaction{
-            .source = args.source,
-            .install = args.install,
-            .backup = args.backup,
-            .version = args.version,
+            .source =
+                transactionSource,
+            .install =
+                args.install,
+            .backup =
+                transactionBackup,
+            .version =
+                args.version,
         };
 
     if (!altrun::updater::
              ValidateSource(
-                 transaction) ||
-        !WaitForParent(
-            args.parentPid)) {
+                 transaction)) {
+        cleanupWork();
         return 2;
     }
 
@@ -527,7 +772,18 @@ int WINAPI wWinMain(
             Rollback(
                 transaction,
                 journal);
+        cleanupWork();
         return 3;
+    }
+
+    // The applied file set and protected backup journal are sufficient for
+    // rollback after this point; the extracted source no longer needs to
+    // remain live.
+    if (args.secureReextract) {
+        std::filesystem::remove_all(
+            transactionSource,
+            cleanupError);
+        cleanupError.clear();
     }
 
     HANDLE healthEvent =
@@ -538,6 +794,7 @@ int WINAPI wWinMain(
         altrun::updater::Rollback(
             transaction,
             journal);
+        cleanupWork();
         return 4;
     }
 
@@ -560,6 +817,7 @@ int WINAPI wWinMain(
         altrun::updater::Rollback(
             transaction,
             journal);
+        cleanupWork();
 
         PROCESS_INFORMATION restored{};
         if (LaunchMain(
@@ -594,6 +852,7 @@ int WINAPI wWinMain(
         altrun::updater::Rollback(
             transaction,
             journal);
+        cleanupWork();
 
         PROCESS_INFORMATION restored{};
         if (LaunchMain(
@@ -609,14 +868,19 @@ int WINAPI wWinMain(
 
     CloseHandle(child.hProcess);
 
-    std::error_code ec;
+    cleanupWork();
+
     std::filesystem::remove_all(
         args.backup,
-        ec);
-    ec.clear();
+        cleanupError);
+    cleanupError.clear();
     std::filesystem::remove_all(
         args.source,
-        ec);
+        cleanupError);
+    cleanupError.clear();
+    std::filesystem::remove(
+        args.archive,
+        cleanupError);
 
     CleanupSelfLater();
     return 0;
