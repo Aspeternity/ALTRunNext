@@ -1,6 +1,7 @@
 #include "SecureArchive.hpp"
 
 #include <bcrypt.h>
+#include <shellapi.h>
 #include <shldisp.h>
 
 #include <algorithm>
