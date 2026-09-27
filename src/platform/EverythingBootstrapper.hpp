@@ -144,6 +144,10 @@ ManagedEverythingExecutable(
 [[nodiscard]] bool
 EverythingIpcEndpointAvailable();
 
+[[nodiscard]] bool
+IsManagedEverythingRunning(
+    const std::filesystem::path& dataDirectory);
+
 [[nodiscard]] ManagedEverythingStopResult
 StopManagedEverything(
     const std::filesystem::path& dataDirectory,
