@@ -1734,10 +1734,10 @@ PrepareUpdate(
         return result;
     }
 
-    std::filesystem::remove(
-        verifiedArchive,
-        ec);
-
+    // Keep the verified archive through the install handoff. A protected
+    // install re-opens it under a no-write/no-delete guard, verifies the
+    // manifest SHA-256 again after UAC, and re-extracts into a protected
+    // staging directory before any elevated file replacement occurs.
     std::string stagedVersion;
 
     if (!ReadFileText(
@@ -1761,6 +1761,9 @@ PrepareUpdate(
                 L"Uninstall.exe",
             ec) ||
         ec) {
+        std::filesystem::remove(
+            verifiedArchive,
+            ec);
         snapshot =
             Fail(
                 snapshot,
@@ -1773,6 +1776,10 @@ PrepareUpdate(
 
     snapshot.stagingDirectory =
         stagingDirectory;
+    snapshot.verifiedArchive =
+        verifiedArchive;
+    snapshot.assetSha256 =
+        asset.sha256;
     snapshot.stage =
         UpdateStage::ReadyToInstall;
     snapshot.failure =
@@ -1798,6 +1805,9 @@ bool LaunchPreparedUpdate(
             UpdateStage::
                 ReadyToInstall ||
         snapshot.stagingDirectory.empty() ||
+        snapshot.verifiedArchive.empty() ||
+        !IsSha256HexString(
+            snapshot.assetSha256) ||
         snapshot.availableVersion.empty()) {
         nativeError =
             ERROR_INVALID_DATA;
@@ -1827,6 +1837,10 @@ bool LaunchPreparedUpdate(
                 currentVersion.begin(),
                 currentVersion.end()));
 
+    const bool elevate =
+        !DirectoryWritable(
+            baseDirectory);
+
     std::wstring healthToken;
 
     if (!GenerateSecureToken(
@@ -1847,6 +1861,17 @@ bool LaunchPreparedUpdate(
         QuoteArgument(
             snapshot.stagingDirectory
                 .wstring()) +
+        L" --archive " +
+        QuoteArgument(
+            snapshot.verifiedArchive
+                .wstring()) +
+        L" --sha256 " +
+        QuoteArgument(
+            std::wstring(
+                snapshot.assetSha256.begin(),
+                snapshot.assetSha256.end())) +
+        L" --secure-reextract " +
+        (elevate ? L"1" : L"0") +
         L" --install " +
         QuoteArgument(
             baseDirectory.wstring()) +
@@ -1871,10 +1896,6 @@ bool LaunchPreparedUpdate(
             nativeError)) {
         return false;
     }
-
-    const bool elevate =
-        !DirectoryWritable(
-            baseDirectory);
 
     HANDLE process = nullptr;
 
