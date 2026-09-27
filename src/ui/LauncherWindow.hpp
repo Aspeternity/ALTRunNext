@@ -143,6 +143,7 @@ private:
     HWND classicPreview_{};
     WNDPROC oldEditProc_{};
     HFONT normalFont_{};
+    HFONT searchFont_{};
     HFONT auxiliaryFont_{};
     HFONT boldFont_{};
     HFONT titleFont_{};

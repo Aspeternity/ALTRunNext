@@ -14,6 +14,8 @@ constexpr int
     kModernLauncherAuxiliaryPointSize = 9;
 constexpr int
     kModernLauncherTitlePointSize = 10;
+constexpr int
+    kModernLauncherSearchPointSize = 12;
 
 [[nodiscard]] const wchar_t*
 ApplicationFace(
@@ -37,6 +39,8 @@ ApplicationPointSize(
         return 22;
     case UiFontRole::LauncherTitle:
         return 10;
+    case UiFontRole::LauncherSearch:
+        return kModernLauncherSearchPointSize;
     case UiFontRole::Body:
     case UiFontRole::BodySemibold:
     case UiFontRole::LauncherAuxiliary:
@@ -104,9 +108,11 @@ UiFontSpec LauncherFontSpec(
     const int pointSize =
         role == UiFontRole::LauncherTitle
             ? kModernLauncherTitlePointSize
-            : role == UiFontRole::LauncherAuxiliary
-                ? kModernLauncherAuxiliaryPointSize
-                : kModernLauncherBodyPointSize;
+            : role == UiFontRole::LauncherSearch
+                ? kModernLauncherSearchPointSize
+                : role == UiFontRole::LauncherAuxiliary
+                    ? kModernLauncherAuxiliaryPointSize
+                    : kModernLauncherBodyPointSize;
 
     return {
         L"Segoe UI",

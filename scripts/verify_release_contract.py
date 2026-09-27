@@ -121,7 +121,9 @@ if version == "0.8.0-alpha.6.3":
         "searchGlyph",
         "searchEditHeight",
         "Scale(38, dpi)",
-        "Scale(396, dpi)",
+        "Scale(428, dpi)",
+        "numericHintWidth",
+        "numericHintGap",
         "footerSurface",
         "footerAction",
         "secondaryMinWidth",
@@ -166,6 +168,17 @@ if version == "0.8.0-alpha.6.3":
     move_body = launcher[move_start:move_end]
     if "!IsModern()" in move_body or "WrappedSelectionIndex(" not in move_body or "true" not in move_body:
         fail("alpha.6.3 Tab/Up/Down selection must wrap in Modern Compact")
+
+    quick_start = launcher.find("int LauncherWindow::QuickLaunchIndexForKey")
+    quick_end = launcher.find("bool LauncherWindow::HasRecentTextInput", quick_start)
+    if quick_start < 0 or quick_end < 0:
+        fail("alpha.6.3 numeric quick-launch implementation missing")
+    quick_body = launcher[quick_start:quick_end]
+    if "IsModern()" in quick_body:
+        fail("alpha.6.3 Modern Compact must share numeric quick launch")
+    for token in ("showNumericHint", "numericHintRect", "ResultNumberLabel("):
+        if token not in launcher:
+            fail(f"alpha.6.3 Modern numeric hint missing: {token}")
 
     settings_cpp = read("src/ui/SettingsWindow.cpp")
     style_start = settings_cpp.find("constexpr DWORD kSettingsWindowStyle")
@@ -249,7 +262,7 @@ if version == "0.8.0-alpha.6.3":
     print(
         "0.8.0-alpha.6.3 Modern visual system contract verified:",
         "| Classic/shared core frozen",
-        "| dynamic 0-9 row height",
+        "| dynamic 0-10 row height",
         "| layered search/results/footer surfaces",
         "| inline secondary metadata",
         "| Windows 11 backdrop hint with solid fallback",

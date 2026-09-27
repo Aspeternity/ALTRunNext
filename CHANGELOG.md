@@ -3,16 +3,17 @@
 ## 0.8.0-alpha.6.3
 
 - Introduce the first full Modern Compact visual system instead of a single mostly-white canvas.
-- Resize Modern Compact dynamically from search-only through one to nine result rows; preserve the previous height while an empty static pass is still awaiting Everything.
+- Resize Modern Compact dynamically from search-only through one to ten result rows; preserve the previous height while an empty static pass is still awaiting Everything.
 - Separate search, results and footer into distinct rounded surfaces over a cooler outer background.
 - Add a lightweight painted search glyph while retaining the native EDIT control.
 - Replace the fixed right-hand alias column with measured inline secondary metadata.
 - Add a compact footer context surface and right-aligned `Enter` affordance.
 - Request the Windows 11 DWM system backdrop when supported; keep the solid surface palette as the Windows 10/unsupported fallback.
-- Tighten the Modern search surface from 42 to 38 logical pixels and center a 20-pixel native EDIT inside it.
-- Prefer Segoe Fluent Icons for the search glyph on Windows 11, with Segoe MDL2 Assets fallback on Windows 10; render it larger and darker for clearer 150% DPI output.
+- Tighten the Modern search surface from 42 to 38 logical pixels, use a dedicated 12 pt search font, and center the native EDIT inside it.
+- Prefer Segoe Fluent Icons for the search glyph on Windows 11, with Segoe MDL2 Assets fallback on Windows 10; bind the glyph raster size directly to the DPI-scaled icon box instead of tuning for one display scale.
 - Use Segoe UI + natural ClearType for Modern launcher text even when the application UI language is Chinese, leaving Windows font linking to supply CJK glyphs.
 - Restore cyclic Tab / Up / Down result navigation in Modern Compact.
+- Restore the shared smart numeric quick-launch behavior in Modern Compact and show a subtle right-aligned 1-9/0 shortcut hint on each visible row; the footer Enter affordance is unchanged.
 - Remove the permanent Settings `WS_VSCROLL` creation style and hard-clear native scroll state when switching to non-scroll pages, with a real-HWND small-window regression.
 - Preserve frozen Classic assets and shared search/Everything/usage/numeric-intent behavior.
 - Publish Windows fixed FileVersion/ProductVersion `0.8.0.273`.

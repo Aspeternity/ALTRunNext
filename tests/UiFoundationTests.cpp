@@ -17,7 +17,7 @@ int main() {
 
     assert(ui::kModernCompactLauncherMetrics.widthLogical == 620);
     assert(ui::kModernCompactLauncherMetrics.rowHeightLogical == 32);
-    assert(ui::kModernCompactLauncherMetrics.maxResults == 9);
+    assert(ui::kModernCompactLauncherMetrics.maxResults == 10);
 
     struct ModernDpiExpectation {
         unsigned dpi;
@@ -30,11 +30,11 @@ int main() {
         ModernDpiExpectation,
         5>
         modernDpiExpectations{{
-            {96u, 620, 396, 32},
-            {120u, 775, 495, 40},
-            {144u, 930, 594, 48},
-            {168u, 1085, 693, 56},
-            {192u, 1240, 792, 64},
+            {96u, 620, 428, 32},
+            {120u, 775, 535, 40},
+            {144u, 930, 642, 48},
+            {168u, 1085, 749, 56},
+            {192u, 1240, 856, 64},
         }};
 
     for (const auto& expected :
@@ -42,7 +42,7 @@ int main() {
         const auto full =
             ui::ModernCompactLauncherMetricsForDpi(
                 expected.dpi,
-                9);
+                10);
         assert(full.clientWidth ==
                expected.maxWidth);
         assert(full.clientHeight ==
@@ -88,7 +88,9 @@ int main() {
                 expected.dpi));
         assert(full.resultsSurface.height > 0);
         assert(full.resultsList.height ==
-               full.rowHeight * 9);
+               full.rowHeight * 10);
+        assert(full.numericHintWidth > 0);
+        assert(full.numericHintGap > 0);
         assert(full.footerSurface.height > 0);
         assert(full.footer.width > 0);
         assert(full.footerAction.width > 0);
@@ -112,7 +114,7 @@ int main() {
                full.clientWidth);
         assert(six.clientHeight ==
                full.clientHeight -
-                   full.rowHeight * 3);
+                   full.rowHeight * 4);
         assert(six.resultsList.height ==
                six.rowHeight * 6);
         assert(six.footerSurface.top <
@@ -124,7 +126,7 @@ int main() {
                 1);
         assert(one.clientHeight ==
                full.clientHeight -
-                   full.rowHeight * 8);
+                   full.rowHeight * 9);
         assert(one.resultsList.height ==
                one.rowHeight);
         assert(one.footerSurface.height > 0);

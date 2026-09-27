@@ -386,6 +386,7 @@ LauncherWindow::~LauncherWindow() {
     RemoveTrayIcon();
 
     if (normalFont_) DeleteObject(normalFont_);
+    if (searchFont_) DeleteObject(searchFont_);
     if (auxiliaryFont_) DeleteObject(auxiliaryFont_);
     if (boldFont_) DeleteObject(boldFont_);
     if (titleFont_) DeleteObject(titleFont_);
@@ -668,6 +669,10 @@ void LauncherWindow::ApplyFonts() {
         DeleteObject(normalFont_);
         normalFont_ = nullptr;
     }
+    if (searchFont_) {
+        DeleteObject(searchFont_);
+        searchFont_ = nullptr;
+    }
     if (auxiliaryFont_) {
         DeleteObject(auxiliaryFont_);
         auxiliaryFont_ = nullptr;
@@ -698,6 +703,14 @@ void LauncherWindow::ApplyFonts() {
                 ui::UiFontRole::Body),
             dpi_);
 
+    searchFont_ =
+        ui::CreateFontHandle(
+            ui::LauncherFontSpec(
+                style,
+                language,
+                ui::UiFontRole::LauncherSearch),
+            dpi_);
+
     auxiliaryFont_ =
         ui::CreateFontHandle(
             ui::LauncherFontSpec(
@@ -722,22 +735,23 @@ void LauncherWindow::ApplyFonts() {
                 ui::UiFontRole::LauncherTitle),
             dpi_);
 
-    // Prefer the newer Fluent icon outlines on Windows 11; Windows 10 keeps
-    // the documented MDL2 fallback. At 150% DPI a 12pt glyph lands on a
-    // cleaner 24px raster than the previous thin 11pt rendering.
+    // Match the icon font's em height to the DPI-scaled 16-logical-pixel
+    // glyph box instead of tuning a point size for one display scale.
+    // Grayscale antialiasing avoids ClearType subpixel fringing on the icon
+    // while preserving the Fluent -> MDL2 platform fallback.
     searchGlyphFont_ =
         ui::CreateFontHandle(
             {
                 ModernSearchGlyphFace(),
-                12,
                 0,
+                -16,
                 FW_NORMAL,
                 DEFAULT_CHARSET,
-                CLEARTYPE_NATURAL_QUALITY,
+                ANTIALIASED_QUALITY,
             },
             dpi_);
 
-    SendMessageW(edit_, WM_SETFONT, reinterpret_cast<WPARAM>(normalFont_), TRUE);
+    SendMessageW(edit_, WM_SETFONT, reinterpret_cast<WPARAM>(searchFont_), TRUE);
     SendMessageW(list_, WM_SETFONT, reinterpret_cast<WPARAM>(normalFont_), TRUE);
     SendMessageW(preview_, WM_SETFONT, reinterpret_cast<WPARAM>(auxiliaryFont_), TRUE);
     SendMessageW(classicPreview_, WM_SETFONT, reinterpret_cast<WPARAM>(auxiliaryFont_), TRUE);
@@ -2452,8 +2466,7 @@ int LauncherWindow::NumericDigitForKey(
 int LauncherWindow::QuickLaunchIndexForKey(
     WPARAM key) const {
 
-    if (IsModern() ||
-        !app_.SettingsData()
+    if (!app_.SettingsData()
              .numericQuickLaunch) {
         return -1;
     }
@@ -4244,10 +4257,35 @@ LRESULT LauncherWindow::HandleMessage(
                 item->rcItem.left +
                 modern.rowSelectionInsetX +
                 modern.rowTextInset;
-            const int contentRight =
+            const int rowRight =
                 item->rcItem.right -
                 modern.rowSelectionInsetX -
                 modern.rowTextInset;
+            const bool showNumericHint =
+                app_.SettingsData()
+                    .numericQuickLaunch &&
+                item->itemID < 10;
+
+            RECT numericHintRect =
+                item->rcItem;
+            numericHintRect.right =
+                rowRight;
+            numericHintRect.left =
+                showNumericHint
+                    ? std::max(
+                          contentLeft,
+                          rowRight -
+                              modern.numericHintWidth)
+                    : rowRight;
+
+            const int contentRight =
+                showNumericHint
+                    ? std::max(
+                          contentLeft,
+                          static_cast<int>(
+                              numericHintRect.left) -
+                              modern.numericHintGap)
+                    : rowRight;
 
             RECT primaryRect =
                 item->rcItem;
@@ -4350,6 +4388,31 @@ LRESULT LauncherWindow::HandleMessage(
                         DT_LEFT |
                         DT_VCENTER |
                         DT_END_ELLIPSIS |
+                        DT_NOPREFIX);
+            }
+
+            if (showNumericHint) {
+                const std::wstring number =
+                    ResultNumberLabel(
+                        item->itemID);
+
+                SelectObject(
+                    item->hDC,
+                    auxiliaryFont_);
+                SetTextColor(
+                    item->hDC,
+                    selected
+                        ? palette.selectionText
+                        : palette.mutedText);
+
+                DrawTextW(
+                    item->hDC,
+                    number.c_str(),
+                    -1,
+                    &numericHintRect,
+                    DT_SINGLELINE |
+                        DT_RIGHT |
+                        DT_VCENTER |
                         DT_NOPREFIX);
             }
 
