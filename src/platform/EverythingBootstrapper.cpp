@@ -890,17 +890,6 @@ CurrentExecutableForElevation(
 }
 
 [[nodiscard]] bool
-RunElevatedEverythingCommand(
-    const std::filesystem::path& executable,
-    std::wstring_view arguments,
-    std::uint32_t& nativeError) {
-    return RunGuardedElevatedExecutable(
-        executable,
-        arguments,
-        nativeError);
-}
-
-[[nodiscard]] bool
 RunElevatedServiceRepairHelper(
     const std::filesystem::path&
         managedSource,
