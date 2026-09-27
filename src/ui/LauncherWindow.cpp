@@ -4219,22 +4219,34 @@ LRESULT LauncherWindow::HandleMessage(
                         available -
                             modern.secondaryMinWidth -
                             modern.rowColumnGap);
+                const int measuredPrimaryWidth =
+                    static_cast<int>(
+                        primarySize.cx);
+                const int primaryLeft =
+                    static_cast<int>(
+                        primaryRect.left);
                 const int primaryWidth =
                     std::min(
-                        primarySize.cx +
+                        measuredPrimaryWidth +
                             DpiScale(2),
                         primaryMax);
+                const int primaryRight =
+                    std::min(
+                        contentRight,
+                        primaryLeft +
+                            primaryWidth);
+                const int secondaryLeft =
+                    std::min(
+                        contentRight,
+                        primaryRight +
+                            modern.rowColumnGap);
 
                 primaryRect.right =
-                    std::min(
-                        contentRight,
-                        primaryRect.left +
-                            primaryWidth);
+                    static_cast<LONG>(
+                        primaryRight);
                 secondaryRect.left =
-                    std::min(
-                        contentRight,
-                        primaryRect.right +
-                            modern.rowColumnGap);
+                    static_cast<LONG>(
+                        secondaryLeft);
             }
             SetTextColor(
                 item->hDC,
