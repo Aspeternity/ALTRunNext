@@ -344,6 +344,15 @@ void LockedVerifiedFile::Reset()
 
     handle =
         INVALID_HANDLE_VALUE;
+
+    for (HANDLE guard :
+         pathGuards) {
+        if (ValidHandle(guard)) {
+            CloseHandle(guard);
+        }
+    }
+
+    pathGuards.clear();
 }
 
 bool LockedVerifiedFile::Valid() const
@@ -366,6 +375,50 @@ bool LockAndVerifySha256(
         return false;
     }
 
+    std::vector<HANDLE>
+        pathGuards;
+    std::filesystem::path current =
+        path.parent_path();
+
+    while (!current.empty()) {
+        HANDLE guard =
+            CreateFileW(
+                current.c_str(),
+                FILE_READ_ATTRIBUTES,
+                FILE_SHARE_READ,
+                nullptr,
+                OPEN_EXISTING,
+                FILE_FLAG_BACKUP_SEMANTICS |
+                    FILE_FLAG_OPEN_REPARSE_POINT,
+                nullptr);
+
+        if (!ValidHandle(guard)) {
+            nativeError =
+                static_cast<std::uint32_t>(
+                    GetLastError());
+
+            for (HANDLE opened :
+                 pathGuards) {
+                CloseHandle(opened);
+            }
+
+            return false;
+        }
+
+        pathGuards.push_back(
+            guard);
+
+        const auto parent =
+            current.parent_path();
+
+        if (parent.empty() ||
+            parent == current) {
+            break;
+        }
+
+        current = parent;
+    }
+
     HANDLE handle =
         CreateFileW(
             path.c_str(),
@@ -382,24 +435,35 @@ bool LockAndVerifySha256(
         nativeError =
             static_cast<std::uint32_t>(
                 GetLastError());
+
+        for (HANDLE opened :
+             pathGuards) {
+            CloseHandle(opened);
+        }
+
         return false;
     }
 
-    if (!PlainFileHandle(handle)) {
+    locked.handle = handle;
+    locked.pathGuards =
+        std::move(pathGuards);
+
+    if (!PlainFileHandle(
+            locked.handle)) {
         nativeError =
             static_cast<std::uint32_t>(
                 GetLastError());
-        CloseHandle(handle);
+        locked.Reset();
         return false;
     }
 
     std::string actual;
 
     if (!HashHandleSha256(
-            handle,
+            locked.handle,
             actual,
             nativeError)) {
-        CloseHandle(handle);
+        locked.Reset();
         return false;
     }
 
@@ -416,13 +480,12 @@ bool LockAndVerifySha256(
         });
 
     if (actual != expected) {
-        CloseHandle(handle);
         nativeError =
             ERROR_CRC;
+        locked.Reset();
         return false;
     }
 
-    locked.handle = handle;
     nativeError = 0;
     return true;
 }
