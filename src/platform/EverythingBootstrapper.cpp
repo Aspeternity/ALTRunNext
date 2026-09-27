@@ -1775,6 +1775,18 @@ StartManagedEverything(
         };
     }
 
+    const auto expectedServiceExecutable =
+        ManagedEverythingServiceExecutableForSource(
+            executable);
+
+    if (expectedServiceExecutable.empty()) {
+        return {
+            ManagedRuntimeResult::
+                ServiceUnavailable,
+            ERROR_PATH_NOT_FOUND,
+        };
+    }
+
     auto serviceStatus =
         ProbeEverythingService(
             nativeError);
@@ -1813,9 +1825,9 @@ StartManagedEverything(
             ServiceProbe::Running;
     }
 
+    bool externalService = false;
     bool servicePathStale = false;
-    bool servicePathNeedsPortableRepair =
-        false;
+    bool servicePathNeedsRepair = false;
 
     if (serviceStatus !=
         ServiceProbe::Missing) {
@@ -1835,27 +1847,39 @@ StartManagedEverything(
             };
         }
 
+        const bool owned =
+            IsManagedEverythingServiceExecutable(
+                dataDirectory,
+                serviceExecutable);
+
+        externalService = !owned;
         servicePathStale =
             !serviceExecutableExists;
 
-        const bool olderManagedPath =
-            IsManagedEverythingServiceExecutable(
-                dataDirectory,
-                serviceExecutable) &&
-            LowerPath(
-                serviceExecutable) !=
+        if (externalService) {
+            // An external/user-managed Everything service is outside ALTRun's
+            // ownership boundary. A running one can serve the managed client,
+            // but ALTRun never starts, retargets or reconfigures a stopped
+            // external service.
+            if (serviceStatus !=
+                ServiceProbe::Running) {
+                return {
+                    ManagedRuntimeResult::
+                        ServiceUnavailable,
+                    ERROR_ACCESS_DENIED,
+                };
+            }
+        } else {
+            servicePathNeedsRepair =
+                servicePathStale ||
                 LowerPath(
-                    executable);
-
-        servicePathNeedsPortableRepair =
-            DetachedAlpha91ServiceExecutable(
-                serviceExecutable) ||
-            olderManagedPath;
+                    serviceExecutable) !=
+                    LowerPath(
+                        expectedServiceExecutable) ||
+                !FileExists(
+                    expectedServiceExecutable);
+        }
     }
-
-    const bool servicePathNeedsRepair =
-        servicePathStale ||
-        servicePathNeedsPortableRepair;
 
     const bool managedRunning =
         ManagedDefaultIpcRunning(
@@ -1869,9 +1893,13 @@ StartManagedEverything(
         return {};
     }
 
-    if ((serviceStatus !=
+    const bool needsOwnedServiceAction =
+        !externalService &&
+        (serviceStatus !=
              ServiceProbe::Running ||
-         servicePathNeedsRepair) &&
+         servicePathNeedsRepair);
+
+    if (needsOwnedServiceAction &&
         !allowElevation) {
         return {
             servicePathNeedsRepair
@@ -1882,9 +1910,7 @@ StartManagedEverything(
             static_cast<std::uint32_t>(
                 servicePathStale
                     ? ERROR_FILE_NOT_FOUND
-                    : (servicePathNeedsPortableRepair
-                           ? ERROR_SUCCESS
-                           : ERROR_SERVICE_NOT_ACTIVE)),
+                    : ERROR_SERVICE_NOT_ACTIVE),
         };
     }
 
@@ -1935,42 +1961,54 @@ StartManagedEverything(
         };
     }
 
-    if (servicePathNeedsRepair) {
+    bool serviceActionTaken = false;
+
+    if (!externalService &&
+        (serviceStatus ==
+             ServiceProbe::Missing ||
+         servicePathNeedsRepair)) {
         Report(
             snapshot,
-            EverythingBootstrapStage::
-                RepairingService,
+            serviceStatus ==
+                    ServiceProbe::Missing
+                ? EverythingBootstrapStage::
+                      InstallingService
+                : EverythingBootstrapStage::
+                      RepairingService,
             progress);
 
         if (!RunElevatedServiceRepairHelper(
+                executable,
                 nativeError)) {
             return {
                 nativeError ==
                         ERROR_CANCELLED
                     ? ManagedRuntimeResult::
                           ServiceElevationCancelled
-                    : ManagedRuntimeResult::
-                          ServiceRepairFailed,
+                    : (serviceStatus ==
+                               ServiceProbe::Missing
+                           ? ManagedRuntimeResult::
+                                 ServiceInstallFailed
+                           : ManagedRuntimeResult::
+                                 ServiceRepairFailed),
                 nativeError,
             };
         }
-    } else if (serviceStatus !=
-               ServiceProbe::Running) {
+
+        serviceActionTaken = true;
+    } else if (
+        !externalService &&
+        serviceStatus !=
+            ServiceProbe::Running) {
         Report(
             snapshot,
             EverythingBootstrapStage::
                 InstallingService,
             progress);
 
-        const std::wstring_view command =
-            serviceStatus ==
-                    ServiceProbe::Missing
-                ? L"-install-service"
-                : L"-start-service";
-
-        if (!RunElevatedEverythingCommand(
+        if (!RunElevatedServicePolicyHelper(
+                true,
                 executable,
-                command,
                 nativeError)) {
             return {
                 nativeError ==
@@ -1982,11 +2020,11 @@ StartManagedEverything(
                 nativeError,
             };
         }
+
+        serviceActionTaken = true;
     }
 
-    if (serviceStatus !=
-            ServiceProbe::Running ||
-        servicePathNeedsRepair) {
+    if (serviceActionTaken) {
         Report(
             snapshot,
             EverythingBootstrapStage::
