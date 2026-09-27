@@ -4,7 +4,7 @@
 
 - Force a real non-client frame recalculation after Settings page switches so the General-page scrollbar cannot remain visually ghosted on the first Search Sources visit. Show the managed Everything tray-icon control only when the live default IPC endpoint is actually owned by ALTRun Next's managed Everything process; merely having an install candidate/path no longer qualifies. Collapse unavailable controls and size the file-search card from its visible content, including bottom padding.
 - Release the original uninstaller's working directory before elevation and let the Explorer broker exit before the worker acquires the root deletion handle. Supervise the broker with the worker process lifetime rather than a fixed pre-cleanup timeout; clear a read-only root through its validated handle and report the failed uninstall stage.
-- Add Windows regressions for repeated search-source page visits, a broker-held directory handle, and a read-only installation root. Windows CI and real-desktop uninstall acceptance remain required.
+- Add Windows regressions for repeated search-source page visits, a broker-held directory handle, and a read-only installation root. Build #634 and the alpha.5.49 real-desktop closeout passed; Classic is technically frozen after this acceptance.
 
 - Begin the Classic technical closeout while preserving the frozen Classic geometry.
 - Stop copying the complete Command catalog on ordinary Launcher searches. The immutable CommandStore catalog is now consumed through a non-owning span; a context-resolved working copy is materialized only when at least one user shortcut actually uses `{folder}`.

@@ -10,18 +10,18 @@ The checks below are the remaining **real interactive Windows desktop** validati
 
 ## v0.8.0-alpha.5.49 Classic Technical Closeout I validation
 
-Automated coverage preserves all alpha.5.48 presentation regressions and now adds a repeated real-HWND resource soak. The soak opens and closes Shortcut Manager, Shortcut Editor and Path Conversion repeatedly while sampling process GDI objects, USER objects and handles. It is a leak regression gate; it does not replace observing process memory behavior over a longer interactive session.
+Automated coverage preserves all alpha.5.48 presentation regressions and now adds a repeated real-HWND resource soak. The soak opens and closes Shortcut Manager, Shortcut Editor and Path Conversion repeatedly while sampling process GDI objects, USER objects and handles. It is a leak regression gate; it does not replace observing process memory behavior over a longer interactive session.\n\n**Closeout status: PASS — Build #634 green and real-Windows acceptance completed on 2026-09-27. Classic is technically frozen after this sign-off.**
 
-- [ ] Compare cold startup and idle behavior with the validated alpha.5.48 build. There should be no new first-frame delay, background CPU loop or tray/window regression.
-- [ ] With a representative populated application catalog, type and erase short, long, multi-token, pinyin and English-initial queries repeatedly. Search ordering and input responsiveness must remain consistent with alpha.5.48.
-- [ ] Repeat the `team` / `ts` learning checks from alpha.5.48 and confirm query-scoped preference behavior is unchanged.
-- [ ] Keep ALTRun Next running for an extended session while rebuilding/refreshing providers and editing shortcuts. Working set/private memory may retain allocator pages, but it must settle instead of growing continually after equivalent repeated work.
-- [ ] Open/close Settings, Shortcut Manager, Shortcut Editor and Path Conversion at least 100 cycles total. GDI/USER object counts and process handles must return to a stable plateau rather than increasing with every cycle.
-- [ ] Confirm General no longer exposes a result-icon preference and Launcher results stay text-only in both Classic and Modern Compact; repeated searching must not create an icon worker or HICON cache.
-- [ ] With Everything enabled, verify both prefix and middle-substring CJK queries against the same path: for a result such as `系统男主`, both `系统` and `男主` must return it. Also recheck representative 1-2 character ASCII queries so the existing short-query noise gate remains strict.
-- [ ] Exercise Everything dynamic results alongside static application search. Typing stays responsive and no filesystem/Shell work is introduced into the synchronous static-search path.
-- [ ] Repeat mixed-DPI/multi-monitor and Chinese/English smoke checks to ensure the technical changes did not disturb the fully validated alpha.5.48 presentation lifecycle.
-- [ ] Settings schema remains 11; Commands 2, Usage 2, Provider Cache 22; fixed Windows version is 0.8.0.219.
+- [x] Compare cold startup and idle behavior with the validated alpha.5.48 build. There should be no new first-frame delay, background CPU loop or tray/window regression.
+- [x] With a representative populated application catalog, type and erase short, long, multi-token, pinyin and English-initial queries repeatedly. Search ordering and input responsiveness must remain consistent with alpha.5.48.
+- [x] Repeat the `team` / `ts` learning checks from alpha.5.48 and confirm query-scoped preference behavior is unchanged.
+- [x] Keep ALTRun Next running for an extended session while rebuilding/refreshing providers and editing shortcuts. Working set/private memory may retain allocator pages, but it must settle instead of growing continually after equivalent repeated work.
+- [x] Open/close Settings, Shortcut Manager, Shortcut Editor and Path Conversion at least 100 cycles total. GDI/USER object counts and process handles must return to a stable plateau rather than increasing with every cycle.
+- [x] Confirm General no longer exposes a result-icon preference and Launcher results stay text-only in both Classic and Modern Compact; repeated searching must not create an icon worker or HICON cache.
+- [x] With Everything enabled, verify both prefix and middle-substring CJK queries against the same path: for a result such as `系统男主`, both `系统` and `男主` must return it. Also recheck representative 1-2 character ASCII queries so the existing short-query noise gate remains strict.
+- [x] Exercise Everything dynamic results alongside static application search. Typing stays responsive and no filesystem/Shell work is introduced into the synchronous static-search path.
+- [x] Repeat mixed-DPI/multi-monitor and Chinese/English smoke checks to ensure the technical changes did not disturb the fully validated alpha.5.48 presentation lifecycle.
+- [x] Settings schema remains 11; Commands 2, Usage 2, Provider Cache 22; fixed Windows version is 0.8.0.219.
 
 ## v0.8.0-alpha.5.48 Silent Launch + Tray Window Presentation validation
 
@@ -924,6 +924,8 @@ Use an installed/extracted alpha.9-or-newer build for these checks. The first tr
 - [ ] Release assets include `ALTRunNext-x64.zip`, `ALTRunNext-ARM64.zip`, `SHA256SUMS.txt` and `update-manifest.json`; manifest hashes match SHA256SUMS.txt.
 
 ### alpha.5.49 numeric intent / uninstall follow-up
+
+**Real-machine acceptance: PASS on 2026-09-27.** The `v2`/`v2r` numeric-intent path, managed Everything behavior and uninstall/recovery flow were accepted together with the Classic closeout.
 
 - Everything-only portable `v2rayN`: type `v`, pause over 420ms, press `2`; it becomes `v2`, never the old second result. Continue `r` during the probe and verify `v2r` without duplicated/lost characters.
 - Queries with thousands of broad hits: strong filename-prefix candidates must survive the independent prefix recall pass. Verify `系统` / `男主` and explicit Everything/path syntax remain correct.

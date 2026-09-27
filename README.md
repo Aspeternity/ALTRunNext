@@ -25,7 +25,7 @@ You no longer need to find the correct GitHub Actions run. The `dev-latest` rele
 
 ## v0.8.0-alpha.5.49 — Classic Technical Closeout I
 
-This build starts the post-Classic performance and memory closeout on top of the fully validated alpha.5.48 desktop behavior. The normal Launcher keystroke path no longer builds a deep copy of every discovered `Command`: it searches the immutable CommandStore catalog through a non-owning span and only materializes a context-resolved working set when a user shortcut actually contains the `{folder}` template.
+This build completes the post-Classic performance and memory closeout on top of the fully validated alpha.5.48 desktop behavior. The normal Launcher keystroke path no longer builds a deep copy of every discovered `Command`: it searches the immutable CommandStore catalog through a non-owning span and only materializes a context-resolved working set when a user shortcut actually contains the `{folder}` template.
 
 Search also prepares normalized query state and pinyin eligibility once per request instead of repeatedly rebuilding that state for every candidate field. Dynamic filesystem ranking reuses the same prepared-query pattern and uses a non-owning filename stem. The derived pinyin-form cache is now bounded to 4096 LRU-style entries so a long-lived tray process cannot accumulate stale forms indefinitely as provider contents change.
 
@@ -34,6 +34,8 @@ Real-machine validation exposed two closeout issues. The optional result-icon su
 Windows runtime validation now includes a repeated real-HWND Shortcut Manager -> Shortcut Editor -> Path Conversion lifecycle soak and samples GDI objects, USER objects and process handles before/after the loop. This phase intentionally avoids a broad architecture rewrite: Classic geometry and desktop presentation remain frozen while measured allocator/resource costs and confirmed search regressions are removed locally.
 
 Settings schema remains **11**; Commands **2**, Usage **2** and Provider Cache **22** are unchanged. Windows fixed FileVersion/ProductVersion is `0.8.0.219`.
+
+Build #634 and the final real-Windows alpha.5.49 acceptance passed. Classic is now technically frozen: further Classic work is limited to confirmed regressions, compatibility, data-safety/security and release-blocking defects. Modern Compact refinement is the next UI development track.
 
 ## v0.8.0-alpha.5.48 — Silent Launch + Tray Window Presentation
 
