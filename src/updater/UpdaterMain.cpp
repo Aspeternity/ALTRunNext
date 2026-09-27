@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cwchar>
 #include <cwctype>
 #include <filesystem>
