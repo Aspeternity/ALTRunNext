@@ -406,6 +406,20 @@ ProtectedManagedEverythingServiceExecutable(
             .has_value();
 }
 
+[[nodiscard]] bool
+PortableManagedEverythingExecutable(
+    const std::filesystem::path& dataDirectory,
+    const std::filesystem::path& executable) {
+    return
+        PathStartsWithDirectory(
+            executable,
+            ManagedEverythingRoot(
+                dataDirectory)) &&
+        VersionFromManagedExecutablePath(
+            executable)
+            .has_value();
+}
+
 struct ExistingCandidate {
     EverythingBootstrapSource source{
         EverythingBootstrapSource::None};
