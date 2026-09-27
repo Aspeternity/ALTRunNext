@@ -2963,6 +2963,19 @@ ManagedEverythingExecutable(
         PinnedManagedEverythingVersion());
 }
 
+std::filesystem::path
+ManagedEverythingServiceExecutable(
+    const std::filesystem::path&
+        dataDirectory) {
+    const auto source =
+        ManagedEverythingExecutable(
+            dataDirectory);
+
+    return
+        ManagedEverythingServiceExecutableForSource(
+            source);
+}
+
 bool EverythingIpcEndpointAvailable() {
     return AnyUsableIpcEndpoint();
 }
@@ -2982,17 +2995,11 @@ IsManagedEverythingServiceExecutable(
         return false;
     }
 
-    const bool versionedManaged =
-        PathStartsWithDirectory(
-            executable,
-            ManagedEverythingRoot(
-                dataDirectory)) &&
-        VersionFromManagedExecutablePath(
-            executable)
-            .has_value();
-
-    return versionedManaged ||
-        DetachedAlpha91ServiceExecutable(
+    return
+        PortableManagedEverythingExecutable(
+            dataDirectory,
+            executable) ||
+        ProtectedManagedEverythingServiceExecutable(
             executable);
 }
 
