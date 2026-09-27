@@ -2,6 +2,7 @@
 
 #include "../core/ConfigIO.hpp"
 #include "../core/UpdateManifest.hpp"
+#include "SecureElevation.hpp"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -327,7 +328,7 @@ OpenRequest(
     }
 
     DWORD redirectPolicy =
-        WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS;
+        WINHTTP_OPTION_REDIRECT_POLICY_DISALLOW_HTTPS_TO_HTTP;
 
     if (!WinHttpSetOption(
             request,
@@ -1818,50 +1819,6 @@ bool LaunchPreparedUpdate(
         return false;
     }
 
-    std::array<wchar_t, MAX_PATH>
-        tempBuffer{};
-    const DWORD tempLength =
-        GetTempPathW(
-            static_cast<DWORD>(
-                tempBuffer.size()),
-            tempBuffer.data());
-
-    if (tempLength == 0 ||
-        tempLength >=
-            tempBuffer.size()) {
-        nativeError =
-            static_cast<std::uint32_t>(
-                GetLastError());
-        return false;
-    }
-
-    const auto tick =
-        GetTickCount64();
-    const auto tempUpdater =
-        std::filesystem::path(
-            tempBuffer.data()) /
-        (L"ALTRunNext-Update." +
-         std::to_wstring(
-             parentProcessId) +
-         L"." +
-         std::to_wstring(tick) +
-         L".exe");
-
-    std::filesystem::copy_file(
-        updater,
-        tempUpdater,
-        std::filesystem::
-            copy_options::
-                overwrite_existing,
-        ec);
-
-    if (ec) {
-        nativeError =
-            static_cast<std::uint32_t>(
-                ec.value());
-        return false;
-    }
-
     const auto backupDirectory =
         UpdateRoot(dataDirectory) /
         L"backup" /
@@ -1870,12 +1827,17 @@ bool LaunchPreparedUpdate(
                 currentVersion.begin(),
                 currentVersion.end()));
 
+    std::wstring healthToken;
+
+    if (!GenerateSecureToken(
+            healthToken,
+            nativeError)) {
+        return false;
+    }
+
     const std::wstring healthEvent =
         L"Local\\Aspeternity.ALTRunNext.UpdateHealth." +
-        std::to_wstring(
-            parentProcessId) +
-        L"." +
-        std::to_wstring(tick);
+        healthToken;
 
     std::wstring arguments =
         L"--apply --parent-pid " +
@@ -1901,43 +1863,41 @@ bool LaunchPreparedUpdate(
         L" --health-event " +
         QuoteArgument(healthEvent);
 
+    SecuredExecutable securedUpdater;
+
+    if (!CreateSecuredTemporaryExecutableCopy(
+            updater,
+            securedUpdater,
+            nativeError)) {
+        return false;
+    }
+
     const bool elevate =
         !DirectoryWritable(
             baseDirectory);
 
-    SHELLEXECUTEINFOW info{};
-    info.cbSize = sizeof(info);
-    info.fMask =
-        SEE_MASK_NOCLOSEPROCESS |
-        SEE_MASK_NOASYNC;
-    info.hwnd = nullptr;
-    info.lpVerb =
-        elevate
-            ? L"runas"
-            : L"open";
-    info.lpFile =
-        tempUpdater.c_str();
-    info.lpParameters =
-        arguments.c_str();
-    info.lpDirectory =
-        tempUpdater
-            .parent_path()
-            .c_str();
-    info.nShow = SW_HIDE;
+    HANDLE process = nullptr;
 
-    if (!ShellExecuteExW(&info)) {
-        nativeError =
-            static_cast<std::uint32_t>(
-                GetLastError());
-        std::filesystem::remove(
-            tempUpdater,
-            ec);
+    if (!LaunchSecuredExecutable(
+            securedUpdater,
+            arguments,
+            elevate,
+            SW_HIDE,
+            process,
+            nativeError)) {
+        securedUpdater
+            .RemoveTemporaryNow();
         return false;
     }
 
-    if (info.hProcess) {
-        CloseHandle(info.hProcess);
+    if (process) {
+        CloseHandle(process);
     }
+
+    // Keep the random worker in place after process creation. Update.exe
+    // schedules its own executable and dedicated temporary directory for
+    // deletion once the transaction is complete.
+    securedUpdater.Reset();
 
     nativeError = 0;
     return true;
