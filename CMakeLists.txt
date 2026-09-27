@@ -398,6 +398,21 @@ if(BUILD_TESTING)
         update_runtime_tests
         PRIVATE src
     )
+    if(WIN32)
+        target_sources(
+            update_runtime_tests
+            PRIVATE
+                src/platform/SecureArchive.cpp
+        )
+        target_link_libraries(
+            update_runtime_tests
+            PRIVATE
+                bcrypt
+                ole32
+                oleaut32
+                shell32
+        )
+    endif()
     altrun_enable_test_assertions(
         update_runtime_tests
     )
