@@ -181,8 +181,8 @@ if version == "0.8.0-alpha.6.3":
         "shortcutHintRect",
         "shortcutHintFont_",
         "shortcutArrowFont_",
-        'L"\x21A9"',
-        'L"\x00B7"',
+        'L"↩"',
+        'L"·"',
         "ResultNumberLabel(",
     ):
         if token not in launcher + launcher_hpp:

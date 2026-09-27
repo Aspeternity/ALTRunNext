@@ -4434,7 +4434,7 @@ LRESULT LauncherWindow::HandleMessage(
 
                 DrawTextW(
                     item->hDC,
-                    L"!A9",
+                    L"↩",
                     1,
                     &shortcutHintRect,
                     DT_SINGLELINE |
@@ -4444,7 +4444,7 @@ LRESULT LauncherWindow::HandleMessage(
             } else if (
                 showNumericShortcut) {
                 std::wstring shortcut =
-                    L" B7";
+                    L"·";
                 shortcut +=
                     ResultNumberLabel(
                         item->itemID);
