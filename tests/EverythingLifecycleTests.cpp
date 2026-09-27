@@ -89,11 +89,6 @@ int main() {
         IsManagedEverythingServiceExecutable(
             root,
             serviceHost));
-
-    assert(
-        IsManagedEverythingServiceExecutable(
-            root,
-            managed));
     assert(
         !IsManagedEverythingServiceExecutable(
             root,
@@ -167,6 +162,18 @@ int main() {
         ManagedEverythingExecutable(
             root) ==
         newerManaged);
+    const auto newerServiceHost =
+        ManagedEverythingServiceExecutable(
+            root);
+    assert(
+        newerServiceHost.parent_path()
+            .filename() ==
+        newerManaged.parent_path()
+            .filename());
+    assert(
+        IsManagedEverythingServiceExecutable(
+            root,
+            newerServiceHost));
     assert(
         !IsManagedEverythingServiceExecutable(
             root,
