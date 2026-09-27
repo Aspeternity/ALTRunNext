@@ -5,6 +5,16 @@
 #include <fstream>
 #include <string>
 
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 namespace fs = std::filesystem;
 using altrun::updater::ApplyPackage;
 using altrun::updater::Rollback;
@@ -13,6 +23,89 @@ using altrun::updater::TransactionPaths;
 using altrun::updater::ValidateSource;
 
 namespace {
+
+#ifdef _WIN32
+std::wstring QuoteArgument(
+    std::wstring_view value) {
+    std::wstring result = L"\"";
+    std::size_t slashes = 0;
+
+    for (const wchar_t ch : value) {
+        if (ch == L'\\') {
+            ++slashes;
+            continue;
+        }
+
+        if (ch == L'\"') {
+            result.append(
+                slashes * 2 + 1,
+                L'\\');
+            result.push_back(L'\"');
+            slashes = 0;
+            continue;
+        }
+
+        result.append(
+            slashes,
+            L'\\');
+        slashes = 0;
+        result.push_back(ch);
+    }
+
+    result.append(
+        slashes * 2,
+        L'\\');
+    result.push_back(L'\"');
+    return result;
+}
+
+bool CreateJunction(
+    const fs::path& junction,
+    const fs::path& target,
+    const fs::path& workingDirectory) {
+    std::wstring command =
+        L"cmd.exe /d /c mklink /J " +
+        QuoteArgument(
+            junction.wstring()) +
+        L" " +
+        QuoteArgument(
+            target.wstring());
+
+    STARTUPINFOW startup{};
+    startup.cb = sizeof(startup);
+    PROCESS_INFORMATION process{};
+
+    if (!CreateProcessW(
+            nullptr,
+            command.data(),
+            nullptr,
+            nullptr,
+            FALSE,
+            CREATE_NO_WINDOW,
+            nullptr,
+            workingDirectory.c_str(),
+            &startup,
+            &process)) {
+        return false;
+    }
+
+    const DWORD wait =
+        WaitForSingleObject(
+            process.hProcess,
+            5000);
+    DWORD exitCode = 1;
+    const bool ok =
+        wait == WAIT_OBJECT_0 &&
+        GetExitCodeProcess(
+            process.hProcess,
+            &exitCode) &&
+        exitCode == 0;
+
+    CloseHandle(process.hThread);
+    CloseHandle(process.hProcess);
+    return ok;
+}
+#endif
 
 void Write(
     const fs::path& path,
@@ -329,14 +422,27 @@ int main() {
             external / "outside.txt",
             "outside");
 
+        const auto linked =
+            paths.source /
+            "linked-dir";
+
+#ifdef _WIN32
+        const bool linkCreated =
+            CreateJunction(
+                linked,
+                external,
+                caseRoot);
+#else
         ec.clear();
         fs::create_directory_symlink(
             external,
-            paths.source /
-                "linked-dir",
+            linked,
             ec);
+        const bool linkCreated =
+            !ec;
+#endif
 
-        if (!ec) {
+        if (linkCreated) {
             TransactionJournal
                 journal;
             assert(
@@ -347,6 +453,11 @@ int main() {
                 !fs::exists(
                     paths.install /
                         "linked-dir"));
+            assert(
+                Read(
+                    external /
+                        "outside.txt") ==
+                "outside");
         }
     }
 
