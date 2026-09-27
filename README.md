@@ -31,6 +31,8 @@ The launcher now grows and shrinks with its visible result count. Nine rows keep
 
 A small non-interactive search glyph anchors the native EDIT. Result aliases and path metadata no longer form a fixed right-hand table column: secondary text starts after the measured primary label and consumes only the remaining space. The footer becomes a compact context surface with the selected target on the left and an `Enter` affordance on the right. Windows 11 receives an optional DWM system-backdrop request; Windows 10 and unsupported systems stay on the deterministic solid-surface palette.
 
+Search results intentionally remain **text-first with no per-result program/file icons**. The earlier icon surface was removed because many mixed provider/Everything results have no reliable icon, producing visually inconsistent rows and unnecessary extraction/cache work. Modern Compact does not restore that feature.
+
 Classic assets and the shared SearchEngine / Everything / usage-ranking / numeric-intent core remain release-contract frozen. Settings schema remains **11**; Commands **2**, Usage **2** and Provider Cache **22** are unchanged. Windows fixed FileVersion/ProductVersion is `0.8.0.273`.
 
 ## v0.8.0-alpha.6.2 — Modern Compact Visual Refinement I
