@@ -52,6 +52,30 @@ int main() {
         assert(full.searchGlyph.width > 0);
         assert(full.searchEdit.left >
                full.searchGlyph.left);
+        assert(
+            full.searchEdit.height ==
+            ui::Scale(
+                22,
+                expected.dpi));
+        const int searchCenter2 =
+            full.searchSurface.top * 2 +
+            full.searchSurface.height;
+        const int editCenter2 =
+            full.searchEdit.top * 2 +
+            full.searchEdit.height;
+        const int glyphCenter2 =
+            full.searchGlyph.top * 2 +
+            full.searchGlyph.height;
+        assert(
+            editCenter2 >=
+                searchCenter2 - 1 &&
+            editCenter2 <=
+                searchCenter2 + 1);
+        assert(
+            glyphCenter2 >=
+                searchCenter2 - 1 &&
+            glyphCenter2 <=
+                searchCenter2 + 1);
         assert(full.resultsSurface.height > 0);
         assert(full.resultsList.height ==
                full.rowHeight * 9);

@@ -146,6 +146,7 @@ private:
     HFONT auxiliaryFont_{};
     HFONT boldFont_{};
     HFONT titleFont_{};
+    HFONT searchGlyphFont_{};
     HBRUSH windowBrush_{};
     HBRUSH controlBrush_{};
     HBRUSH accentBrush_{};

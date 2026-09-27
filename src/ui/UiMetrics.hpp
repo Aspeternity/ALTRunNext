@@ -204,18 +204,32 @@ ModernCompactLauncherMetricsForDpi(
         Scale(42, dpi),
     };
 
+    const int searchGlyphSize =
+        Scale(16, dpi);
     const UiRectMetrics searchGlyph{
         Scale(25, dpi),
-        Scale(25, dpi),
-        Scale(16, dpi),
-        Scale(16, dpi),
+        searchSurface.top +
+            (searchSurface.height -
+             searchGlyphSize) /
+                2,
+        searchGlyphSize,
+        searchGlyphSize,
     };
 
+    // A native single-line EDIT does not expose vertical text alignment.
+    // Keep its child HWND close to the font line height and center the HWND
+    // inside the search surface instead of making a 32px-tall top-aligned
+    // edit client.
+    const int searchEditHeight =
+        Scale(22, dpi);
     const UiRectMetrics searchEdit{
         Scale(48, dpi),
-        Scale(17, dpi),
+        searchSurface.top +
+            (searchSurface.height -
+             searchEditHeight) /
+                2,
         Scale(548, dpi),
-        Scale(32, dpi),
+        searchEditHeight,
     };
 
     if (rows == 0) {

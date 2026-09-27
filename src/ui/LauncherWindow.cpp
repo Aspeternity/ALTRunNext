@@ -329,6 +329,7 @@ LauncherWindow::~LauncherWindow() {
     if (auxiliaryFont_) DeleteObject(auxiliaryFont_);
     if (boldFont_) DeleteObject(boldFont_);
     if (titleFont_) DeleteObject(titleFont_);
+    if (searchGlyphFont_) DeleteObject(searchGlyphFont_);
     if (windowBrush_) DeleteObject(windowBrush_);
     if (controlBrush_) DeleteObject(controlBrush_);
     if (accentBrush_) DeleteObject(accentBrush_);
@@ -619,6 +620,10 @@ void LauncherWindow::ApplyFonts() {
         DeleteObject(titleFont_);
         titleFont_ = nullptr;
     }
+    if (searchGlyphFont_) {
+        DeleteObject(searchGlyphFont_);
+        searchGlyphFont_ = nullptr;
+    }
 
     const auto style =
         app_.SettingsData().uiStyle;
@@ -655,6 +660,22 @@ void LauncherWindow::ApplyFonts() {
                 style,
                 language,
                 ui::UiFontRole::LauncherTitle),
+            dpi_);
+
+    // Segoe MDL2 Assets is part of the supported Windows 10+ platform and
+    // renders the Search glyph through the text rasterizer. This is much
+    // cleaner at fractional DPI than hand-drawn one-pixel Ellipse/LineTo
+    // geometry.
+    searchGlyphFont_ =
+        ui::CreateFontHandle(
+            {
+                L"Segoe MDL2 Assets",
+                11,
+                0,
+                FW_NORMAL,
+                DEFAULT_CHARSET,
+                ANTIALIASED_QUALITY,
+            },
             dpi_);
 
     SendMessageW(edit_, WM_SETFONT, reinterpret_cast<WPARAM>(normalFont_), TRUE);
@@ -1475,56 +1496,45 @@ void LauncherWindow::PaintWindowBackground(
         const auto palette =
             CurrentPalette();
 
-        // A small search glyph gives the otherwise native EDIT a stable
-        // visual anchor without introducing another interactive control.
-        const auto& glyph =
-            modernDpiMetrics_
-                .searchGlyph;
-        HGDIOBJ oldDcPen =
+        // The PUA Search glyph is rasterized by the Windows icon font rather
+        // than by aliased GDI primitives, so it remains crisp at fractional
+        // DPI. It is paint-only; the real input remains the native EDIT.
+        if (searchGlyphFont_) {
+            const auto& glyph =
+                modernDpiMetrics_
+                    .searchGlyph;
+            RECT glyphRect{
+                glyph.left,
+                glyph.top,
+                glyph.left +
+                    glyph.width,
+                glyph.top +
+                    glyph.height,
+            };
+
+            HGDIOBJ oldGlyphFont =
+                SelectObject(
+                    dc,
+                    searchGlyphFont_);
+            SetBkMode(
+                dc,
+                TRANSPARENT);
+            SetTextColor(
+                dc,
+                palette.mutedText);
+            DrawTextW(
+                dc,
+                L"\xE721",
+                1,
+                &glyphRect,
+                DT_SINGLELINE |
+                    DT_CENTER |
+                    DT_VCENTER |
+                    DT_NOPREFIX);
             SelectObject(
                 dc,
-                GetStockObject(DC_PEN));
-        HGDIOBJ oldNullBrush =
-            SelectObject(
-                dc,
-                GetStockObject(NULL_BRUSH));
-        SetDCPenColor(
-            dc,
-            palette.mutedText);
-
-        const int circleSize =
-            std::max(
-                4,
-                glyph.width -
-                    DpiScale(5));
-        Ellipse(
-            dc,
-            glyph.left,
-            glyph.top,
-            glyph.left + circleSize,
-            glyph.top + circleSize);
-        MoveToEx(
-            dc,
-            glyph.left +
-                circleSize -
-                DpiScale(1),
-            glyph.top +
-                circleSize -
-                DpiScale(1),
-            nullptr);
-        LineTo(
-            dc,
-            glyph.left +
-                glyph.width,
-            glyph.top +
-                glyph.height);
-
-        SelectObject(
-            dc,
-            oldNullBrush);
-        SelectObject(
-            dc,
-            oldDcPen);
+                oldGlyphFont);
+        }
 
         if (modernLayoutRows_ > 0) {
             const RECT resultsSurface =
@@ -2300,7 +2310,7 @@ void LauncherWindow::MoveSelection(int delta) {
                     current,
                     delta,
                     results_.size(),
-                    !IsModern());
+                    true);
     }
 
     SendMessageW(
@@ -4278,7 +4288,7 @@ LRESULT LauncherWindow::HandleMessage(
                     -1,
                     &secondaryRect,
                     DT_SINGLELINE |
-                        DT_RIGHT |
+                        DT_LEFT |
                         DT_VCENTER |
                         DT_END_ELLIPSIS |
                         DT_NOPREFIX);

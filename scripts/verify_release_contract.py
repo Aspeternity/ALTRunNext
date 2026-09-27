@@ -118,6 +118,7 @@ if version == "0.8.0-alpha.6.3":
     for token in (
         "visibleRows",
         "searchGlyph",
+        "searchEditHeight",
         "footerSurface",
         "footerAction",
         "secondaryMinWidth",
@@ -135,6 +136,9 @@ if version == "0.8.0-alpha.6.3":
         "bottomBrush_",
         "L\"Enter\"",
         "GetTextExtentPoint32W(",
+        "Segoe MDL2 Assets",
+        'L"\\xE721"',
+        "searchGlyphFont_",
         "kDwmSystemBackdropType",
         "kDwmBackdropMainWindow",
         "modernBackdropAvailable_",
@@ -149,6 +153,40 @@ if version == "0.8.0-alpha.6.3":
     ):
         if forbidden in metrics + launcher + launcher_hpp:
             fail(f"alpha.6.3 stale table-layout token survived: {forbidden}")
+
+    move_start = launcher.find("void LauncherWindow::MoveSelection")
+    move_end = launcher.find("void LauncherWindow::ExecuteSelection", move_start)
+    if move_start < 0 or move_end < 0:
+        fail("alpha.6.3 selection navigation implementation missing")
+    move_body = launcher[move_start:move_end]
+    if "!IsModern()" in move_body or "WrappedSelectionIndex(" not in move_body or "true" not in move_body:
+        fail("alpha.6.3 Tab/Up/Down selection must wrap in Modern Compact")
+
+    settings_cpp = read("src/ui/SettingsWindow.cpp")
+    style_start = settings_cpp.find("constexpr DWORD kSettingsWindowStyle")
+    style_end = settings_cpp.find(";", style_start)
+    if style_start < 0 or style_end < 0:
+        fail("alpha.6.3 Settings style declaration missing")
+    if "WS_VSCROLL" in settings_cpp[style_start:style_end]:
+        fail("alpha.6.3 Settings must not be created with a permanent native scrollbar")
+    for token in (
+        "HideSettingsVerticalScrollBar(",
+        "style & ~WS_VSCROLL",
+        "cleared.nMax = 0",
+    ):
+        if token not in settings_cpp:
+            fail(f"alpha.6.3 Settings scrollbar reset missing: {token}")
+
+    runtime_tests = read("tests/WindowPresentationRuntimeTests.cpp")
+    for token in (
+        "compactOuterHeight",
+        "WS_VSCROLL",
+        "cleared.nMax == 0",
+        "51005u",
+        "51002u",
+    ):
+        if token not in runtime_tests:
+            fail(f"alpha.6.3 Settings scrollbar runtime regression missing: {token}")
 
     # Result icons were deliberately removed during the alpha.5.49 closeout:
     # mixed static/Everything sources do not provide a visually complete icon

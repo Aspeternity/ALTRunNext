@@ -17,6 +17,9 @@ This pass is intentionally presentation-only. Search, Everything, usage ranking,
 - [ ] Type a query whose static pass is empty but Everything later returns results. The window must not collapse and immediately re-expand while the dynamic reply is pending.
 - [ ] Search, results and footer read as three related but distinct surfaces; the outer background is visibly cooler than the white search surface.
 - [ ] The search glyph is crisp and vertically centered at 100%, 125%, 150%, 175% and 200% DPI; the native EDIT caret/IME behavior is unchanged.
+- [ ] Typed search text/caret is vertically centered inside the search surface at every DPI; it must not sit against the top edge of the field.
+- [ ] Tab, Shift+Tab, Up and Down wrap from first <-> last result without moving focus out of the search field.
+- [ ] Make General/Hotkeys short enough to show a real Settings scrollbar, then switch repeatedly to Search Sources and Appearance; the right non-client scrollbar must disappear immediately and never ghost back.
 - [ ] Short application names place their muted alias close to the primary name instead of pinning it to a far-right column; long primary/secondary strings ellipsize without overlap.
 - [ ] File/folder results keep filename first and parent path as inline muted context.
 - [ ] Search results remain intentionally icon-free across static, packaged-app and Everything results; there are no blank/mismatched icon slots and no result-icon loading worker/cache returns.

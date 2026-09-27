@@ -40,8 +40,7 @@ constexpr DWORD kSettingsWindowStyle =
     WS_CAPTION |
     WS_SYSMENU |
     WS_MINIMIZEBOX |
-    WS_CLIPCHILDREN |
-    WS_VSCROLL;
+    WS_CLIPCHILDREN;
 
 struct SettingsCreationGeometry {
     RECT outer{};
@@ -266,6 +265,51 @@ ResolveSettingsCreationGeometry(
     }
 
     return geometry;
+}
+
+void HideSettingsVerticalScrollBar(
+    HWND hwnd) noexcept {
+
+    if (!hwnd) {
+        return;
+    }
+
+    // Clear the range first so USER32 has no scroll state that can revive the
+    // non-client bar on a later FRAMECHANGED / DPI / resize pass.
+    SCROLLINFO cleared{};
+    cleared.cbSize =
+        sizeof(cleared);
+    cleared.fMask =
+        SIF_RANGE |
+        SIF_PAGE |
+        SIF_POS;
+    cleared.nMin = 0;
+    cleared.nMax = 0;
+    cleared.nPage = 1;
+    cleared.nPos = 0;
+
+    SetScrollInfo(
+        hwnd,
+        SB_VERT,
+        &cleared,
+        FALSE);
+
+    LONG_PTR style =
+        GetWindowLongPtrW(
+            hwnd,
+            GWL_STYLE);
+
+    if ((style & WS_VSCROLL) != 0) {
+        SetWindowLongPtrW(
+            hwnd,
+            GWL_STYLE,
+            style & ~WS_VSCROLL);
+    }
+
+    ShowScrollBar(
+        hwnd,
+        SB_VERT,
+        FALSE);
 }
 
 constexpr const auto& kPalette =
@@ -3885,10 +3929,15 @@ void SettingsWindow::UpdatePageScrollBar() {
                         client.bottom),
                     dpi_);
 
-        ShowScrollBar(
-            hwnd_,
-            SB_VERT,
-            maximum > 0);
+        if (maximum > 0) {
+            ShowScrollBar(
+                hwnd_,
+                SB_VERT,
+                TRUE);
+        } else {
+            HideSettingsVerticalScrollBar(
+                hwnd_);
+        }
 
         // Showing the scrollbar changes the client width and can switch the
         // General page into its narrow stacked layout. Recalculate once using
@@ -3972,10 +4021,15 @@ void SettingsWindow::UpdatePageScrollBar() {
                 0,
                 maximum);
 
-        ShowScrollBar(
-            hwnd_,
-            SB_VERT,
-            maximum > 0);
+        if (maximum > 0) {
+            ShowScrollBar(
+                hwnd_,
+                SB_VERT,
+                TRUE);
+        } else {
+            HideSettingsVerticalScrollBar(
+                hwnd_);
+        }
 
         SCROLLINFO info{};
         info.cbSize =
@@ -4001,10 +4055,8 @@ void SettingsWindow::UpdatePageScrollBar() {
         return;
     }
 
-    ShowScrollBar(
-        hwnd_,
-        SB_VERT,
-        FALSE);
+    HideSettingsVerticalScrollBar(
+        hwnd_);
 }
 
 void SettingsWindow::ScrollCurrentPage(

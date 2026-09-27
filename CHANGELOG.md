@@ -9,6 +9,9 @@
 - Replace the fixed right-hand alias column with measured inline secondary metadata.
 - Add a compact footer context surface and right-aligned `Enter` affordance.
 - Request the Windows 11 DWM system backdrop when supported; keep the solid surface palette as the Windows 10/unsupported fallback.
+- Center the native search EDIT around its actual line height and render the search glyph from Segoe MDL2 Assets for crisp fractional-DPI output.
+- Restore cyclic Tab / Up / Down result navigation in Modern Compact.
+- Remove the permanent Settings `WS_VSCROLL` creation style and hard-clear native scroll state when switching to non-scroll pages, with a real-HWND small-window regression.
 - Preserve frozen Classic assets and shared search/Everything/usage/numeric-intent behavior.
 - Publish Windows fixed FileVersion/ProductVersion `0.8.0.273`.
 
