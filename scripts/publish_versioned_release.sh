@@ -65,7 +65,7 @@ verify_release() {
   fi
 }
 
-existing_release_id="$(gh api --paginate "repos/$REPOSITORY/releases?per_page=100" --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -n 1)"
+existing_release_id="$(gh api --paginate --slurp "repos/$REPOSITORY/releases?per_page=100" | jq -r --arg tag "$TAG" '[.[][] | select(.tag_name == $tag) | .id][0] // empty')"
 release_json="existing-release.json"
 
 if [[ -n "$existing_release_id" ]]; then
@@ -88,7 +88,7 @@ fi
 
 gh release create "$TAG" ALTRunNext-x64.zip ALTRunNext-ARM64.zip SHA256SUMS.txt update-manifest.json --draft "${extra_args[@]}" --title "ALTRun Next $TAG" --notes "Versioned build created automatically from commit $COMMIT."
 
-release_id="$(gh api --paginate "repos/$REPOSITORY/releases?per_page=100" --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -n 1)"
+release_id="$(gh api --paginate --slurp "repos/$REPOSITORY/releases?per_page=100" | jq -r --arg tag "$TAG" '[.[][] | select(.tag_name == $tag) | .id][0] // empty')"
 test -n "$release_id"
 
 gh api --method PATCH "repos/$REPOSITORY/releases/$release_id" -F draft=false -F prerelease="$IS_PRERELEASE" >/dev/null
