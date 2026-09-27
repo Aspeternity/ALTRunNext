@@ -3171,9 +3171,9 @@ void SettingsWindow::ShowPage(Page page) {
 
     redrawGuard.Resume();
 
-    // Reapply the target page's scroll state after WM_SETREDRAW is back
-    // on. ShowScrollBar invoked while redraw is suspended can leave the old
-    // non-client frame cached by USER32/DWM on the first page transition.
+    // Reapply the target page's scroll state after the shared redraw guard
+    // resumes. ShowScrollBar invoked while redraw is suspended can leave the
+    // old non-client frame cached by USER32/DWM on the first page transition.
     UpdatePageScrollBar();
 
     // Force NCCALCSIZE with that final style, then lay out once more against
