@@ -162,27 +162,6 @@ ModernSearchGlyphFace() {
         : L"Segoe MDL2 Assets";
 }
 
-[[nodiscard]] bool
-ContainsHanIdeograph(
-    std::wstring_view text) noexcept {
-
-    return std::any_of(
-        text.begin(),
-        text.end(),
-        [](wchar_t ch) {
-            const auto value =
-                static_cast<unsigned int>(
-                    ch);
-            return
-                (value >= 0x3400u &&
-                 value <= 0x4DBFu) ||
-                (value >= 0x4E00u &&
-                 value <= 0x9FFFu) ||
-                (value >= 0xF900u &&
-                 value <= 0xFAFFu);
-        });
-}
-
 enum ResultContextMenuId : UINT {
     kResultContextPrimary = 41001,
     kResultContextNavigate = 41002,
@@ -408,7 +387,6 @@ LauncherWindow::~LauncherWindow() {
 
     if (normalFont_) DeleteObject(normalFont_);
     if (searchFont_) DeleteObject(searchFont_);
-    if (searchCjkFont_) DeleteObject(searchCjkFont_);
     if (auxiliaryFont_) DeleteObject(auxiliaryFont_);
     if (boldFont_) DeleteObject(boldFont_);
     if (titleFont_) DeleteObject(titleFont_);
@@ -697,10 +675,6 @@ void LauncherWindow::ApplyFonts() {
         DeleteObject(searchFont_);
         searchFont_ = nullptr;
     }
-    if (searchCjkFont_) {
-        DeleteObject(searchCjkFont_);
-        searchCjkFont_ = nullptr;
-    }
     if (auxiliaryFont_) {
         DeleteObject(auxiliaryFont_);
         auxiliaryFont_ = nullptr;
@@ -747,25 +721,6 @@ void LauncherWindow::ApplyFonts() {
                 ui::UiFontRole::LauncherSearch),
             dpi_);
 
-    // Segoe UI's linked Han fallback fills substantially more of the em box
-    // than its Latin glyphs. Keep a second, slightly smaller native EDIT font
-    // for committed Han queries so Chinese and Latin input have comparable
-    // optical size without shrinking the normal Latin search text.
-    searchCjkFont_ =
-        ui::CreateFontHandle(
-            {
-                FontFamilyAvailable(
-                    L"Microsoft YaHei UI")
-                    ? L"Microsoft YaHei UI"
-                    : L"Segoe UI",
-                0,
-                -14,
-                FW_NORMAL,
-                DEFAULT_CHARSET,
-                CLEARTYPE_NATURAL_QUALITY,
-            },
-            dpi_);
-
     auxiliaryFont_ =
         ui::CreateFontHandle(
             ui::LauncherFontSpec(
@@ -810,7 +765,7 @@ void LauncherWindow::ApplyFonts() {
         ui::CreateFontHandle(
             {
                 L"Segoe UI",
-                11,
+                12,
                 0,
                 FW_NORMAL,
                 DEFAULT_CHARSET,
@@ -830,7 +785,7 @@ void LauncherWindow::ApplyFonts() {
             },
             dpi_);
 
-    UpdateSearchInputFont();
+    SendMessageW(edit_, WM_SETFONT, reinterpret_cast<WPARAM>(searchFont_), TRUE);
     SendMessageW(list_, WM_SETFONT, reinterpret_cast<WPARAM>(normalFont_), TRUE);
     SendMessageW(preview_, WM_SETFONT, reinterpret_cast<WPARAM>(auxiliaryFont_), TRUE);
     SendMessageW(classicPreview_, WM_SETFONT, reinterpret_cast<WPARAM>(auxiliaryFont_), TRUE);
@@ -844,44 +799,6 @@ void LauncherWindow::ApplyFonts() {
         LB_SETITEMHEIGHT,
         0,
         itemHeight);
-}
-
-void LauncherWindow::UpdateSearchInputFont() {
-    if (!edit_) {
-        return;
-    }
-
-    HFONT desired =
-        searchFont_;
-
-    if (IsModern() &&
-        searchCjkFont_ &&
-        ContainsHanIdeograph(
-            CurrentQuery())) {
-        desired =
-            searchCjkFont_;
-    }
-
-    if (!desired) {
-        return;
-    }
-
-    const auto current =
-        reinterpret_cast<HFONT>(
-            SendMessageW(
-                edit_,
-                WM_GETFONT,
-                0,
-                0));
-
-    if (current != desired) {
-        SendMessageW(
-            edit_,
-            WM_SETFONT,
-            reinterpret_cast<WPARAM>(
-                desired),
-            TRUE);
-    }
 }
 
 void LauncherWindow::UpdateControlFrames() {
@@ -3957,8 +3874,6 @@ LRESULT LauncherWindow::HandleMessage(
     case WM_COMMAND:
         if (LOWORD(wParam) == 1001 &&
             HIWORD(wParam) == EN_CHANGE) {
-            UpdateSearchInputFont();
-
             // A query edit starts a new ranking decision. Rebuild the rows
             // atomically and select the new best match only after redraw is
             // suspended; visibly clearing the old selection first caused a
@@ -4528,9 +4443,7 @@ LRESULT LauncherWindow::HandleMessage(
                         DT_NOPREFIX);
             } else if (
                 showNumericShortcut) {
-                std::wstring shortcut =
-                    L"›";
-                shortcut +=
+                const std::wstring number =
                     ResultNumberLabel(
                         item->itemID);
 
@@ -4541,11 +4454,42 @@ LRESULT LauncherWindow::HandleMessage(
                     item->hDC,
                     palette.mutedText);
 
+                SIZE numberSize{};
+                GetTextExtentPoint32W(
+                    item->hDC,
+                    number.c_str(),
+                    static_cast<int>(
+                        number.size()),
+                    &numberSize);
+
+                RECT numberRect =
+                    shortcutHintRect;
+
                 DrawTextW(
                     item->hDC,
-                    shortcut.c_str(),
+                    number.c_str(),
                     -1,
-                    &shortcutHintRect,
+                    &numberRect,
+                    DT_SINGLELINE |
+                        DT_RIGHT |
+                        DT_VCENTER |
+                        DT_NOPREFIX);
+
+                RECT chevronRect =
+                    shortcutHintRect;
+                chevronRect.right =
+                    std::max(
+                        chevronRect.left,
+                        shortcutHintRect.right -
+                            static_cast<int>(
+                                numberSize.cx) -
+                            DpiScale(3));
+
+                DrawTextW(
+                    item->hDC,
+                    L"›",
+                    1,
+                    &chevronRect,
                     DT_SINGLELINE |
                         DT_RIGHT |
                         DT_VCENTER |

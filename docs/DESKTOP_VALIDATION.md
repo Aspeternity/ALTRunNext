@@ -18,14 +18,17 @@ This pass is intentionally presentation-only. Search, Everything, usage ranking,
 - [ ] Search, results and footer read as three related but distinct surfaces; the outer background is visibly cooler than the white search surface.
 - [ ] The search glyph is crisp and vertically centered at 100%, 125%, 150%, 175% and 200% DPI; the native EDIT caret/IME behavior is unchanged.
 - [ ] Typed search text/caret is vertically centered inside the search surface at every DPI; it must not sit against the top edge of the field.
-- [ ] At every supported DPI, Latin-only search text uses the 15-logical-pixel Segoe UI search font while committed Han text switches to the 14-logical-pixel Microsoft YaHei UI search font (Segoe fallback). Chinese input must no longer appear disproportionately larger than Latin input, and mixed Latin/Han text must stay vertically balanced without clipping the caret or IME composition window.
+- [ ] At every supported DPI, the native search EDIT stays on one 14-logical-pixel Segoe UI font. Test `team`, `测试`, and `team测试`: adding/removing Han text must not change the already-entered Latin glyph shape/width, Chinese must not appear disproportionately larger, and caret/IME composition must remain vertically balanced.
 - [ ] On Windows 11 the search icon uses the Fluent icon face and remains crisp at 100%, 125%, 150%, 175% and 200%; Windows 10 falls back to MDL2 without a missing-glyph box.
 - [ ] English application names in Chinese UI use crisp Segoe UI Latin glyphs; Chinese result names still render correctly through Windows font linking.
 - [ ] Tab, Shift+Tab, Up and Down wrap from first <-> last result without moving focus out of the search field.
-- [ ] Modern Compact shows up to ten rows. The selected row displays a slightly lighter 13 pt hooked-return arrow at the far right; unselected rows display larger muted `›1`-`›9` / `›0` hints when numeric quick launch is enabled, with `0` mapped to row ten.
+- [ ] Modern Compact shows up to ten rows. The selected row displays the lighter 13 pt hooked-return arrow at the far right; unselected rows display 12 pt muted `› 1`-`› 9` / `› 0` hints with a stable 3-logical-pixel chevron-to-digit gap, with `0` mapped to row ten.
 - [ ] Move selection with Up/Down/Tab: the hooked-return arrow follows the selected row, the row it leaves regains its numeric hint, and the right action gutter never shifts title/alias layout.
 - [ ] The footer keeps the existing right-aligned `Enter` affordance and does not duplicate numeric shortcut help.
 - [ ] Make General/Hotkeys short enough to show a real Settings scrollbar, then switch repeatedly to Search Sources and Appearance; the right non-client scrollbar must disappear immediately and never ghost back.
+- [ ] On Search Sources, toggle Everything files & folders on/off repeatedly. The switch, status text, managed-tray row and action buttons must settle in one frame with no gray disable pulse or vertical flash.
+- [ ] Minimize Settings/About to the Windows taskbar and restore it by clicking the taskbar button; repeat with Shortcut Manager. The restored window must appear only in its final layout with no one-frame flash or location jump.
+- [ ] Run `Uninstall.exe` at 100%, 125%, 150%, 175% and 200% scaling. The keep-data/removal confirmation and follow-up messages must have native-DPI sharp text, not blurred DPI virtualization.
 - [ ] Short application names place their muted alias close to the primary name instead of pinning it to a far-right column; long primary/secondary strings ellipsize without overlap.
 - [ ] File/folder results keep filename first and parent path as inline muted context.
 - [ ] Search results remain intentionally icon-free across static, packaged-app and Everything results; there are no blank/mismatched icon slots and no result-icon loading worker/cache returns.

@@ -115,6 +115,12 @@ if version == "0.8.0-alpha.6.3":
     launcher_hpp = read("src/ui/LauncherWindow.hpp")
     theme = read("src/ui/UiTheme.hpp")
     typography = read("src/ui/UiTypography.cpp")
+    settings_cpp = read("src/ui/SettingsWindow.cpp")
+    shortcut_manager = read("src/ui/ShortcutManagerWindow.cpp")
+    top_level = read("src/ui/TopLevelWindowPresentation.cpp")
+    top_level_hpp = read("src/ui/TopLevelWindowPresentation.hpp")
+    cmake = read("CMakeLists.txt")
+    uninstaller_manifest = read("src/uninstaller/uninstaller.manifest")
 
     for token in (
         "visibleRows",
@@ -189,23 +195,71 @@ if version == "0.8.0-alpha.6.3":
             fail(f"alpha.6.3 Modern shortcut affordance missing: {token}")
 
     for token in (
-        "kModernLauncherSearchLogicalHeight96 = -15",
-        "linked CJK glyphs",
+        "kModernLauncherSearchLogicalHeight96 = -14",
+        "Windows font linking handle Han glyphs",
     ):
         if token not in typography:
             fail(f"alpha.6.3 balanced search-input typography missing: {token}")
 
-    for token in (
+    for forbidden in (
         "ContainsHanIdeograph(",
         "searchCjkFont_",
-        'L"Microsoft YaHei UI"',
-        "-14",
         "UpdateSearchInputFont()",
     ):
-        if token not in launcher + launcher_hpp:
-            fail(f"alpha.6.3 CJK search-font switching missing: {token}")
+        if forbidden in launcher + launcher_hpp:
+            fail(f"alpha.6.3 mixed-input font switching returned: {forbidden}")
 
-    settings_cpp = read("src/ui/SettingsWindow.cpp")
+    for token in (
+        "numberSize",
+        "DpiScale(3)",
+        'L"›"',
+        "shortcutHintFont_",
+    ):
+        if token not in launcher + launcher_hpp:
+            fail(f"alpha.6.3 spaced numeric shortcut hint missing: {token}")
+
+    for token in (
+        "atomicProviderUpdate",
+        "ScopedRedrawSuspend",
+        "RDW_ALLCHILDREN",
+    ):
+        if token not in settings_cpp:
+            fail(f"alpha.6.3 atomic Everything provider repaint missing: {token}")
+
+    provider_commit_start = settings_cpp.find("void SettingsWindow::CommitPendingProviderChanges()")
+    provider_commit_end = settings_cpp.find("void SettingsWindow::ApplyStartupBehaviorControl", provider_commit_start)
+    if provider_commit_start < 0 or provider_commit_end < 0:
+        fail("alpha.6.3 provider commit implementation missing")
+    if "EnableWindow(" in settings_cpp[provider_commit_start:provider_commit_end]:
+        fail("alpha.6.3 provider commit must not visibly disable/re-enable rows")
+
+    for token in (
+        "RestoreFullyPainted(",
+        "DWMWA_CLOAK",
+        "SW_RESTORE",
+        "RDW_UPDATENOW",
+    ):
+        if token not in top_level + top_level_hpp:
+            fail(f"alpha.6.3 cloaked taskbar restore missing: {token}")
+
+    for source_name, source in (
+        ("Settings", settings_cpp),
+        ("Shortcut Manager", shortcut_manager),
+    ):
+        for token in ("WM_SYSCOMMAND", "SC_RESTORE", "RestoreFullyPainted("):
+            if token not in source:
+                fail(f"alpha.6.3 {source_name} native restore hook missing: {token}")
+
+    if "src/uninstaller/uninstaller.manifest" not in cmake:
+        fail("alpha.6.3 uninstaller DPI manifest is not compiled into the target")
+    for token in (
+        "Aspeternity.ALTRunNext.Uninstall",
+        "PerMonitorV2",
+        "longPathAware",
+    ):
+        if token not in uninstaller_manifest:
+            fail(f"alpha.6.3 uninstaller DPI manifest missing: {token}")
+
     style_start = settings_cpp.find("constexpr DWORD kSettingsWindowStyle")
     style_end = settings_cpp.find(";", style_start)
     if style_start < 0 or style_end < 0:
@@ -230,6 +284,15 @@ if version == "0.8.0-alpha.6.3":
     ):
         if token not in runtime_tests:
             fail(f"alpha.6.3 Settings scrollbar runtime regression missing: {token}")
+
+    for token in (
+        "WM_SYSCOMMAND",
+        "SC_RESTORE",
+        "SW_MINIMIZE",
+        "HasAboutHeading(window)",
+    ):
+        if token not in runtime_tests:
+            fail(f"alpha.6.3 minimized restore runtime regression missing: {token}")
 
     # Result icons were deliberately removed during the alpha.5.49 closeout:
     # mixed static/Everything sources do not provide a visually complete icon

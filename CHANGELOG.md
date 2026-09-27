@@ -9,12 +9,15 @@
 - Replace the fixed right-hand alias column with measured inline secondary metadata.
 - Add a compact footer context surface and right-aligned `Enter` affordance.
 - Request the Windows 11 DWM system backdrop when supported; keep the solid surface palette as the Windows 10/unsupported fallback.
-- Tighten the Modern search surface from 42 to 38 logical pixels. Keep Latin input on the 15-logical-pixel Segoe UI search font, but switch committed Han queries to a 14-logical-pixel Microsoft YaHei UI search font (Segoe fallback) so Chinese and Latin have closer optical size without shrinking English text.
+- Tighten the Modern search surface from 42 to 38 logical pixels and settle on one DPI-scaled 14-logical-pixel Segoe UI search font. Windows font linking supplies Han glyphs without switching the whole EDIT font, so mixed Latin/CJK input no longer changes the preceding Latin text mid-query.
 - Prefer Segoe Fluent Icons for the search glyph on Windows 11, with Segoe MDL2 Assets fallback on Windows 10; bind the glyph raster size directly to the DPI-scaled icon box instead of tuning for one display scale.
 - Use Segoe UI + natural ClearType for Modern launcher text even when the application UI language is Chinese, leaving Windows font linking to supply CJK glyphs.
 - Restore cyclic Tab / Up / Down result navigation in Modern Compact.
-- Restore the shared smart numeric quick-launch behavior in Modern Compact. The selected row keeps the hooked-return action glyph on the right, now slightly lighter/smaller, while unselected rows use cleaner muted chevron shortcuts (`›1`-`›9`, `›0`) instead of the awkward middle-dot form; the footer Enter affordance is unchanged.
+- Restore the shared smart numeric quick-launch behavior in Modern Compact. The selected row keeps the lighter hooked-return action glyph on the right; unselected rows use 12 pt muted chevron + digit hints with a fixed 3-logical-pixel gap (`› 1`-`› 9`, `› 0`) so the shortcut reads as an action rather than punctuation; the footer Enter affordance is unchanged.
 - Remove the permanent Settings `WS_VSCROLL` creation style and hard-clear native scroll state when switching to non-scroll pages, with a real-HWND small-window regression.
+- Make Everything enable/disable visual updates atomic: provider rows no longer pulse disabled during commit, and tray/action visibility plus layout are repainted as one settled frame.
+- Restore minimized Settings/About and Shortcut Manager windows under a DWM cloak, synchronously repainting before uncloak so taskbar restores do not expose an intermediate frame.
+- Embed a PerMonitorV2 manifest in `Uninstall.exe` so TaskDialog/MessageBox text is rendered at native monitor DPI instead of DPI-virtualized and blurry.
 - Preserve frozen Classic assets and shared search/Everything/usage/numeric-intent behavior.
 - Publish Windows fixed FileVersion/ProductVersion `0.8.0.273`.
 

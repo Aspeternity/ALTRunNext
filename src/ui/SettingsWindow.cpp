@@ -2828,8 +2828,21 @@ void SettingsWindow::RefreshProviderStatus() {
         enabled &&
         managedActive;
     const bool showActions = showGetEverything || showUpdateEverything || showRecheck;
-    const bool layoutChanged = providerTrayVisible_ != showTray ||
+    const bool layoutChanged =
+        providerTrayVisible_ != showTray ||
         providerActionsVisible_ != showActions;
+    const bool atomicProviderUpdate =
+        visible &&
+        layoutChanged &&
+        hwnd_ &&
+        IsWindowVisible(hwnd_);
+
+    window_presentation::ScopedRedrawSuspend
+        redrawGuard(
+            atomicProviderUpdate
+                ? hwnd_
+                : nullptr);
+
     providerTrayVisible_ = showTray;
     providerActionsVisible_ = showActions;
 
@@ -2880,9 +2893,30 @@ void SettingsWindow::RefreshProviderStatus() {
     SetWindowTextW(
         providerStatus_,
         text.c_str());
+
     if (visible && layoutChanged) {
         Layout();
-        InvalidateRect(hwnd_, nullptr, TRUE);
+    }
+
+    if (atomicProviderUpdate) {
+        redrawGuard.Resume();
+
+        RedrawWindow(
+            hwnd_,
+            nullptr,
+            nullptr,
+            RDW_INVALIDATE |
+                RDW_ERASE |
+                RDW_ALLCHILDREN |
+                RDW_FRAME |
+                RDW_UPDATENOW);
+    } else if (
+        visible &&
+        layoutChanged) {
+        InvalidateRect(
+            hwnd_,
+            nullptr,
+            TRUE);
     }
 }
 
@@ -3556,18 +3590,6 @@ void SettingsWindow::CommitPendingProviderChanges() {
 
     providerCommitInProgress_ = true;
 
-    for (HWND control :
-         std::array<HWND, 5>{
-             providerStartMenu_,
-             providerPackaged_,
-             providerAppPaths_,
-             providerPath_,
-             providerEverything_}) {
-        EnableWindow(
-            control,
-            FALSE);
-    }
-
     ProviderEnableMap ordinaryChanges;
     std::optional<bool>
         everythingChange;
@@ -3627,22 +3649,6 @@ void SettingsWindow::CommitPendingProviderChanges() {
 
     pendingProviderStates_.clear();
     providerCommitInProgress_ = false;
-
-    for (HWND control :
-         std::array<HWND, 5>{
-             providerStartMenu_,
-             providerPackaged_,
-             providerAppPaths_,
-             providerPath_,
-             providerEverything_}) {
-        EnableWindow(
-            control,
-            TRUE);
-        InvalidateRect(
-            control,
-            nullptr,
-            TRUE);
-    }
 
     RefreshFromSettings();
 
@@ -7033,9 +7039,9 @@ void SettingsWindow::Present(
             RevealFullyPainted(
                 hwnd_);
     } else if (IsIconic(hwnd_)) {
-        ShowWindow(
-            hwnd_,
-            SW_RESTORE);
+        window_presentation::
+            RestoreFullyPainted(
+                hwnd_);
     }
 
     SetForegroundWindow(hwnd_);
@@ -7134,6 +7140,19 @@ LRESULT SettingsWindow::HandleMessage(
         };
 
     switch (message) {
+    case WM_SYSCOMMAND:
+        if ((wParam & 0xFFF0u) ==
+                SC_RESTORE &&
+            IsIconic(hwnd_)) {
+            window_presentation::
+                RestoreFullyPainted(
+                    hwnd_);
+            SetForegroundWindow(
+                hwnd_);
+            return 0;
+        }
+        break;
+
     case WM_SETCURSOR: {
         const HWND cursorWindow =
             reinterpret_cast<HWND>(

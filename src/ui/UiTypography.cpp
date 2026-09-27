@@ -15,7 +15,7 @@ constexpr int
 constexpr int
     kModernLauncherTitlePointSize = 10;
 constexpr int
-    kModernLauncherSearchLogicalHeight96 = -15;
+    kModernLauncherSearchLogicalHeight96 = -14;
 
 [[nodiscard]] const wchar_t*
 ApplicationFace(
@@ -106,9 +106,9 @@ UiFontSpec LauncherFontSpec(
     }
 
     if (role == UiFontRole::LauncherSearch) {
-        // A fixed logical glyph height keeps Latin and CJK text visually
-        // balanced inside the 20-logical-pixel native EDIT. The previous
-        // 12 pt search font made linked CJK glyphs disproportionately large.
+        // Use one DPI-scaled logical height for the native EDIT. Keeping one
+        // Segoe UI HFONT lets Windows font linking handle Han glyphs without
+        // changing the whole control's font when mixed Latin/CJK text appears.
         return {
             L"Segoe UI",
             0,

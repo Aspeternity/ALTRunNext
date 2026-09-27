@@ -194,11 +194,31 @@ int main() {
             assert(HasAboutHeading(window));
             assert(firstShows == 1);
             RemoveWindowSubclass(window, FirstShowProbe, 1);
-            // Visible reopen and minimized restore keep the About page.
+            // Visible reopen and both programmatic/native taskbar-style
+            // minimized restores keep the About page.
             settings.ShowAbout();
-            ShowWindow(window, SW_MINIMIZE);
+
+            ShowWindow(
+                window,
+                SW_MINIMIZE);
             settings.ShowAbout();
-            assert(!IsIconic(window) && HasAboutHeading(window));
+            assert(
+                !IsIconic(window) &&
+                HasAboutHeading(window));
+
+            ShowWindow(
+                window,
+                SW_MINIMIZE);
+            assert(IsIconic(window));
+            SendMessageW(
+                window,
+                WM_SYSCOMMAND,
+                SC_RESTORE,
+                0);
+            assert(
+                !IsIconic(window) &&
+                IsWindowVisible(window) &&
+                HasAboutHeading(window));
 
             // Reproduce the real high-DPI/small-work-area path that can make
             // General genuinely need its native vertical bar. The regression
@@ -399,6 +419,25 @@ int main() {
                         managerWindow));
                 assert(
                     IsWindowEnabled(
+                        managerWindow));
+
+                // Exercise the same native SC_RESTORE path used when a user
+                // clicks the minimized taskbar button.
+                ShowWindow(
+                    managerWindow,
+                    SW_MINIMIZE);
+                assert(
+                    IsIconic(
+                        managerWindow));
+                SendMessageW(
+                    managerWindow,
+                    WM_SYSCOMMAND,
+                    SC_RESTORE,
+                    0);
+                assert(
+                    !IsIconic(
+                        managerWindow) &&
+                    IsWindowVisible(
                         managerWindow));
 
                 modalOwner =

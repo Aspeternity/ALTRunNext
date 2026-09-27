@@ -68,7 +68,6 @@ private:
 
     void CreateChildren();
     void ApplyFonts();
-    void UpdateSearchInputFont();
     void RecreateBrushes();
     void UpdateControlFrames();
     void UpdateWindowChrome();
@@ -145,7 +144,6 @@ private:
     WNDPROC oldEditProc_{};
     HFONT normalFont_{};
     HFONT searchFont_{};
-    HFONT searchCjkFont_{};
     HFONT auxiliaryFont_{};
     HFONT boldFont_{};
     HFONT titleFont_{};
