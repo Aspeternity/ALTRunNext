@@ -979,7 +979,7 @@ if(BUILD_TESTING)
         add_test(NAME window_presentation_runtime_tests COMMAND window_presentation_runtime_tests)
         set_tests_properties(window_presentation_runtime_tests PROPERTIES TIMEOUT 30 RUN_SERIAL TRUE)
 
-        add_executable(uninstall_runtime_tests tests/UninstallRuntimeTests.cpp src/ui/Feedback.cpp)
+        add_executable(uninstall_runtime_tests tests/UninstallRuntimeTests.cpp src/platform/SecureElevation.cpp src/ui/Feedback.cpp)
         get_target_property(uninstall_libraries ALTRunNextUninstaller LINK_LIBRARIES)
         get_target_property(uninstall_definitions ALTRunNextUninstaller COMPILE_DEFINITIONS)
         target_link_libraries(uninstall_runtime_tests PRIVATE ${uninstall_libraries})
