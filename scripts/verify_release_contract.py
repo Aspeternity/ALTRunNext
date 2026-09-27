@@ -170,7 +170,7 @@ if version == "0.8.0-alpha.6.3":
         fail("alpha.6.3 Tab/Up/Down selection must wrap in Modern Compact")
 
     quick_start = launcher.find("int LauncherWindow::QuickLaunchIndexForKey")
-    quick_end = launcher.find("bool LauncherWindow::HasRecentTextInput", quick_start)
+    quick_end = launcher.find("HasRecentTextInput", quick_start)
     if quick_start < 0 or quick_end < 0:
         fail("alpha.6.3 numeric quick-launch implementation missing")
     quick_body = launcher[quick_start:quick_end]
