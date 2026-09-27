@@ -90,6 +90,7 @@ struct PerformArguments {
     bool deleteData{false};
     std::wstring shellReleaseRequest;
     std::wstring shellReleaseDone;
+    // Legacy option name; now acknowledges that the broker may exit.
     std::wstring shellLeaseAcquired;
 };
 
@@ -101,6 +102,7 @@ struct RemovalFailure {
 
 std::filesystem::path gRemovalFailurePath;
 std::wstring gRemovalFailureLockOwners;
+std::wstring gUninstallStage;
 
 [[nodiscard]] bool
 ChineseUi() {
@@ -359,8 +361,11 @@ WaitForProcess(
         WaitForSingleObject(
             process,
             timeout);
+    const DWORD error = wait == WAIT_FAILED ? GetLastError() : ERROR_TIMEOUT;
     CloseHandle(process);
-    return wait == WAIT_OBJECT_0;
+    if (wait == WAIT_OBJECT_0) return true;
+    SetLastError(error);
+    return false;
 }
 
 constexpr wchar_t kRecoveryMarker[] = L".altrun-uninstall-recovery";
@@ -1384,18 +1389,8 @@ RequestShellRelease(
         return false;
     }
 
-    // The broker has navigated Explorer away and released its working directory.
-    // Acquire the worker lease before allowing the original uninstaller to exit.
-    if (!AcquireDirectoryDeleteLease(
-            args.install,
-            rootLease,
-            failure,
-            8000)) {
-        SetLastError(
-            failure.error);
-        return false;
-    }
-
+    // Let the original EXE exit before opening the DELETE lease. Its image,
+    // working-directory and shell handles must not participate in this wait.
     if (!SetEvent(
             leaseAcquired.value)) {
         failure.error =
@@ -1419,7 +1414,7 @@ RequestShellRelease(
         return false;
     }
 
-    return true;
+    return AcquireDirectoryDeleteLease(args.install, rootLease, failure, 8000);
 }
 
 [[nodiscard]] bool
@@ -1439,7 +1434,7 @@ ServeShellReleaseBroker(
             2,
             handles,
             FALSE,
-            60000);
+            INFINITE); // The worker handle is the lifetime/failed-start signal.
 
     if (wait ==
         WAIT_OBJECT_0) {
@@ -1459,8 +1454,8 @@ ServeShellReleaseBroker(
         // the immediate parent previously made Explorer enumerate/select the
         // ALTRun folder and turned the broker's lease attempt into a frequent
         // self-inflicted sharing timeout. Signal release immediately; the
-        // elevated worker owns the lease acquisition and performs it before
-        // any destructive cleanup.
+        // elevated worker acknowledges release, waits for this broker to exit,
+        // then acquires the lease before any destructive cleanup.
         if (!SetEvent(
                 doneEvent)) {
             return false;
@@ -1652,6 +1647,7 @@ AcquireDirectoryDeleteLease(
                 path.c_str(),
                 DELETE |
                     FILE_READ_ATTRIBUTES |
+                    FILE_WRITE_ATTRIBUTES |
                     SYNCHRONIZE,
                 FILE_SHARE_READ |
                     FILE_SHARE_WRITE |
@@ -1720,6 +1716,22 @@ DeleteDirectoryThroughLease(
             ERROR_INVALID_HANDLE;
         failure.path = path;
         return false;
+    }
+
+    // Unlike RemoveOneWithRetry, this path deletes through a handle. A
+    // read-only installation root must be made writable through that same
+    // validated handle, without following a substituted path/reparse target.
+    FILE_BASIC_INFO basic{};
+    if (!GetFileInformationByHandleEx(lease.value, FileBasicInfo, &basic, sizeof(basic))) {
+        failure = {GetLastError(), path, {}};
+        return false;
+    }
+    if (basic.FileAttributes & FILE_ATTRIBUTE_READONLY) {
+        basic.FileAttributes &= ~FILE_ATTRIBUTE_READONLY;
+        if (!SetFileInformationByHandle(lease.value, FileBasicInfo, &basic, sizeof(basic))) {
+            failure = {GetLastError(), path, {}};
+            return false;
+        }
     }
 
     FILE_DISPOSITION_INFO disposition{};
@@ -1953,23 +1965,25 @@ void CleanupSelfLater() {
 [[nodiscard]] int
 PerformUninstall(
     const PerformArguments& args) {
+    gUninstallStage = ChineseUi() ? L"确认安装目录" : L"Validate installation";
     // Preserve-data mode can use the original simple parent-exit handshake.
     // Full-remove mode keeps the normal-integrity parent alive as an Explorer
     // broker until the elevated worker reaches the actual deletion phase.
-    if ((!args.deleteData &&
-         !WaitForProcess(
-             args.parentPid,
-             30000)) ||
-        !ValidateInstallRoot(
-            args.install)) {
+    if (!args.deleteData && !WaitForProcess(args.parentPid, 30000)) {
+        return 2;
+    }
+    if (!ValidateInstallRoot(args.install)) {
+        SetLastError(ERROR_INVALID_DATA);
         return 2;
     }
 
+    gUninstallStage = ChineseUi() ? L"退出 ALTRun Next" : L"Close ALTRun Next";
     if (!GracefullyCloseALTRun(
             args.install)) {
         return 3;
     }
 
+    gUninstallStage = ChineseUi() ? L"停止 Everything 服务" : L"Stop Everything service";
     const auto service =
         StopAndDeleteOwnedEverythingService(
             args.install);
@@ -1980,6 +1994,7 @@ PerformUninstall(
         return 4;
     }
 
+    gUninstallStage = ChineseUi() ? L"退出托管 Everything" : L"Close managed Everything";
     if (!TerminateManagedEverythingProcesses(
             args.install)) {
         return 5;
@@ -1996,6 +2011,7 @@ PerformUninstall(
     RemovalFailure removalFailure;
     DirectoryHandle rootLease;
 
+    gUninstallStage = ChineseUi() ? L"释放安装目录占用" : L"Release installation directory";
     if (args.deleteData &&
         !RequestShellRelease(
             args,
@@ -2013,6 +2029,7 @@ PerformUninstall(
         return 7;
     }
 
+    gUninstallStage = ChineseUi() ? L"删除安装文件" : L"Remove installation files";
     if (!RemoveInstallation(
             args.install,
             args.deleteData,
@@ -2222,6 +2239,16 @@ BeginUninstall() {
     }
 
     const auto workerDirectory = tempExe.parent_path();
+    if (!SetCurrentDirectoryW(workerDirectory.c_str())) {
+        const DWORD error = GetLastError();
+        std::filesystem::remove(tempExe, ec);
+        altrun::ui::ShowMessage(nullptr,
+            ChineseUi() ? L"无法释放安装目录，请关闭占用目录的程序后重试。"
+                        : L"Could not release the installation directory. Close programs using it and try again.",
+            L"ALTRun Next", MB_OK | MB_ICONERROR);
+        SetLastError(error);
+        return 17;
+    }
     SHELLEXECUTEINFOW info{};
     info.cbSize = sizeof(info);
     info.fMask =
@@ -2331,6 +2358,11 @@ int WINAPI wWinMain(
                         ? error
                         : static_cast<DWORD>(
                               result));
+
+            if (!gUninstallStage.empty()) {
+                message += ChineseUi() ? L"\n\n失败阶段：" : L"\n\nFailed step: ";
+                message += gUninstallStage;
+            }
 
             if (!gRemovalFailurePath
                      .empty()) {

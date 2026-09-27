@@ -320,6 +320,7 @@ private:
     PlacementCardRect() const;
     [[nodiscard]] RECT
     ProviderCardRect() const;
+    [[nodiscard]] int ProviderFilesHeightLogical() const;
     [[nodiscard]] RECT
     PageCardRect(
         int topLogical,
@@ -440,6 +441,8 @@ private:
     std::unordered_map<std::string, bool>
         pendingProviderStates_;
     bool providerCommitInProgress_{false};
+    bool providerTrayVisible_{false};
+    bool providerActionsVisible_{false};
 
     std::vector<HWND>
         generalControls_;

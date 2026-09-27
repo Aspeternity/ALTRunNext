@@ -370,6 +370,8 @@ ResetWindowInstanceState() {
     capturingHotkeyActionId_.clear();
     pendingProviderStates_.clear();
     providerCommitInProgress_ = false;
+    providerTrayVisible_ = false;
+    providerActionsVisible_ = false;
 
     hotkeyRows_.clear();
     generalControls_.clear();
@@ -2774,8 +2776,18 @@ void SettingsWindow::RefreshProviderStatus() {
 
     const bool visible =
         page_ == Page::Providers;
+    // An unconfigured/disabled source must not advertise an unusable switch.
+    // Only the managed copy belongs to ALTRun; external copies own their UI.
+    const bool showTray = enabled && !externalActive &&
+        !win::ManagedEverythingExecutable(app_.DataDirectory()).empty();
+    const bool showActions = showGetEverything || showUpdateEverything || showRecheck;
+    const bool layoutChanged = providerTrayVisible_ != showTray ||
+        providerActionsVisible_ != showActions;
+    providerTrayVisible_ = showTray;
+    providerActionsVisible_ = showActions;
 
     if (managedEverythingTrayIcon_) {
+        ShowWindow(managedEverythingTrayIcon_, visible && showTray ? SW_SHOW : SW_HIDE);
         EnableWindow(
             managedEverythingTrayIcon_,
             enabled &&
@@ -2821,6 +2833,10 @@ void SettingsWindow::RefreshProviderStatus() {
     SetWindowTextW(
         providerStatus_,
         text.c_str());
+    if (visible && layoutChanged) {
+        Layout();
+        InvalidateRect(hwnd_, nullptr, TRUE);
+    }
 }
 
 void SettingsWindow::AcquireEverything() {
@@ -3151,6 +3167,8 @@ void SettingsWindow::ShowPage(Page page) {
     Layout();
 
     redrawGuard.Resume();
+    // The redraw guard also suppresses non-client painting. Refresh the frame
+    // after hiding the previous page's scrollbar, even if size is unchanged.
 
     RedrawWindow(
         hwnd_,
@@ -3158,6 +3176,7 @@ void SettingsWindow::ShowPage(Page page) {
         nullptr,
         RDW_INVALIDATE |
             RDW_ERASE |
+            RDW_FRAME |
             RDW_ALLCHILDREN |
             RDW_UPDATENOW);
 }
@@ -4764,10 +4783,12 @@ void SettingsWindow::Layout() {
             rowHeight,
             TRUE);
 
+        const int statusTop = filesTop + rowHeight * (providerTrayVisible_ ? 2 : 1) + Scale(10);
+        const int actionsTop = statusTop + Scale(50);
         MoveWindow(
             providerStatus_,
             contentLeft + Scale(18),
-            filesTop + Scale(112),
+            statusTop,
             width - Scale(36),
             Scale(42),
             TRUE);
@@ -4775,7 +4796,7 @@ void SettingsWindow::Layout() {
         MoveWindow(
             providerGetEverything_,
             contentLeft + Scale(18),
-            filesTop + Scale(166),
+            actionsTop,
             Scale(210),
             Scale(34),
             TRUE);
@@ -4783,7 +4804,7 @@ void SettingsWindow::Layout() {
         MoveWindow(
             providerUpdateEverything_,
             contentLeft + Scale(18),
-            filesTop + Scale(166),
+            actionsTop,
             Scale(210),
             Scale(34),
             TRUE);
@@ -4791,7 +4812,7 @@ void SettingsWindow::Layout() {
         MoveWindow(
             providerRecheckEverything_,
             contentLeft + Scale(240),
-            filesTop + Scale(166),
+            actionsTop,
             Scale(128),
             Scale(34),
             TRUE);
@@ -5158,6 +5179,11 @@ void SettingsWindow::Layout() {
             actionHeight,
             TRUE);
     }
+}
+
+int SettingsWindow::ProviderFilesHeightLogical() const {
+    return settings_layout::kToggleRowLogical * (providerTrayVisible_ ? 2 : 1) +
+        10 + 42 + (providerActionsVisible_ ? 8 + 34 : 0) + 16;
 }
 
 RECT SettingsWindow::ProviderCardRect() const {
@@ -6364,7 +6390,8 @@ void SettingsWindow::DrawGeneralToggle(
         id ==
             kIdProviderPath ||
         id ==
-            kIdManagedEverythingTrayIcon;
+            kIdManagedEverythingTrayIcon ||
+        (id == kIdProviderEverything && !providerTrayVisible_);
 
     if (!lastRow) {
         HPEN separator =
@@ -7991,7 +8018,7 @@ LRESULT SettingsWindow::HandleMessage(
             drawCard(
                 PageCardRect(
                     394,
-                    224,
+                    ProviderFilesHeightLogical(),
                     720));
         } else if (
             page_ == Page::Appearance) {

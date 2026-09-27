@@ -199,6 +199,23 @@ int main() {
             ShowWindow(window, SW_MINIMIZE);
             settings.ShowAbout();
             assert(!IsIconic(window) && HasAboutHeading(window));
+            // Repeated General -> Sources -> Appearance -> Sources must settle
+            // the native frame on the very first visit, including high DPI.
+            for (int pass = 0; pass < 3; ++pass) {
+                SendMessageW(window, WM_COMMAND, MAKEWPARAM(51001, BN_CLICKED), 0);
+                SendMessageW(window, WM_COMMAND, MAKEWPARAM(51005, BN_CLICKED), 0);
+                assert(!(GetWindowLongPtrW(window, GWL_STYLE) & WS_VSCROLL));
+                assert(!IsWindowVisible(GetDlgItem(window, 51608)));
+                RECT first{};
+                GetWindowRect(GetDlgItem(window, 51605), &first);
+                SendMessageW(window, WM_COMMAND, MAKEWPARAM(51002, BN_CLICKED), 0);
+                SendMessageW(window, WM_COMMAND, MAKEWPARAM(51005, BN_CLICKED), 0);
+                RECT second{};
+                GetWindowRect(GetDlgItem(window, 51605), &second);
+                assert(EqualRect(&first, &second));
+                assert(!(GetWindowLongPtrW(window, GWL_STYLE) & WS_VSCROLL));
+                assert(!IsWindowVisible(GetDlgItem(window, 51608)));
+            }
             ShowWindow(window, SW_HIDE);
             settings.RefreshFromSettings();
             assert(!IsWindowVisible(window));
