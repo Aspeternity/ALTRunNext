@@ -1997,34 +1997,6 @@ void LauncherWindow::RebuildVisibleResults(
     results_ =
         std::move(nextResults);
 
-    if (IsModern()) {
-        std::size_t desiredRows =
-            std::min<std::size_t>(
-                results_.size(),
-                maxResults_);
-
-        // Do not collapse to search-only for the short interval between a
-        // static miss and an outstanding Everything reply. Once the dynamic
-        // reply resolves, a genuine empty result set collapses immediately.
-        if (dynamicQueryPending_ &&
-            desiredRows == 0 &&
-            modernLayoutRows_ > 0) {
-            desiredRows =
-                modernLayoutRows_;
-        }
-
-        if (desiredRows !=
-            modernLayoutRows_) {
-            modernLayoutRows_ =
-                desiredRows;
-            Layout();
-            InvalidateRect(
-                hwnd_,
-                nullptr,
-                TRUE);
-        }
-    }
-
     if (previous != nextSelection) {
         SendMessageW(
             list_,
@@ -2042,6 +2014,34 @@ void LauncherWindow::RebuildVisibleResults(
             WM_SETREDRAW,
             TRUE,
             0);
+    }
+
+    if (IsModern()) {
+        std::size_t desiredRows =
+            std::min<std::size_t>(
+                results_.size(),
+                maxResults_);
+
+        // Settle the top-level geometry only after the LISTBOX redraw guard
+        // is released. This avoids resizing a suspended native child during
+        // the static -> dynamic handoff.
+        if (dynamicQueryPending_ &&
+            desiredRows == 0 &&
+            modernLayoutRows_ > 0) {
+            desiredRows =
+                modernLayoutRows_;
+        }
+
+        if (desiredRows !=
+            modernLayoutRows_) {
+            modernLayoutRows_ =
+                desiredRows;
+            Layout();
+            InvalidateRect(
+                hwnd_,
+                nullptr,
+                TRUE);
+        }
     }
 
     // If the rendered rows and selection did not change, do not repaint the
