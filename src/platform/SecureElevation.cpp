@@ -186,9 +186,7 @@ CopyFileExclusive(
         CreateFileW(
             source.c_str(),
             GENERIC_READ,
-            FILE_SHARE_READ |
-                FILE_SHARE_WRITE |
-                FILE_SHARE_DELETE,
+            FILE_SHARE_READ,
             nullptr,
             OPEN_EXISTING,
             FILE_ATTRIBUTE_NORMAL |
