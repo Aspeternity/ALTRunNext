@@ -2893,6 +2893,221 @@ ExtractZipWithShell(
     return false;
 }
 
+[[nodiscard]] bool
+CopyManagedEverythingToProtectedHost(
+    const std::filesystem::path& source,
+    const std::filesystem::path& destination,
+    std::uint32_t& nativeError) {
+    if (source.empty() ||
+        destination.empty() ||
+        !source.is_absolute() ||
+        !destination.is_absolute()) {
+        nativeError =
+            ERROR_INVALID_PARAMETER;
+        return false;
+    }
+
+    HANDLE input =
+        CreateFileW(
+            source.c_str(),
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            nullptr,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL |
+                FILE_FLAG_OPEN_REPARSE_POINT |
+                FILE_FLAG_SEQUENTIAL_SCAN,
+            nullptr);
+
+    if (input ==
+            INVALID_HANDLE_VALUE ||
+        input == nullptr) {
+        nativeError =
+            static_cast<std::uint32_t>(
+                GetLastError());
+        return false;
+    }
+
+    FILE_ATTRIBUTE_TAG_INFO sourceInfo{};
+
+    if (!GetFileInformationByHandleEx(
+            input,
+            FileAttributeTagInfo,
+            &sourceInfo,
+            sizeof(sourceInfo)) ||
+        (sourceInfo.FileAttributes &
+         (FILE_ATTRIBUTE_DIRECTORY |
+          FILE_ATTRIBUTE_REPARSE_POINT)) !=
+            0) {
+        nativeError =
+            GetLastError() !=
+                    ERROR_SUCCESS
+                ? static_cast<
+                      std::uint32_t>(
+                      GetLastError())
+                : ERROR_REPARSE_TAG_INVALID;
+        CloseHandle(input);
+        return false;
+    }
+
+    std::error_code ec;
+    const auto parent =
+        destination.parent_path();
+
+    std::filesystem::create_directories(
+        parent,
+        ec);
+
+    if (ec) {
+        nativeError =
+            static_cast<std::uint32_t>(
+                ec.value());
+        CloseHandle(input);
+        return false;
+    }
+
+    const DWORD parentAttributes =
+        GetFileAttributesW(
+            parent.c_str());
+
+    if (parentAttributes ==
+            INVALID_FILE_ATTRIBUTES ||
+        (parentAttributes &
+         FILE_ATTRIBUTE_DIRECTORY) == 0 ||
+        (parentAttributes &
+         FILE_ATTRIBUTE_REPARSE_POINT) !=
+            0) {
+        nativeError =
+            parentAttributes ==
+                    INVALID_FILE_ATTRIBUTES
+                ? static_cast<
+                      std::uint32_t>(
+                      GetLastError())
+                : ERROR_REPARSE_TAG_INVALID;
+        CloseHandle(input);
+        return false;
+    }
+
+    std::wstring token;
+
+    if (!GenerateSecureToken(
+            token,
+            nativeError)) {
+        CloseHandle(input);
+        return false;
+    }
+
+    const auto staged =
+        parent /
+        (L".Everything.altrun." +
+         token +
+         L".tmp");
+
+    HANDLE output =
+        CreateFileW(
+            staged.c_str(),
+            GENERIC_WRITE,
+            0,
+            nullptr,
+            CREATE_NEW,
+            FILE_ATTRIBUTE_NOT_CONTENT_INDEXED,
+            nullptr);
+
+    if (output ==
+            INVALID_HANDLE_VALUE ||
+        output == nullptr) {
+        nativeError =
+            static_cast<std::uint32_t>(
+                GetLastError());
+        CloseHandle(input);
+        return false;
+    }
+
+    bool success = true;
+    std::array<std::byte, 64 * 1024>
+        buffer{};
+
+    for (;;) {
+        DWORD read = 0;
+
+        if (!ReadFile(
+                input,
+                buffer.data(),
+                static_cast<DWORD>(
+                    buffer.size()),
+                &read,
+                nullptr)) {
+            nativeError =
+                static_cast<std::uint32_t>(
+                    GetLastError());
+            success = false;
+            break;
+        }
+
+        if (read == 0) {
+            break;
+        }
+
+        DWORD offset = 0;
+
+        while (offset < read) {
+            DWORD written = 0;
+
+            if (!WriteFile(
+                    output,
+                    buffer.data() +
+                        offset,
+                    read - offset,
+                    &written,
+                    nullptr) ||
+                written == 0) {
+                nativeError =
+                    static_cast<std::uint32_t>(
+                        GetLastError());
+                success = false;
+                break;
+            }
+
+            offset += written;
+        }
+
+        if (!success) {
+            break;
+        }
+    }
+
+    if (success &&
+        !FlushFileBuffers(output)) {
+        nativeError =
+            static_cast<std::uint32_t>(
+                GetLastError());
+        success = false;
+    }
+
+    CloseHandle(output);
+    CloseHandle(input);
+
+    if (!success) {
+        DeleteFileW(staged.c_str());
+        return false;
+    }
+
+    if (!MoveFileExW(
+            staged.c_str(),
+            destination.c_str(),
+            MOVEFILE_REPLACE_EXISTING |
+                MOVEFILE_WRITE_THROUGH)) {
+        nativeError =
+            static_cast<std::uint32_t>(
+                GetLastError());
+        DeleteFileW(staged.c_str());
+        return false;
+    }
+
+    nativeError = 0;
+    return true;
+}
+
 [[nodiscard]] EverythingBootstrapSnapshot
 Fail(
     EverythingBootstrapSnapshot snapshot,
