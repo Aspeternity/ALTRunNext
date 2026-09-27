@@ -182,7 +182,7 @@ if version == "0.8.0-alpha.6.3":
         "shortcutHintFont_",
         "shortcutArrowFont_",
         'L"↩"',
-        'L"·"',
+        'L"›"',
         "ResultNumberLabel(",
     ):
         if token not in launcher + launcher_hpp:
@@ -194,6 +194,16 @@ if version == "0.8.0-alpha.6.3":
     ):
         if token not in typography:
             fail(f"alpha.6.3 balanced search-input typography missing: {token}")
+
+    for token in (
+        "ContainsHanIdeograph(",
+        "searchCjkFont_",
+        'L"Microsoft YaHei UI"',
+        "-14",
+        "UpdateSearchInputFont()",
+    ):
+        if token not in launcher + launcher_hpp:
+            fail(f"alpha.6.3 CJK search-font switching missing: {token}")
 
     settings_cpp = read("src/ui/SettingsWindow.cpp")
     style_start = settings_cpp.find("constexpr DWORD kSettingsWindowStyle")
