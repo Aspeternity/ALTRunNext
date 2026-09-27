@@ -1,4 +1,7 @@
 #include "updater/UpdaterTransaction.hpp"
+#ifdef _WIN32
+#include "platform/SecureArchive.hpp"
+#endif
 
 #include <cassert>
 #include <filesystem>
@@ -460,6 +463,61 @@ int main() {
                 "outside");
         }
     }
+
+#ifdef _WIN32
+    {
+        const auto archive =
+            root / "verified-archive.bin";
+        Write(
+            archive,
+            "abc");
+
+        altrun::win::
+            LockedVerifiedFile locked;
+        std::uint32_t nativeError = 0;
+
+        assert(
+            altrun::win::
+                LockAndVerifySha256(
+                    fs::absolute(
+                        archive),
+                    "ba7816bf8f01cfea414140de5dae2223"
+                    "b00361a396177a9cb410ff61f20015ad",
+                    locked,
+                    nativeError));
+        assert(locked.Valid());
+
+        HANDLE writer =
+            CreateFileW(
+                archive.c_str(),
+                GENERIC_WRITE,
+                FILE_SHARE_READ,
+                nullptr,
+                OPEN_EXISTING,
+                FILE_ATTRIBUTE_NORMAL,
+                nullptr);
+        assert(
+            writer ==
+                INVALID_HANDLE_VALUE ||
+            writer == nullptr);
+        assert(
+            GetLastError() ==
+                ERROR_SHARING_VIOLATION);
+
+        SetLastError(ERROR_SUCCESS);
+        assert(
+            !DeleteFileW(
+                archive.c_str()));
+        assert(
+            GetLastError() ==
+                ERROR_SHARING_VIOLATION);
+
+        locked.Reset();
+        assert(
+            DeleteFileW(
+                archive.c_str()));
+    }
+#endif
 
     fs::remove_all(root, ec);
     return 0;
