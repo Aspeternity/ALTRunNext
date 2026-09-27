@@ -150,6 +150,21 @@ if version == "0.8.0-alpha.6.3":
         if forbidden in metrics + launcher + launcher_hpp:
             fail(f"alpha.6.3 stale table-layout token survived: {forbidden}")
 
+    # Result icons were deliberately removed during the alpha.5.49 closeout:
+    # mixed static/Everything sources do not provide a visually complete icon
+    # set, so bringing back per-result icons would reintroduce inconsistent
+    # rows and an idle extraction/cache lifecycle. Modern remains text-first.
+    for forbidden in (
+        "showResultIcons",
+        "ResultIconPipeline",
+        "ResultIconWorkerLoop",
+        "kIconReadyMessage",
+        "SHGetFileInfo",
+        "ExtractIcon",
+    ):
+        if forbidden in launcher + launcher_hpp + read("src/core/Settings.hpp"):
+            fail(f"alpha.6.3 removed result-icon surface returned: {forbidden}")
+
     for token in (
         "ModernCompactLauncherMetricsForDpi(",
         "99",
