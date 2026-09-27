@@ -1,6 +1,7 @@
 #include "EverythingBootstrapper.hpp"
 
 #include "../core/EverythingBootstrapPolicy.hpp"
+#include "SecureElevation.hpp"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -730,75 +731,67 @@ LaunchEverything(
 }
 
 [[nodiscard]] bool
-RunElevatedEverythingCommand(
+RunGuardedElevatedExecutable(
     const std::filesystem::path& executable,
     std::wstring_view arguments,
     std::uint32_t& nativeError) {
-    std::wstring args(arguments);
-    std::wstring directory =
-        executable.parent_path()
-            .wstring();
+    SecuredExecutable secured;
 
-    SHELLEXECUTEINFOW info{};
-    info.cbSize = sizeof(info);
-    info.fMask =
-        SEE_MASK_NOCLOSEPROCESS |
-        SEE_MASK_NOASYNC |
-        SEE_MASK_FLAG_NO_UI;
-    info.hwnd = nullptr;
-    info.lpVerb = L"runas";
-    info.lpFile = executable.c_str();
-    info.lpParameters =
-        args.empty()
-            ? nullptr
-            : args.c_str();
-    info.lpDirectory =
-        directory.empty()
-            ? nullptr
-            : directory.c_str();
-    info.nShow = SW_HIDE;
-
-    if (!ShellExecuteExW(&info)) {
-        nativeError =
-            static_cast<std::uint32_t>(
-                GetLastError());
+    if (!LockExecutableForElevation(
+            executable,
+            secured,
+            nativeError)) {
         return false;
     }
 
-    if (!info.hProcess) {
-        nativeError =
-            ERROR_INVALID_HANDLE;
+    HANDLE process = nullptr;
+
+    if (!LaunchSecuredExecutable(
+            secured,
+            arguments,
+            true,
+            SW_HIDE,
+            process,
+            nativeError)) {
         return false;
     }
+
+    // The guard is required through UAC consent and process creation. Once
+    // ShellExecuteEx returns a real process handle, the child image has been
+    // opened and the original path can be released.
+    secured.Reset();
 
     const DWORD waitResult =
         WaitForSingleObject(
-            info.hProcess,
+            process,
             30000);
 
-    if (waitResult != WAIT_OBJECT_0) {
+    if (waitResult !=
+        WAIT_OBJECT_0) {
         nativeError =
-            waitResult == WAIT_TIMEOUT
+            waitResult ==
+                    WAIT_TIMEOUT
                 ? ERROR_TIMEOUT
-                : static_cast<std::uint32_t>(
+                : static_cast<
+                      std::uint32_t>(
                       GetLastError());
-        CloseHandle(info.hProcess);
+        CloseHandle(process);
         return false;
     }
 
     DWORD exitCode = 0;
 
     if (!GetExitCodeProcess(
-            info.hProcess,
+            process,
             &exitCode)) {
         nativeError =
             static_cast<std::uint32_t>(
                 GetLastError());
-        CloseHandle(info.hProcess);
+        CloseHandle(process);
         return false;
     }
 
-    CloseHandle(info.hProcess);
+    CloseHandle(process);
 
     if (exitCode != 0) {
         nativeError = exitCode;
@@ -809,8 +802,9 @@ RunElevatedEverythingCommand(
     return true;
 }
 
-[[nodiscard]] bool
-RunElevatedServiceRepairHelper(
+[[nodiscard]]
+std::filesystem::path
+CurrentExecutableForElevation(
     std::uint32_t& nativeError) {
     std::array<wchar_t, 32768>
         executableBuffer{};
@@ -828,192 +822,66 @@ RunElevatedServiceRepairHelper(
             executableBuffer.size()) {
         nativeError =
             length == 0
-                ? static_cast<std::uint32_t>(
+                ? static_cast<
+                      std::uint32_t>(
                       GetLastError())
                 : ERROR_INSUFFICIENT_BUFFER;
-        return false;
-    }
-
-    std::filesystem::path executable(
-        std::wstring(
-            executableBuffer.data(),
-            length));
-    std::wstring directory =
-        executable.parent_path()
-            .wstring();
-    std::wstring arguments =
-        L"--repair-managed-everything-service";
-
-    SHELLEXECUTEINFOW info{};
-    info.cbSize = sizeof(info);
-    info.fMask =
-        SEE_MASK_NOCLOSEPROCESS |
-        SEE_MASK_NOASYNC |
-        SEE_MASK_FLAG_NO_UI;
-    info.lpVerb = L"runas";
-    info.lpFile = executable.c_str();
-    info.lpParameters =
-        arguments.c_str();
-    info.lpDirectory =
-        directory.empty()
-            ? nullptr
-            : directory.c_str();
-    info.nShow = SW_HIDE;
-
-    if (!ShellExecuteExW(&info)) {
-        nativeError =
-            static_cast<std::uint32_t>(
-                GetLastError());
-        return false;
-    }
-
-    if (!info.hProcess) {
-        nativeError =
-            ERROR_INVALID_HANDLE;
-        return false;
-    }
-
-    const DWORD waitResult =
-        WaitForSingleObject(
-            info.hProcess,
-            30000);
-
-    if (waitResult != WAIT_OBJECT_0) {
-        nativeError =
-            waitResult == WAIT_TIMEOUT
-                ? ERROR_TIMEOUT
-                : static_cast<std::uint32_t>(
-                      GetLastError());
-        CloseHandle(info.hProcess);
-        return false;
-    }
-
-    DWORD exitCode = 0;
-
-    if (!GetExitCodeProcess(
-            info.hProcess,
-            &exitCode)) {
-        nativeError =
-            static_cast<std::uint32_t>(
-                GetLastError());
-        CloseHandle(info.hProcess);
-        return false;
-    }
-
-    CloseHandle(info.hProcess);
-
-    if (exitCode != 0) {
-        nativeError = exitCode;
-        return false;
+        return {};
     }
 
     nativeError = 0;
-    return true;
+    return std::filesystem::path(
+        std::wstring(
+            executableBuffer.data(),
+            length));
+}
+
+[[nodiscard]] bool
+RunElevatedEverythingCommand(
+    const std::filesystem::path& executable,
+    std::wstring_view arguments,
+    std::uint32_t& nativeError) {
+    return RunGuardedElevatedExecutable(
+        executable,
+        arguments,
+        nativeError);
+}
+
+[[nodiscard]] bool
+RunElevatedServiceRepairHelper(
+    std::uint32_t& nativeError) {
+    const auto executable =
+        CurrentExecutableForElevation(
+            nativeError);
+
+    if (executable.empty()) {
+        return false;
+    }
+
+    return RunGuardedElevatedExecutable(
+        executable,
+        L"--repair-managed-everything-service",
+        nativeError);
 }
 
 [[nodiscard]] bool
 RunElevatedServicePolicyHelper(
     bool enabled,
     std::uint32_t& nativeError) {
-    std::array<wchar_t, 32768>
-        executableBuffer{};
+    const auto executable =
+        CurrentExecutableForElevation(
+            nativeError);
 
-    const DWORD length =
-        GetModuleFileNameW(
-            nullptr,
-            executableBuffer.data(),
-            static_cast<DWORD>(
-                executableBuffer.size()));
-
-    if (length == 0 ||
-        static_cast<std::size_t>(
-            length) >=
-            executableBuffer.size()) {
-        nativeError =
-            length == 0
-                ? static_cast<std::uint32_t>(
-                      GetLastError())
-                : ERROR_INSUFFICIENT_BUFFER;
+    if (executable.empty()) {
         return false;
     }
 
-    std::filesystem::path executable(
-        std::wstring(
-            executableBuffer.data(),
-            length));
-    const std::wstring directory =
-        executable.parent_path()
-            .wstring();
-    const std::wstring arguments =
+    return RunGuardedElevatedExecutable(
+        executable,
         enabled
             ? L"--set-managed-everything-service enabled"
-            : L"--set-managed-everything-service disabled";
-
-    SHELLEXECUTEINFOW info{};
-    info.cbSize = sizeof(info);
-    info.fMask =
-        SEE_MASK_NOCLOSEPROCESS |
-        SEE_MASK_NOASYNC |
-        SEE_MASK_FLAG_NO_UI;
-    info.lpVerb = L"runas";
-    info.lpFile = executable.c_str();
-    info.lpParameters =
-        arguments.c_str();
-    info.lpDirectory =
-        directory.empty()
-            ? nullptr
-            : directory.c_str();
-    info.nShow = SW_HIDE;
-
-    if (!ShellExecuteExW(&info)) {
-        nativeError =
-            static_cast<std::uint32_t>(
-                GetLastError());
-        return false;
-    }
-
-    if (!info.hProcess) {
-        nativeError =
-            ERROR_INVALID_HANDLE;
-        return false;
-    }
-
-    const DWORD waitResult =
-        WaitForSingleObject(
-            info.hProcess,
-            30000);
-
-    if (waitResult != WAIT_OBJECT_0) {
-        nativeError =
-            waitResult == WAIT_TIMEOUT
-                ? ERROR_TIMEOUT
-                : static_cast<std::uint32_t>(
-                      GetLastError());
-        CloseHandle(info.hProcess);
-        return false;
-    }
-
-    DWORD exitCode = 0;
-
-    if (!GetExitCodeProcess(
-            info.hProcess,
-            &exitCode)) {
-        nativeError =
-            static_cast<std::uint32_t>(
-                GetLastError());
-        CloseHandle(info.hProcess);
-        return false;
-    }
-
-    CloseHandle(info.hProcess);
-
-    if (exitCode != 0) {
-        nativeError = exitCode;
-        return false;
-    }
-
-    nativeError = 0;
-    return true;
+            : L"--set-managed-everything-service disabled",
+        nativeError);
 }
 
 struct NamedIpcSearch {
