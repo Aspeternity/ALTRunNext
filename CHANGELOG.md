@@ -7,6 +7,8 @@
 - Guard Everything service elevation against executable/directory replacement without changing managed/external ownership semantics.
 - Reject HTTPS-to-HTTP redirect downgrade in the native update client.
 - Replace the updater's ad-hoc file journal with a shared transaction implementation that tracks newly created directories, preserves `data`, rejects reparse traversal and rolls back only changes introduced by the current transaction.
+- Keep the manifest-verified update ZIP through handoff; protected-folder updates re-lock and re-hash the archive after UAC, then re-extract into a random work/staging tree inherited from the protected install root before elevated apply.
+- Restore a split managed Everything topology for the privilege boundary: the standard-user client stays portable under `data/tools/Everything`, while the persistent service ImagePath is migrated to a protected Program Files service host obtained from the Windows Known Folder API. External Everything services remain untouched.
 - Add `update_runtime_tests` covering successful apply/rollback, personal-data preservation, deterministic mid-apply failure cleanup and reparse-source rejection.
 - Replace the updater health-event NULL DACL with a current-user signal ACL and use a cryptographically random event token.
 - Unify automatic-main and explicit-tag versioned releases behind one immutable publish script that requires x64/ARM64 ZIPs, SHA256SUMS and `update-manifest.json`, publishes through a draft boundary and verifies the public manifest endpoint.
