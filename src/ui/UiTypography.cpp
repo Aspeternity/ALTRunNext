@@ -15,7 +15,7 @@ constexpr int
 constexpr int
     kModernLauncherTitlePointSize = 10;
 constexpr int
-    kModernLauncherSearchPointSize = 12;
+    kModernLauncherSearchLogicalHeight96 = -15;
 
 [[nodiscard]] const wchar_t*
 ApplicationFace(
@@ -40,7 +40,7 @@ ApplicationPointSize(
     case UiFontRole::LauncherTitle:
         return 10;
     case UiFontRole::LauncherSearch:
-        return kModernLauncherSearchPointSize;
+        return 11;
     case UiFontRole::Body:
     case UiFontRole::BodySemibold:
     case UiFontRole::LauncherAuxiliary:
@@ -105,14 +105,26 @@ UiFontSpec LauncherFontSpec(
         };
     }
 
+    if (role == UiFontRole::LauncherSearch) {
+        // A fixed logical glyph height keeps Latin and CJK text visually
+        // balanced inside the 20-logical-pixel native EDIT. The previous
+        // 12 pt search font made linked CJK glyphs disproportionately large.
+        return {
+            L"Segoe UI",
+            0,
+            kModernLauncherSearchLogicalHeight96,
+            FW_NORMAL,
+            DEFAULT_CHARSET,
+            CLEARTYPE_NATURAL_QUALITY,
+        };
+    }
+
     const int pointSize =
         role == UiFontRole::LauncherTitle
             ? kModernLauncherTitlePointSize
-            : role == UiFontRole::LauncherSearch
-                ? kModernLauncherSearchPointSize
-                : role == UiFontRole::LauncherAuxiliary
-                    ? kModernLauncherAuxiliaryPointSize
-                    : kModernLauncherBodyPointSize;
+            : role == UiFontRole::LauncherAuxiliary
+                ? kModernLauncherAuxiliaryPointSize
+                : kModernLauncherBodyPointSize;
 
     return {
         L"Segoe UI",

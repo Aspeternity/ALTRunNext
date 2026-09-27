@@ -122,8 +122,8 @@ if version == "0.8.0-alpha.6.3":
         "searchEditHeight",
         "Scale(38, dpi)",
         "Scale(428, dpi)",
-        "numericHintWidth",
-        "numericHintGap",
+        "shortcutHintWidth",
+        "shortcutHintGap",
         "footerSurface",
         "footerAction",
         "secondaryMinWidth",
@@ -176,9 +176,24 @@ if version == "0.8.0-alpha.6.3":
     quick_body = launcher[quick_start:quick_end]
     if "IsModern()" in quick_body:
         fail("alpha.6.3 Modern Compact must share numeric quick launch")
-    for token in ("showNumericHint", "numericHintRect", "ResultNumberLabel("):
-        if token not in launcher:
-            fail(f"alpha.6.3 Modern numeric hint missing: {token}")
+    for token in (
+        "showNumericShortcut",
+        "shortcutHintRect",
+        "shortcutHintFont_",
+        "shortcutArrowFont_",
+        'L"\x21A9"',
+        'L"\x00B7"',
+        "ResultNumberLabel(",
+    ):
+        if token not in launcher + launcher_hpp:
+            fail(f"alpha.6.3 Modern shortcut affordance missing: {token}")
+
+    for token in (
+        "kModernLauncherSearchLogicalHeight96 = -15",
+        "linked CJK glyphs",
+    ):
+        if token not in typography:
+            fail(f"alpha.6.3 balanced search-input typography missing: {token}")
 
     settings_cpp = read("src/ui/SettingsWindow.cpp")
     style_start = settings_cpp.find("constexpr DWORD kSettingsWindowStyle")

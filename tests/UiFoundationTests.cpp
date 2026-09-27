@@ -89,8 +89,16 @@ int main() {
         assert(full.resultsSurface.height > 0);
         assert(full.resultsList.height ==
                full.rowHeight * 10);
-        assert(full.numericHintWidth > 0);
-        assert(full.numericHintGap > 0);
+        assert(
+            full.shortcutHintWidth ==
+            ui::Scale(
+                34,
+                expected.dpi));
+        assert(
+            full.shortcutHintGap ==
+            ui::Scale(
+                12,
+                expected.dpi));
         assert(full.footerSurface.height > 0);
         assert(full.footer.width > 0);
         assert(full.footerAction.width > 0);

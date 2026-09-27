@@ -148,6 +148,8 @@ private:
     HFONT boldFont_{};
     HFONT titleFont_{};
     HFONT searchGlyphFont_{};
+    HFONT shortcutHintFont_{};
+    HFONT shortcutArrowFont_{};
     HBRUSH windowBrush_{};
     HBRUSH controlBrush_{};
     HBRUSH accentBrush_{};

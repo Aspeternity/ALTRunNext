@@ -9,11 +9,11 @@
 - Replace the fixed right-hand alias column with measured inline secondary metadata.
 - Add a compact footer context surface and right-aligned `Enter` affordance.
 - Request the Windows 11 DWM system backdrop when supported; keep the solid surface palette as the Windows 10/unsupported fallback.
-- Tighten the Modern search surface from 42 to 38 logical pixels, use a dedicated 12 pt search font, and center the native EDIT inside it.
+- Tighten the Modern search surface from 42 to 38 logical pixels and give the native EDIT a dedicated DPI-scaled search font with a 15-logical-pixel glyph height, balancing Latin and linked CJK input without making Chinese text oversized.
 - Prefer Segoe Fluent Icons for the search glyph on Windows 11, with Segoe MDL2 Assets fallback on Windows 10; bind the glyph raster size directly to the DPI-scaled icon box instead of tuning for one display scale.
 - Use Segoe UI + natural ClearType for Modern launcher text even when the application UI language is Chinese, leaving Windows font linking to supply CJK glyphs.
 - Restore cyclic Tab / Up / Down result navigation in Modern Compact.
-- Restore the shared smart numeric quick-launch behavior in Modern Compact and show a subtle right-aligned 1-9/0 shortcut hint on each visible row; the footer Enter affordance is unchanged.
+- Restore the shared smart numeric quick-launch behavior in Modern Compact. The selected row now shows a larger hooked-return action glyph on the right, while unselected rows show larger muted middle-dot shortcuts (`·1`-`·9`, `·0`); the footer Enter affordance is unchanged.
 - Remove the permanent Settings `WS_VSCROLL` creation style and hard-clear native scroll state when switching to non-scroll pages, with a real-HWND small-window regression.
 - Preserve frozen Classic assets and shared search/Everything/usage/numeric-intent behavior.
 - Publish Windows fixed FileVersion/ProductVersion `0.8.0.273`.

@@ -18,11 +18,12 @@ This pass is intentionally presentation-only. Search, Everything, usage ranking,
 - [ ] Search, results and footer read as three related but distinct surfaces; the outer background is visibly cooler than the white search surface.
 - [ ] The search glyph is crisp and vertically centered at 100%, 125%, 150%, 175% and 200% DPI; the native EDIT caret/IME behavior is unchanged.
 - [ ] Typed search text/caret is vertically centered inside the search surface at every DPI; it must not sit against the top edge of the field.
-- [ ] At every supported DPI, the 38-logical-pixel search surface and 12 pt search font remain vertically balanced without clipping the caret or IME composition window.
+- [ ] At every supported DPI, the 38-logical-pixel search surface and dedicated 15-logical-pixel search font remain vertically balanced without clipping the caret or IME composition window; Chinese input must not appear disproportionately larger than Latin input.
 - [ ] On Windows 11 the search icon uses the Fluent icon face and remains crisp at 100%, 125%, 150%, 175% and 200%; Windows 10 falls back to MDL2 without a missing-glyph box.
 - [ ] English application names in Chinese UI use crisp Segoe UI Latin glyphs; Chinese result names still render correctly through Windows font linking.
 - [ ] Tab, Shift+Tab, Up and Down wrap from first <-> last result without moving focus out of the search field.
-- [ ] Modern Compact shows up to ten rows; the right edge displays muted 1-9/0 hints when numeric quick launch is enabled, `0` maps to row ten, and typing-intent arbitration remains identical to Classic.
+- [ ] Modern Compact shows up to ten rows. The selected row displays a clearly visible hooked-return arrow at the far right; unselected rows display larger muted `·1`-`·9` / `·0` hints when numeric quick launch is enabled, with `0` mapped to row ten.
+- [ ] Move selection with Up/Down/Tab: the hooked-return arrow follows the selected row, the row it leaves regains its numeric hint, and the right action gutter never shifts title/alias layout.
 - [ ] The footer keeps the existing right-aligned `Enter` affordance and does not duplicate numeric shortcut help.
 - [ ] Make General/Hotkeys short enough to show a real Settings scrollbar, then switch repeatedly to Search Sources and Appearance; the right non-client scrollbar must disappear immediately and never ghost back.
 - [ ] Short application names place their muted alias close to the primary name instead of pinning it to a far-right column; long primary/secondary strings ellipsize without overlap.

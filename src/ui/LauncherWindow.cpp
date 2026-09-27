@@ -391,6 +391,8 @@ LauncherWindow::~LauncherWindow() {
     if (boldFont_) DeleteObject(boldFont_);
     if (titleFont_) DeleteObject(titleFont_);
     if (searchGlyphFont_) DeleteObject(searchGlyphFont_);
+    if (shortcutHintFont_) DeleteObject(shortcutHintFont_);
+    if (shortcutArrowFont_) DeleteObject(shortcutArrowFont_);
     if (windowBrush_) DeleteObject(windowBrush_);
     if (controlBrush_) DeleteObject(controlBrush_);
     if (accentBrush_) DeleteObject(accentBrush_);
@@ -689,6 +691,14 @@ void LauncherWindow::ApplyFonts() {
         DeleteObject(searchGlyphFont_);
         searchGlyphFont_ = nullptr;
     }
+    if (shortcutHintFont_) {
+        DeleteObject(shortcutHintFont_);
+        shortcutHintFont_ = nullptr;
+    }
+    if (shortcutArrowFont_) {
+        DeleteObject(shortcutArrowFont_);
+        shortcutArrowFont_ = nullptr;
+    }
 
     const auto style =
         app_.SettingsData().uiStyle;
@@ -746,6 +756,30 @@ void LauncherWindow::ApplyFonts() {
                 0,
                 -16,
                 FW_NORMAL,
+                DEFAULT_CHARSET,
+                ANTIALIASED_QUALITY,
+            },
+            dpi_);
+
+    shortcutHintFont_ =
+        ui::CreateFontHandle(
+            {
+                L"Segoe UI",
+                11,
+                0,
+                FW_NORMAL,
+                DEFAULT_CHARSET,
+                CLEARTYPE_NATURAL_QUALITY,
+            },
+            dpi_);
+
+    shortcutArrowFont_ =
+        ui::CreateFontHandle(
+            {
+                L"Segoe UI Symbol",
+                14,
+                0,
+                FW_SEMIBOLD,
                 DEFAULT_CHARSET,
                 ANTIALIASED_QUALITY,
             },
@@ -4261,31 +4295,30 @@ LRESULT LauncherWindow::HandleMessage(
                 item->rcItem.right -
                 modern.rowSelectionInsetX -
                 modern.rowTextInset;
-            const bool showNumericHint =
+            const bool showNumericShortcut =
                 app_.SettingsData()
                     .numericQuickLaunch &&
                 item->itemID < 10;
 
-            RECT numericHintRect =
+            // Keep one stable right-hand action gutter for every row. The
+            // selected row uses it for the Enter-style return arrow; the
+            // remaining rows use a compact middle-dot + digit shortcut hint.
+            RECT shortcutHintRect =
                 item->rcItem;
-            numericHintRect.right =
+            shortcutHintRect.right =
                 rowRight;
-            numericHintRect.left =
-                showNumericHint
-                    ? std::max(
-                          contentLeft,
-                          rowRight -
-                              modern.numericHintWidth)
-                    : rowRight;
+            shortcutHintRect.left =
+                std::max(
+                    contentLeft,
+                    rowRight -
+                        modern.shortcutHintWidth);
 
             const int contentRight =
-                showNumericHint
-                    ? std::max(
-                          contentLeft,
-                          static_cast<int>(
-                              numericHintRect.left) -
-                              modern.numericHintGap)
-                    : rowRight;
+                std::max(
+                    contentLeft,
+                    static_cast<int>(
+                        shortcutHintRect.left) -
+                        modern.shortcutHintGap);
 
             RECT primaryRect =
                 item->rcItem;
@@ -4391,25 +4424,43 @@ LRESULT LauncherWindow::HandleMessage(
                         DT_NOPREFIX);
             }
 
-            if (showNumericHint) {
-                const std::wstring number =
+            if (selected) {
+                SelectObject(
+                    item->hDC,
+                    shortcutArrowFont_);
+                SetTextColor(
+                    item->hDC,
+                    palette.accent);
+
+                DrawTextW(
+                    item->hDC,
+                    L"!A9",
+                    1,
+                    &shortcutHintRect,
+                    DT_SINGLELINE |
+                        DT_RIGHT |
+                        DT_VCENTER |
+                        DT_NOPREFIX);
+            } else if (
+                showNumericShortcut) {
+                std::wstring shortcut =
+                    L" B7";
+                shortcut +=
                     ResultNumberLabel(
                         item->itemID);
 
                 SelectObject(
                     item->hDC,
-                    auxiliaryFont_);
+                    shortcutHintFont_);
                 SetTextColor(
                     item->hDC,
-                    selected
-                        ? palette.selectionText
-                        : palette.mutedText);
+                    palette.mutedText);
 
                 DrawTextW(
                     item->hDC,
-                    number.c_str(),
+                    shortcut.c_str(),
                     -1,
-                    &numericHintRect,
+                    &shortcutHintRect,
                     DT_SINGLELINE |
                         DT_RIGHT |
                         DT_VCENTER |

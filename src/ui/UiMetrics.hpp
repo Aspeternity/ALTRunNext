@@ -168,8 +168,8 @@ struct ModernCompactLauncherDpiMetrics {
     int rowTextInset{};
     int secondaryMinWidth{};
     int rowColumnGap{};
-    int numericHintWidth{};
-    int numericHintGap{};
+    int shortcutHintWidth{};
+    int shortcutHintGap{};
     int rowCornerDiameter{};
     int selectionAccentWidth{};
     int selectionAccentInset{};
@@ -254,8 +254,8 @@ ModernCompactLauncherMetricsForDpi(
             Scale(14, dpi),
             Scale(150, dpi),
             Scale(12, dpi),
-            Scale(24, dpi),
-            Scale(10, dpi),
+            Scale(34, dpi),
+            Scale(12, dpi),
             Scale(10, dpi),
             Scale(3, dpi),
             Scale(8, dpi),
@@ -353,8 +353,8 @@ ModernCompactLauncherMetricsForDpi(
         Scale(14, dpi),
         Scale(150, dpi),
         Scale(12, dpi),
-        Scale(24, dpi),
-        Scale(10, dpi),
+        Scale(34, dpi),
+        Scale(12, dpi),
         Scale(10, dpi),
         Scale(3, dpi),
         Scale(8, dpi),
