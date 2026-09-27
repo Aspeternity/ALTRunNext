@@ -96,8 +96,11 @@ FormatTrayHotkey(
 }
 
 constexpr DWORD kDwmWindowCornerPreference = 33;
+constexpr DWORD kDwmSystemBackdropType = 38;
 constexpr int kDwmDoNotRound = 1;
 constexpr int kDwmRound = 2;
+constexpr int kDwmBackdropNone = 1;
+constexpr int kDwmBackdropMainWindow = 2;
 
 enum ResultContextMenuId : UINT {
     kResultContextPrimary = 41001,
@@ -811,7 +814,32 @@ void LauncherWindow::UpdateWindowChrome() {
         &preference,
         sizeof(preference));
 
+    const int backdrop =
+        IsModern()
+            ? kDwmBackdropMainWindow
+            : kDwmBackdropNone;
+
+    modernBackdropAvailable_ =
+        IsModern() &&
+        SUCCEEDED(
+            DwmSetWindowAttribute(
+                hwnd_,
+                kDwmSystemBackdropType,
+                &backdrop,
+                sizeof(backdrop)));
+
+    if (!IsModern()) {
+        DwmSetWindowAttribute(
+            hwnd_,
+            kDwmSystemBackdropType,
+            &backdrop,
+            sizeof(backdrop));
+    }
+
     if (IsModern()) {
+        // The Windows 11 backdrop request is optional. Windows 10 simply
+        // rejects the attribute and continues on the solid surface palette;
+        // no launcher behavior depends on the backdrop being available.
         SetWindowRgn(
             hwnd_,
             nullptr,
@@ -862,6 +890,17 @@ void LauncherWindow::ApplyAppearance() {
     widthLogical_ = metrics.widthLogical;
     rowHeightLogical_ = metrics.rowHeightLogical;
     maxResults_ = metrics.maxResults;
+
+    if (IsModern()) {
+        modernLayoutRows_ =
+            std::min<std::size_t>(
+                results_.size(),
+                maxResults_);
+        modernDpiMetrics_ =
+            ui::ModernCompactLauncherMetricsForDpi(
+                dpi_,
+                modernLayoutRows_);
+    }
 
     RecreateBrushes();
     UpdateControlFrames();
@@ -933,6 +972,10 @@ void LauncherWindow::Layout() {
     int height = 0;
 
     if (IsModern()) {
+        modernDpiMetrics_ =
+            ui::ModernCompactLauncherMetricsForDpi(
+                dpi_,
+                modernLayoutRows_);
         const auto& modern =
             modernDpiMetrics_;
 
@@ -959,20 +1002,52 @@ void LauncherWindow::Layout() {
             modern.searchEdit.width,
             modern.searchEdit.height,
             TRUE);
-        MoveWindow(
-            list_,
-            modern.resultsList.left,
-            modern.resultsList.top,
-            modern.resultsList.width,
-            modern.resultsList.height,
-            TRUE);
-        MoveWindow(
-            preview_,
-            modern.footer.left,
-            modern.footer.top,
-            modern.footer.width,
-            modern.footer.height,
-            TRUE);
+
+        if (modernLayoutRows_ > 0) {
+            ShowWindow(
+                list_,
+                SW_SHOWNA);
+            ShowWindow(
+                preview_,
+                SW_SHOWNA);
+
+            MoveWindow(
+                list_,
+                modern.resultsList.left,
+                modern.resultsList.top,
+                modern.resultsList.width,
+                modern.resultsList.height,
+                TRUE);
+            MoveWindow(
+                preview_,
+                modern.footer.left,
+                modern.footer.top,
+                modern.footer.width,
+                modern.footer.height,
+                TRUE);
+        } else {
+            ShowWindow(
+                list_,
+                SW_HIDE);
+            ShowWindow(
+                preview_,
+                SW_HIDE);
+            MoveWindow(
+                list_,
+                0,
+                0,
+                0,
+                0,
+                FALSE);
+            MoveWindow(
+                preview_,
+                0,
+                0,
+                0,
+                0,
+                FALSE);
+        }
+
         MoveWindow(
             classicPreview_,
             0,
@@ -1346,6 +1421,8 @@ void LauncherWindow::PaintWindowBackground(
         &client);
 
     if (IsModern()) {
+        // The solid base remains the deterministic Windows 10 fallback even
+        // when Windows 11 accepts the system-backdrop hint.
         FillRect(
             dc,
             &client,
@@ -1394,6 +1471,168 @@ void LauncherWindow::PaintWindowBackground(
         SelectObject(
             dc,
             oldPen);
+
+        const auto palette =
+            CurrentPalette();
+
+        // A small search glyph gives the otherwise native EDIT a stable
+        // visual anchor without introducing another interactive control.
+        const auto& glyph =
+            modernDpiMetrics_
+                .searchGlyph;
+        HGDIOBJ oldDcPen =
+            SelectObject(
+                dc,
+                GetStockObject(DC_PEN));
+        HGDIOBJ oldNullBrush =
+            SelectObject(
+                dc,
+                GetStockObject(NULL_BRUSH));
+        SetDCPenColor(
+            dc,
+            palette.mutedText);
+
+        const int circleSize =
+            std::max(
+                4,
+                glyph.width -
+                    DpiScale(5));
+        Ellipse(
+            dc,
+            glyph.left,
+            glyph.top,
+            glyph.left + circleSize,
+            glyph.top + circleSize);
+        MoveToEx(
+            dc,
+            glyph.left +
+                circleSize -
+                DpiScale(1),
+            glyph.top +
+                circleSize -
+                DpiScale(1),
+            nullptr);
+        LineTo(
+            dc,
+            glyph.left +
+                glyph.width,
+            glyph.top +
+                glyph.height);
+
+        SelectObject(
+            dc,
+            oldNullBrush);
+        SelectObject(
+            dc,
+            oldDcPen);
+
+        if (modernLayoutRows_ > 0) {
+            const RECT resultsSurface =
+                toRect(
+                    modernDpiMetrics_
+                        .resultsSurface);
+
+            HGDIOBJ oldSurfacePen =
+                SelectObject(
+                    dc,
+                    GetStockObject(NULL_PEN));
+            HGDIOBJ oldSurfaceBrush =
+                SelectObject(
+                    dc,
+                    accentBrush_);
+
+            RoundRect(
+                dc,
+                resultsSurface.left,
+                resultsSurface.top,
+                resultsSurface.right,
+                resultsSurface.bottom,
+                modernDpiMetrics_
+                    .resultsCornerDiameter,
+                modernDpiMetrics_
+                    .resultsCornerDiameter);
+
+            const RECT footerSurface =
+                toRect(
+                    modernDpiMetrics_
+                        .footerSurface);
+
+            SelectObject(
+                dc,
+                bottomBrush_);
+            RoundRect(
+                dc,
+                footerSurface.left,
+                footerSurface.top,
+                footerSurface.right,
+                footerSurface.bottom,
+                modernDpiMetrics_
+                    .footerCornerDiameter,
+                modernDpiMetrics_
+                    .footerCornerDiameter);
+
+            SelectObject(
+                dc,
+                oldSurfaceBrush);
+            SelectObject(
+                dc,
+                oldSurfacePen);
+
+            const RECT action =
+                toRect(
+                    modernDpiMetrics_
+                        .footerAction);
+            HGDIOBJ oldActionPen =
+                SelectObject(
+                    dc,
+                    framePen_);
+            HGDIOBJ oldActionBrush =
+                SelectObject(
+                    dc,
+                    GetStockObject(NULL_BRUSH));
+
+            RoundRect(
+                dc,
+                action.left,
+                action.top,
+                action.right,
+                action.bottom,
+                DpiScale(8),
+                DpiScale(8));
+
+            SelectObject(
+                dc,
+                oldActionBrush);
+            SelectObject(
+                dc,
+                oldActionPen);
+
+            HGDIOBJ oldFont =
+                SelectObject(
+                    dc,
+                    auxiliaryFont_);
+            SetBkMode(
+                dc,
+                TRANSPARENT);
+            SetTextColor(
+                dc,
+                palette.mutedText);
+            RECT actionText =
+                action;
+            DrawTextW(
+                dc,
+                L"Enter",
+                -1,
+                &actionText,
+                DT_SINGLELINE |
+                    DT_CENTER |
+                    DT_VCENTER |
+                    DT_NOPREFIX);
+            SelectObject(
+                dc,
+                oldFont);
+        }
+
         return;
     }
 
@@ -1757,6 +1996,34 @@ void LauncherWindow::RebuildVisibleResults(
 
     results_ =
         std::move(nextResults);
+
+    if (IsModern()) {
+        std::size_t desiredRows =
+            std::min<std::size_t>(
+                results_.size(),
+                maxResults_);
+
+        // Do not collapse to search-only for the short interval between a
+        // static miss and an outstanding Everything reply. Once the dynamic
+        // reply resolves, a genuine empty result set collapses immediately.
+        if (dynamicQueryPending_ &&
+            desiredRows == 0 &&
+            modernLayoutRows_ > 0) {
+            desiredRows =
+                modernLayoutRows_;
+        }
+
+        if (desiredRows !=
+            modernLayoutRows_) {
+            modernLayoutRows_ =
+                desiredRows;
+            Layout();
+            InvalidateRect(
+                hwnd_,
+                nullptr,
+                TRUE);
+        }
+    }
 
     if (previous != nextSelection) {
         SendMessageW(
@@ -3675,13 +3942,13 @@ LRESULT LauncherWindow::HandleMessage(
         SetBkColor(
             dc,
             IsModern()
-                ? palette.windowBackground
+                ? palette.accentBackground
                 : GetSysColor(
                       COLOR_WINDOW));
 
         return reinterpret_cast<LRESULT>(
             IsModern()
-                ? windowBrush_
+                ? accentBrush_
                 : controlBrush_);
     }
 
@@ -3702,9 +3969,13 @@ LRESULT LauncherWindow::HandleMessage(
                 palette.mutedText);
             SetBkColor(
                 dc,
-                palette.windowBackground);
+                IsModern()
+                    ? palette.bottomBackground
+                    : palette.windowBackground);
             return reinterpret_cast<LRESULT>(
-                windowBrush_);
+                IsModern()
+                    ? bottomBrush_
+                    : windowBrush_);
         }
 
         break;
@@ -3790,7 +4061,7 @@ LRESULT LauncherWindow::HandleMessage(
             FillRect(
                 item->hDC,
                 &item->rcItem,
-                windowBrush_);
+                accentBrush_);
 
             if (selected) {
                 const auto& modern =
@@ -3846,10 +4117,28 @@ LRESULT LauncherWindow::HandleMessage(
 
                 if (accentRect.bottom >
                     accentRect.top) {
-                    FillRect(
+                    HGDIOBJ oldAccentPen =
+                        SelectObject(
+                            item->hDC,
+                            GetStockObject(NULL_PEN));
+                    HGDIOBJ oldAccentBrush =
+                        SelectObject(
+                            item->hDC,
+                            focusAccentBrush_);
+                    RoundRect(
                         item->hDC,
-                        &accentRect,
-                        focusAccentBrush_);
+                        accentRect.left,
+                        accentRect.top,
+                        accentRect.right,
+                        accentRect.bottom,
+                        modern.selectionAccentWidth,
+                        modern.selectionAccentWidth);
+                    SelectObject(
+                        item->hDC,
+                        oldAccentBrush);
+                    SelectObject(
+                        item->hDC,
+                        oldAccentPen);
                 }
             }
         } else {
@@ -3900,22 +4189,53 @@ LRESULT LauncherWindow::HandleMessage(
 
             RECT secondaryRect =
                 item->rcItem;
+            secondaryRect.left =
+                contentRight;
             secondaryRect.right =
                 contentRight;
-            secondaryRect.left =
-                secondaryRect.right -
-                modern.secondaryColumnWidth;
-
-            if (!modernSecondary.empty()) {
-                primaryRect.right =
-                    secondaryRect.left -
-                    modern.rowColumnGap;
-            }
 
             const auto oldFont =
                 SelectObject(
                     item->hDC,
                     boldFont_);
+
+            if (!modernSecondary.empty()) {
+                SIZE primarySize{};
+                GetTextExtentPoint32W(
+                    item->hDC,
+                    modernPrimary.c_str(),
+                    static_cast<int>(
+                        modernPrimary.size()),
+                    &primarySize);
+
+                const int available =
+                    std::max(
+                        0,
+                        contentRight -
+                            contentLeft);
+                const int primaryMax =
+                    std::max(
+                        DpiScale(96),
+                        available -
+                            modern.secondaryMinWidth -
+                            modern.rowColumnGap);
+                const int primaryWidth =
+                    std::min(
+                        primarySize.cx +
+                            DpiScale(2),
+                        primaryMax);
+
+                primaryRect.right =
+                    std::min(
+                        contentRight,
+                        primaryRect.left +
+                            primaryWidth);
+                secondaryRect.left =
+                    std::min(
+                        contentRight,
+                        primaryRect.right +
+                            modern.rowColumnGap);
+            }
             SetTextColor(
                 item->hDC,
                 selected
@@ -4120,7 +4440,8 @@ LRESULT LauncherWindow::HandleMessage(
                 dpi_);
         modernDpiMetrics_ =
             ui::ModernCompactLauncherMetricsForDpi(
-                dpi_);
+                dpi_,
+                modernLayoutRows_);
         const auto* suggested = reinterpret_cast<RECT*>(lParam);
 
         SetWindowPos(

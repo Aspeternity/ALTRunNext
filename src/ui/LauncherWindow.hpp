@@ -175,6 +175,7 @@ private:
     bool dynamicQueryPending_{false};
     bool immediateExecutionPending_{false};
     bool numericTextCommitInProgress_{false};
+    bool modernBackdropAvailable_{false};
     std::uint64_t lastTextInputTick_{0};
     UINT consumedNumericVirtualKey_{0};
     wchar_t consumedNumericChar_{0};
@@ -212,6 +213,7 @@ private:
         ui::kClassicLauncherMetrics.rowHeightLogical};
     std::size_t maxResults_{
         ui::kClassicLauncherMetrics.maxResults};
+    std::size_t modernLayoutRows_{0};
     std::wstring titleText_{};
     std::wstring previewText_{};
     std::uint64_t searchGeneration_{0};
