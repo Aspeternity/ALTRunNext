@@ -190,6 +190,7 @@ if(WIN32)
         src/platform/EverythingIpcClient.cpp
         src/platform/Hotkey.cpp
         src/platform/LaunchTargetInspector.cpp
+        src/platform/SecureElevation.cpp
         src/platform/ShellActions.cpp
         src/platform/UpdateManager.cpp
         src/platform/WinClipboard.cpp
@@ -262,6 +263,8 @@ if(WIN32)
         ALTRunNextUpdater
         WIN32
         src/updater/UpdaterMain.cpp
+        src/updater/UpdaterTransaction.cpp
+        src/platform/SecureElevation.cpp
     )
 
     target_compile_definitions(
@@ -279,6 +282,7 @@ if(WIN32)
         ALTRunNextUpdater
         PRIVATE
             advapi32
+            bcrypt
             shell32
             user32
     )
@@ -311,6 +315,7 @@ if(WIN32)
         WIN32
         src/uninstaller/UninstallMain.cpp
         src/uninstaller/uninstaller.manifest
+        src/platform/SecureElevation.cpp
         src/ui/Feedback.cpp
         src/ui/Feedback.rc
     )
@@ -332,6 +337,7 @@ if(WIN32)
         ALTRunNextUninstaller
         PRIVATE
             advapi32
+            bcrypt
             shell32
             shlwapi
             ole32
@@ -379,6 +385,23 @@ function(altrun_enable_test_assertions target)
 endfunction()
 
 if(BUILD_TESTING)
+    add_executable(
+        update_runtime_tests
+        tests/UpdateRuntimeTests.cpp
+        src/updater/UpdaterTransaction.cpp
+    )
+    target_include_directories(
+        update_runtime_tests
+        PRIVATE src
+    )
+    altrun_enable_test_assertions(
+        update_runtime_tests
+    )
+    add_test(
+        NAME update_runtime_tests
+        COMMAND update_runtime_tests
+    )
+
     add_executable(
         update_policy_tests
         tests/UpdatePolicyTests.cpp
