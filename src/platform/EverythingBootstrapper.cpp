@@ -356,19 +356,35 @@ PathStartsWithDirectory(
 
 [[nodiscard]] std::filesystem::path
 ManagedEverythingServiceHostRoot() {
-    const std::wstring programFiles =
-        EnvironmentVariable(
-            L"ProgramFiles");
+    PWSTR programFiles = nullptr;
 
-    if (programFiles.empty()) {
+    const HRESULT result =
+        SHGetKnownFolderPath(
+            FOLDERID_ProgramFiles,
+            KF_FLAG_DEFAULT,
+            nullptr,
+            &programFiles);
+
+    if (FAILED(result) ||
+        !programFiles ||
+        !*programFiles) {
+        if (programFiles) {
+            CoTaskMemFree(
+                programFiles);
+        }
         return {};
     }
 
-    return std::filesystem::path(
-               programFiles) /
+    const std::filesystem::path root =
+        std::filesystem::path(
+            programFiles) /
         L"Aspeternity" /
         L"ALTRunNext" /
         L"EverythingService";
+
+    CoTaskMemFree(
+        programFiles);
+    return root;
 }
 
 [[nodiscard]] std::filesystem::path
