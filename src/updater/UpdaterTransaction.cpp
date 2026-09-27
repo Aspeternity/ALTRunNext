@@ -34,14 +34,14 @@ LowerPath(
         value.begin(),
         [](wchar_t c) {
             if (c == L'/') {
-                return L'\';
+                return L'\\';
             }
             return static_cast<wchar_t>(
                 std::towlower(c));
         });
 
     while (value.size() > 3 &&
-           value.back() == L'\') {
+           value.back() == L'\\') {
         value.pop_back();
     }
 
