@@ -201,7 +201,7 @@ ModernCompactLauncherMetricsForDpi(
         Scale(12, dpi),
         Scale(12, dpi),
         Scale(596, dpi),
-        Scale(42, dpi),
+        Scale(38, dpi),
     };
 
     const int searchGlyphSize =
@@ -221,7 +221,7 @@ ModernCompactLauncherMetricsForDpi(
     // inside the search surface instead of making a 32px-tall top-aligned
     // edit client.
     const int searchEditHeight =
-        Scale(22, dpi);
+        Scale(20, dpi);
     const UiRectMetrics searchEdit{
         Scale(48, dpi),
         searchSurface.top +
@@ -262,7 +262,7 @@ ModernCompactLauncherMetricsForDpi(
     }
 
     const int clientHeight =
-        Scale(400, dpi) -
+        Scale(396, dpi) -
         static_cast<int>(
             kModernCompactLauncherMetrics
                 .maxResults -
@@ -300,7 +300,7 @@ ModernCompactLauncherMetricsForDpi(
     };
 
     const int resultsTop =
-        Scale(62, dpi);
+        Scale(58, dpi);
     const int resultsBottom =
         footerSurface.top -
         Scale(6, dpi);

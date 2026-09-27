@@ -109,12 +109,12 @@ UiFontSpec LauncherFontSpec(
                 : kModernLauncherBodyPointSize;
 
     return {
-        ApplicationFace(language),
+        L"Segoe UI",
         pointSize,
         0,
         RoleWeight(role),
         DEFAULT_CHARSET,
-        CLEARTYPE_QUALITY,
+        CLEARTYPE_NATURAL_QUALITY,
     };
 }
 

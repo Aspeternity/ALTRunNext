@@ -102,6 +102,66 @@ constexpr int kDwmRound = 2;
 constexpr int kDwmBackdropNone = 1;
 constexpr int kDwmBackdropMainWindow = 2;
 
+int CALLBACK MarkFontFamilyAvailable(
+    const LOGFONTW*,
+    const TEXTMETRICW*,
+    DWORD,
+    LPARAM data) {
+
+    *reinterpret_cast<bool*>(data) =
+        true;
+    return 0;
+}
+
+[[nodiscard]] bool
+FontFamilyAvailable(
+    const wchar_t* face) {
+
+    if (!face || !*face) {
+        return false;
+    }
+
+    HDC dc =
+        GetDC(nullptr);
+    if (!dc) {
+        return false;
+    }
+
+    LOGFONTW query{};
+    query.lfCharSet =
+        DEFAULT_CHARSET;
+    wcsncpy_s(
+        query.lfFaceName,
+        face,
+        _TRUNCATE);
+
+    bool available =
+        false;
+
+    EnumFontFamiliesExW(
+        dc,
+        &query,
+        MarkFontFamilyAvailable,
+        reinterpret_cast<LPARAM>(
+            &available),
+        0);
+
+    ReleaseDC(
+        nullptr,
+        dc);
+
+    return available;
+}
+
+[[nodiscard]] const wchar_t*
+ModernSearchGlyphFace() {
+
+    return FontFamilyAvailable(
+               L"Segoe Fluent Icons")
+        ? L"Segoe Fluent Icons"
+        : L"Segoe MDL2 Assets";
+}
+
 enum ResultContextMenuId : UINT {
     kResultContextPrimary = 41001,
     kResultContextNavigate = 41002,
@@ -662,19 +722,18 @@ void LauncherWindow::ApplyFonts() {
                 ui::UiFontRole::LauncherTitle),
             dpi_);
 
-    // Segoe MDL2 Assets is part of the supported Windows 10+ platform and
-    // renders the Search glyph through the text rasterizer. This is much
-    // cleaner at fractional DPI than hand-drawn one-pixel Ellipse/LineTo
-    // geometry.
+    // Prefer the newer Fluent icon outlines on Windows 11; Windows 10 keeps
+    // the documented MDL2 fallback. At 150% DPI a 12pt glyph lands on a
+    // cleaner 24px raster than the previous thin 11pt rendering.
     searchGlyphFont_ =
         ui::CreateFontHandle(
             {
-                L"Segoe MDL2 Assets",
-                11,
+                ModernSearchGlyphFace(),
+                12,
                 0,
                 FW_NORMAL,
                 DEFAULT_CHARSET,
-                ANTIALIASED_QUALITY,
+                CLEARTYPE_NATURAL_QUALITY,
             },
             dpi_);
 
@@ -1521,7 +1580,7 @@ void LauncherWindow::PaintWindowBackground(
                 TRANSPARENT);
             SetTextColor(
                 dc,
-                palette.mutedText);
+                palette.text);
             DrawTextW(
                 dc,
                 L"\xE721",

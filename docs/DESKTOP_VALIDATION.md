@@ -18,6 +18,9 @@ This pass is intentionally presentation-only. Search, Everything, usage ranking,
 - [ ] Search, results and footer read as three related but distinct surfaces; the outer background is visibly cooler than the white search surface.
 - [ ] The search glyph is crisp and vertically centered at 100%, 125%, 150%, 175% and 200% DPI; the native EDIT caret/IME behavior is unchanged.
 - [ ] Typed search text/caret is vertically centered inside the search surface at every DPI; it must not sit against the top edge of the field.
+- [ ] At 150% DPI specifically, the 38-logical-pixel search surface feels visibly tighter than the previous build without clipping the caret or IME composition window.
+- [ ] On Windows 11 the search icon uses the Fluent icon face and appears crisp/dark enough at 150%; Windows 10 falls back to MDL2 without a missing-glyph box.
+- [ ] English application names in Chinese UI use crisp Segoe UI Latin glyphs; Chinese result names still render correctly through Windows font linking.
 - [ ] Tab, Shift+Tab, Up and Down wrap from first <-> last result without moving focus out of the search field.
 - [ ] Make General/Hotkeys short enough to show a real Settings scrollbar, then switch repeatedly to Search Sources and Appearance; the right non-client scrollbar must disappear immediately and never ghost back.
 - [ ] Short application names place their muted alias close to the primary name instead of pinning it to a far-right column; long primary/secondary strings ellipsize without overlap.

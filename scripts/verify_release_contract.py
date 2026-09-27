@@ -114,11 +114,14 @@ if version == "0.8.0-alpha.6.3":
     launcher = read("src/ui/LauncherWindow.cpp")
     launcher_hpp = read("src/ui/LauncherWindow.hpp")
     theme = read("src/ui/UiTheme.hpp")
+    typography = read("src/ui/UiTypography.cpp")
 
     for token in (
         "visibleRows",
         "searchGlyph",
         "searchEditHeight",
+        "Scale(38, dpi)",
+        "Scale(396, dpi)",
         "footerSurface",
         "footerAction",
         "secondaryMinWidth",
@@ -136,7 +139,9 @@ if version == "0.8.0-alpha.6.3":
         "bottomBrush_",
         "L\"Enter\"",
         "GetTextExtentPoint32W(",
+        "Segoe Fluent Icons",
         "Segoe MDL2 Assets",
+        "ModernSearchGlyphFace",
         'L"\\xE721"',
         "searchGlyphFont_",
         "kDwmSystemBackdropType",
@@ -220,6 +225,13 @@ if version == "0.8.0-alpha.6.3":
     ):
         if token not in theme:
             fail(f"alpha.6.3 surface hierarchy palette missing: {token}")
+
+    for token in (
+        'L"Segoe UI"',
+        "CLEARTYPE_NATURAL_QUALITY",
+    ):
+        if token not in typography:
+            fail(f"alpha.6.3 Modern launcher typography contract missing: {token}")
 
     update_tests = read("tests/UpdatePolicyTests.cpp")
     for token in (

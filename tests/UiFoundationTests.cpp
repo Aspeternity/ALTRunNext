@@ -30,11 +30,11 @@ int main() {
         ModernDpiExpectation,
         5>
         modernDpiExpectations{{
-            {96u, 620, 400, 32},
-            {120u, 775, 500, 40},
-            {144u, 930, 600, 48},
-            {168u, 1085, 700, 56},
-            {192u, 1240, 800, 64},
+            {96u, 620, 396, 32},
+            {120u, 775, 495, 40},
+            {144u, 930, 594, 48},
+            {168u, 1085, 693, 56},
+            {192u, 1240, 792, 64},
         }};
 
     for (const auto& expected :
@@ -55,7 +55,7 @@ int main() {
         assert(
             full.searchEdit.height ==
             ui::Scale(
-                22,
+                20,
                 expected.dpi));
         const int searchCenter2 =
             full.searchSurface.top * 2 +
@@ -76,6 +76,16 @@ int main() {
                 searchCenter2 - 1 &&
             glyphCenter2 <=
                 searchCenter2 + 1);
+        assert(
+            full.searchSurface.height ==
+            ui::Scale(
+                38,
+                expected.dpi));
+        assert(
+            full.resultsSurface.top ==
+            ui::Scale(
+                58,
+                expected.dpi));
         assert(full.resultsSurface.height > 0);
         assert(full.resultsList.height ==
                full.rowHeight * 9);
