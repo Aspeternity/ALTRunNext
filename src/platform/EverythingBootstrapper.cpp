@@ -718,6 +718,41 @@ LaunchEverything(
         nativeError);
 }
 
+[[nodiscard]] std::wstring
+QuoteElevationArgument(
+    std::wstring_view value) {
+    std::wstring result = L"\"";
+    std::size_t slashes = 0;
+
+    for (const wchar_t ch : value) {
+        if (ch == L'\\') {
+            ++slashes;
+            continue;
+        }
+
+        if (ch == L'\"') {
+            result.append(
+                slashes * 2 + 1,
+                L'\\');
+            result.push_back(L'\"');
+            slashes = 0;
+            continue;
+        }
+
+        result.append(
+            slashes,
+            L'\\');
+        slashes = 0;
+        result.push_back(ch);
+    }
+
+    result.append(
+        slashes * 2,
+        L'\\');
+    result.push_back(L'\"');
+    return result;
+}
+
 [[nodiscard]] bool
 RunGuardedElevatedExecutable(
     const std::filesystem::path& executable,
@@ -837,7 +872,22 @@ RunElevatedEverythingCommand(
 
 [[nodiscard]] bool
 RunElevatedServiceRepairHelper(
+    const std::filesystem::path&
+        managedSource,
     std::uint32_t& nativeError) {
+    SecuredExecutable sourceGuard;
+
+    // The normal-integrity launcher keeps the exact managed Everything source
+    // locked for the entire elevated helper lifetime. The helper receives the
+    // same explicit path, so a newer/malicious sibling cannot win a rescan
+    // race while UAC is pending.
+    if (!LockExecutableForElevation(
+            managedSource,
+            sourceGuard,
+            nativeError)) {
+        return false;
+    }
+
     const auto executable =
         CurrentExecutableForElevation(
             nativeError);
@@ -846,16 +896,33 @@ RunElevatedServiceRepairHelper(
         return false;
     }
 
+    const std::wstring arguments =
+        L"--repair-managed-everything-service " +
+        QuoteElevationArgument(
+            managedSource.wstring());
+
     return RunGuardedElevatedExecutable(
         executable,
-        L"--repair-managed-everything-service",
+        arguments,
         nativeError);
 }
 
 [[nodiscard]] bool
 RunElevatedServicePolicyHelper(
     bool enabled,
+    const std::filesystem::path&
+        managedSource,
     std::uint32_t& nativeError) {
+    SecuredExecutable sourceGuard;
+
+    if (enabled &&
+        !LockExecutableForElevation(
+            managedSource,
+            sourceGuard,
+            nativeError)) {
+        return false;
+    }
+
     const auto executable =
         CurrentExecutableForElevation(
             nativeError);
@@ -864,11 +931,21 @@ RunElevatedServicePolicyHelper(
         return false;
     }
 
-    return RunGuardedElevatedExecutable(
-        executable,
+    std::wstring arguments =
         enabled
             ? L"--set-managed-everything-service enabled"
-            : L"--set-managed-everything-service disabled",
+            : L"--set-managed-everything-service disabled";
+
+    if (enabled) {
+        arguments += L" ";
+        arguments +=
+            QuoteElevationArgument(
+                managedSource.wstring());
+    }
+
+    return RunGuardedElevatedExecutable(
+        executable,
+        arguments,
         nativeError);
 }
 
