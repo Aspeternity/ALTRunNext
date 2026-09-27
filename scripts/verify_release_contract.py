@@ -161,14 +161,26 @@ if version == "0.8.0-beta.2":
             fail(f"beta.2 secure elevation primitive missing: {token}")
 
     update_manager = read("src/platform/UpdateManager.cpp")
+    update_manager_hpp = read("src/platform/UpdateManager.hpp")
     for token in (
         "WINHTTP_OPTION_REDIRECT_POLICY_DISALLOW_HTTPS_TO_HTTP",
         "CreateSecuredTemporaryExecutableCopy(",
         "GenerateSecureToken(",
         "LaunchSecuredExecutable(",
+        'L" --archive "',
+        'L" --sha256 "',
+        'L" --secure-reextract "',
+        "snapshot.verifiedArchive",
+        "snapshot.assetSha256",
     ):
         if token not in update_manager:
-            fail(f"beta.2 updater bootstrap hardening missing: {token}")
+            fail(f"beta.2 updater bootstrap/archive hardening missing: {token}")
+    for token in (
+        "verifiedArchive",
+        "assetSha256",
+    ):
+        if token not in update_manager_hpp:
+            fail(f"beta.2 verified archive identity missing from UpdateSnapshot: {token}")
     for forbidden in (
         "WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS",
         "ALTRunNext-Update.",
@@ -194,20 +206,52 @@ if version == "0.8.0-beta.2":
             fail(f"beta.2 direct/predictable uninstaller elevation survived: {forbidden}")
 
     everything = read("src/platform/EverythingBootstrapper.cpp")
+    everything_hpp = read("src/platform/EverythingBootstrapper.hpp")
+    main_cpp = read("src/main.cpp")
     for token in (
         "RunGuardedElevatedExecutable(",
         "LockExecutableForElevation(",
         "LaunchSecuredExecutable(",
-        "RunElevatedEverythingCommand(",
         "RunElevatedServiceRepairHelper(",
         "RunElevatedServicePolicyHelper(",
+        "ManagedEverythingServiceHostRoot(",
+        "ManagedEverythingServiceExecutableForSource(",
+        "ProtectedManagedEverythingServiceExecutable(",
+        "CopyManagedEverythingToProtectedHost(",
+        "SHGetKnownFolderPath(",
+        "FOLDERID_ProgramFiles",
+        "ERROR_ACCESS_DENIED",
     ):
         if token not in everything:
-            fail(f"beta.2 guarded Everything elevation missing: {token}")
-    if 'info.lpVerb = L"runas"' in everything:
-        fail("beta.2 Everything bootstrapper must not bypass centralized elevation guard")
+            fail(f"beta.2 protected Everything service hardening missing: {token}")
+    for token in (
+        "ManagedEverythingServiceExecutable(",
+        "const std::filesystem::path& managedSource",
+    ):
+        if token not in everything_hpp:
+            fail(f"beta.2 protected Everything service API missing: {token}")
+    for token in (
+        "--repair-managed-everything-service",
+        "managedEverythingSource",
+        "RepairManagedEverythingServicePath(",
+        "ApplyManagedEverythingServiceEnabledPolicy(",
+    ):
+        if token not in main_cpp:
+            fail(f"beta.2 exact-source Everything maintenance CLI missing: {token}")
+    for forbidden in (
+        'info.lpVerb = L"runas"',
+        "RunElevatedEverythingCommand(",
+        "DetachedAlpha91ServiceExecutable(",
+        "CleanupDetachedAlpha91ServiceHost(",
+        "portableBinaryPath",
+        "servicePathNeedsPortableRepair",
+    ):
+        if forbidden in everything:
+            fail(f"beta.2 insecure/portable Everything service path survived: {forbidden}")
 
     updater = read("src/updater/UpdaterMain.cpp")
+    secure_archive = read("src/platform/SecureArchive.cpp")
+    secure_archive_hpp = read("src/platform/SecureArchive.hpp")
     for token in (
         "TokenUser",
         "SetEntriesInAclW(",
@@ -215,9 +259,23 @@ if version == "0.8.0-beta.2":
         "TransactionPaths",
         "TransactionJournal",
         "ScheduleTemporaryWorkerSelfCleanup(",
+        "LockAndVerifySha256(",
+        "ExtractZipWithShellSecure(",
+        "CreateProtectedWorkRoot(",
+        ".altrun-update-work.",
+        "secureReextract",
     ):
         if token not in updater:
             fail(f"beta.2 updater runtime hardening missing: {token}")
+    for token in (
+        "FILE_SHARE_READ",
+        "FILE_FLAG_OPEN_REPARSE_POINT",
+        "HashHandleSha256(",
+        "ERROR_CRC",
+        "ExtractZipWithShellSecure(",
+    ):
+        if token not in secure_archive + secure_archive_hpp:
+            fail(f"beta.2 locked archive primitive missing: {token}")
     if "SetSecurityDescriptorDacl(\n            &descriptor,\n            TRUE,\n            nullptr," in updater:
         fail("beta.2 updater health event must not use a NULL DACL")
 
@@ -239,6 +297,7 @@ if version == "0.8.0-beta.2":
         "update_runtime_tests",
         "UpdateRuntimeTests.cpp",
         "UpdaterTransaction.cpp",
+        "SecureArchive.cpp",
     ):
         if token not in cmake:
             fail(f"beta.2 updater runtime target missing: {token}")
@@ -248,6 +307,8 @@ if version == "0.8.0-beta.2":
         "source-reparse",
         "must-not-copy.txt",
         "user.json",
+        "LockAndVerifySha256(",
+        "ERROR_SHARING_VIOLATION",
     ):
         if token not in runtime_tests:
             fail(f"beta.2 updater transaction regression missing: {token}")
@@ -311,6 +372,8 @@ if version == "0.8.0-beta.2":
         "cryptographically random dedicated directory",
         "HTTPS -> HTTP",
         "SemVer tag",
+        "protected service host",
+        "verified archive",
     ):
         if token not in beta_validation:
             fail(f"beta.2 validation matrix missing: {token}")
@@ -330,6 +393,8 @@ if version == "0.8.0-beta.2":
         "| product/search/UI freeze preserved",
         "| elevation bootstrap guarded",
         "| HTTPS downgrade refused",
+        "| verified archive re-extraction protected",
+        "| protected Everything service host enforced",
         "| updater rollback transaction tested",
         "| SemVer release publishing immutable",
         "| CI permissions minimized",
