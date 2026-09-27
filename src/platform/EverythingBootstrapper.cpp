@@ -3020,6 +3020,13 @@ bool EverythingIpcEndpointAvailable() {
     return AnyUsableIpcEndpoint();
 }
 
+bool IsManagedEverythingRunning(
+    const std::filesystem::path& dataDirectory) {
+    return ActiveManagedEverythingExecutable(
+               dataDirectory)
+        .has_value();
+}
+
 bool
 IsManagedEverythingServiceExecutable(
     const std::filesystem::path& dataDirectory,
