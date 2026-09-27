@@ -15,9 +15,10 @@
 - Restore cyclic Tab / Up / Down result navigation in Modern Compact.
 - Restore the shared smart numeric quick-launch behavior in Modern Compact. The selected row keeps the lighter hooked-return action glyph on the right; unselected rows use 12 pt muted chevron + digit hints with a fixed 3-logical-pixel gap (`› 1`-`› 9`, `› 0`) so the shortcut reads as an action rather than punctuation; the footer Enter affordance is unchanged.
 - Remove the permanent Settings `WS_VSCROLL` creation style and hard-clear native scroll state when switching to non-scroll pages, with a real-HWND small-window regression.
-- Make Everything enable/disable visual updates atomic: provider rows no longer pulse disabled during commit, and tray/action visibility plus layout are repainted as one settled frame.
+- Make Everything enable/disable visual updates atomic and local: provider rows no longer pulse disabled, provider setters can suppress Settings-wide refresh callbacks, and only the changing Everything card is repainted instead of flashing unchanged Start Menu / Windows Apps / App Paths / PATH text.
 - Restore minimized Settings/About and Shortcut Manager windows under a DWM cloak, synchronously repainting before uncloak so taskbar restores do not expose an intermediate frame.
 - Embed a PerMonitorV2 manifest in `Uninstall.exe` so TaskDialog/MessageBox text is rendered at native monitor DPI instead of DPI-virtualized and blurry.
+- Localize the Launcher style choices with the interface language: Chinese now shows `经典 ALTRun` / `现代紧凑`, while English keeps `Classic ALTRun` / `Modern Compact`.
 - Preserve frozen Classic assets and shared search/Everything/usage/numeric-intent behavior.
 - Publish Windows fixed FileVersion/ProductVersion `0.8.0.273`.
 

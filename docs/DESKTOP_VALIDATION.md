@@ -26,7 +26,8 @@ This pass is intentionally presentation-only. Search, Everything, usage ranking,
 - [ ] Move selection with Up/Down/Tab: the hooked-return arrow follows the selected row, the row it leaves regains its numeric hint, and the right action gutter never shifts title/alias layout.
 - [ ] The footer keeps the existing right-aligned `Enter` affordance and does not duplicate numeric shortcut help.
 - [ ] Make General/Hotkeys short enough to show a real Settings scrollbar, then switch repeatedly to Search Sources and Appearance; the right non-client scrollbar must disappear immediately and never ghost back.
-- [ ] On Search Sources, toggle Everything files & folders on/off repeatedly. The switch, status text, managed-tray row and action buttons must settle in one frame with no gray disable pulse or vertical flash.
+- [ ] On Search Sources, toggle Everything files & folders on/off repeatedly. The switch, status text, managed-tray row and action buttons must settle in one frame with no gray disable pulse or vertical flash; unchanged Start Menu / Windows Apps / App Paths / PATH labels must not blink.
+- [ ] Change Interface language between 简体中文 and English on Appearance. Launcher style must switch between `经典 ALTRun` / `现代紧凑` and `Classic ALTRun` / `Modern Compact` without changing the selected style.
 - [ ] Minimize Settings/About to the Windows taskbar and restore it by clicking the taskbar button; repeat with Shortcut Manager. The restored window must appear only in its final layout with no one-frame flash or location jump.
 - [ ] Run `Uninstall.exe` at 100%, 125%, 150%, 175% and 200% scaling. The keep-data/removal confirmation and follow-up messages must have native-DPI sharp text, not blurred DPI virtualization.
 - [ ] Short application names place their muted alias close to the primary name instead of pinning it to a far-right column; long primary/secondary strings ellipsize without overlap.

@@ -121,6 +121,8 @@ if version == "0.8.0-alpha.6.3":
     top_level_hpp = read("src/ui/TopLevelWindowPresentation.hpp")
     cmake = read("CMakeLists.txt")
     uninstaller_manifest = read("src/uninstaller/uninstaller.manifest")
+    app_cpp = read("src/app/App.cpp")
+    app_hpp = read("src/app/App.hpp")
 
     for token in (
         "visibleRows",
@@ -221,17 +223,54 @@ if version == "0.8.0-alpha.6.3":
     for token in (
         "atomicProviderUpdate",
         "ScopedRedrawSuspend",
+        "providerDirtyRect",
+        "&providerDirtyRect",
         "RDW_ALLCHILDREN",
+        "PageCardRect(",
     ):
         if token not in settings_cpp:
-            fail(f"alpha.6.3 atomic Everything provider repaint missing: {token}")
+            fail(f"alpha.6.3 localized Everything provider repaint missing: {token}")
+
+    provider_status_start = settings_cpp.find("void SettingsWindow::RefreshProviderStatus()")
+    provider_status_end = settings_cpp.find("void SettingsWindow::AcquireEverything", provider_status_start)
+    if provider_status_start < 0 or provider_status_end < 0:
+        fail("alpha.6.3 provider status implementation missing")
+    provider_status_body = settings_cpp[provider_status_start:provider_status_end]
+    if "RDW_ERASE" in provider_status_body or "RDW_FRAME" in provider_status_body:
+        fail("alpha.6.3 provider status must not erase/reframe the whole Settings window")
 
     provider_commit_start = settings_cpp.find("void SettingsWindow::CommitPendingProviderChanges()")
     provider_commit_end = settings_cpp.find("void SettingsWindow::ApplyStartupBehaviorControl", provider_commit_start)
     if provider_commit_start < 0 or provider_commit_end < 0:
         fail("alpha.6.3 provider commit implementation missing")
-    if "EnableWindow(" in settings_cpp[provider_commit_start:provider_commit_end]:
+    provider_commit_body = settings_cpp[provider_commit_start:provider_commit_end]
+    if "EnableWindow(" in provider_commit_body:
         fail("alpha.6.3 provider commit must not visibly disable/re-enable rows")
+    if "RefreshFromSettings()" in provider_commit_body:
+        fail("alpha.6.3 provider commit must not broadly repaint unrelated Settings rows")
+    for token in (
+        "SetProviderEnabledBatch(",
+        "ordinaryChanges,\n            false",
+        "*everythingChange,\n            false",
+    ):
+        if token not in provider_commit_body:
+            fail(f"alpha.6.3 provider refresh suppression missing: {token}")
+
+    for token in (
+        "refreshSettingsWindow = true",
+        "refreshSettingsWindow &&",
+    ):
+        if token not in app_hpp + app_cpp:
+            fail(f"alpha.6.3 provider refresh opt-out API missing: {token}")
+
+    for token in (
+        'T(L"经典 ALTRun",',
+        'T(L"现代紧凑",',
+        'L"Classic ALTRun"',
+        'L"Modern Compact"',
+    ):
+        if token not in settings_cpp:
+            fail(f"alpha.6.3 launcher-style localization missing: {token}")
 
     for token in (
         "RestoreFullyPainted(",

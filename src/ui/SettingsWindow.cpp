@@ -1575,12 +1575,14 @@ void SettingsWindow::ApplyLanguage() {
         uiStyle_,
         CB_ADDSTRING, 0,
         reinterpret_cast<LPARAM>(
-            L"Classic ALTRun"));
+            T(L"经典 ALTRun",
+              L"Classic ALTRun")));
     SendMessageW(
         uiStyle_,
         CB_ADDSTRING, 0,
         reinterpret_cast<LPARAM>(
-            L"Modern Compact"));
+            T(L"现代紧凑",
+              L"Modern Compact")));
 
     SetWindowTextW(
         appearanceAppTitle_,
@@ -2837,6 +2839,15 @@ void SettingsWindow::RefreshProviderStatus() {
         hwnd_ &&
         IsWindowVisible(hwnd_);
 
+    RECT oldFilesCard{};
+    if (atomicProviderUpdate) {
+        oldFilesCard =
+            PageCardRect(
+                394,
+                ProviderFilesHeightLogical(),
+                720);
+    }
+
     window_presentation::ScopedRedrawSuspend
         redrawGuard(
             atomicProviderUpdate
@@ -2899,24 +2910,45 @@ void SettingsWindow::RefreshProviderStatus() {
     }
 
     if (atomicProviderUpdate) {
+        RECT newFilesCard =
+            PageCardRect(
+                394,
+                ProviderFilesHeightLogical(),
+                720);
+        RECT providerDirtyRect{};
+        UnionRect(
+            &providerDirtyRect,
+            &oldFilesCard,
+            &newFilesCard);
+        InflateRect(
+            &providerDirtyRect,
+            Scale(2),
+            Scale(2));
+
         redrawGuard.Resume();
 
+        // Repaint only the Everything card. Repainting the entire Settings
+        // window made unrelated provider labels visibly blink even though
+        // their content and geometry never changed.
         RedrawWindow(
             hwnd_,
-            nullptr,
+            &providerDirtyRect,
             nullptr,
             RDW_INVALIDATE |
-                RDW_ERASE |
                 RDW_ALLCHILDREN |
-                RDW_FRAME |
                 RDW_UPDATENOW);
     } else if (
         visible &&
         layoutChanged) {
+        const RECT filesCard =
+            PageCardRect(
+                394,
+                ProviderFilesHeightLogical(),
+                720);
         InvalidateRect(
             hwnd_,
-            nullptr,
-            TRUE);
+            &filesCard,
+            FALSE);
     }
 }
 
@@ -3001,7 +3033,8 @@ ToggleManagedEverythingTrayIcon() {
     if (!app_
              .SetManagedEverythingShowTrayIcon(
                  !settings
-                      .managedEverythingShowTrayIcon)) {
+                      .managedEverythingShowTrayIcon,
+                 false)) {
         altrun::ui::ShowMessage(
             hwnd_,
             T(L"无法保存 Everything 托盘图标设置。",
@@ -3011,7 +3044,13 @@ ToggleManagedEverythingTrayIcon() {
                 MB_ICONERROR);
     }
 
-    RefreshFromSettings();
+    if (managedEverythingTrayIcon_) {
+        InvalidateRect(
+            managedEverythingTrayIcon_,
+            nullptr,
+            FALSE);
+    }
+    RefreshProviderStatus();
 }
 
 void SettingsWindow::RefreshDataCompatibilityStatus() {
@@ -3630,7 +3669,8 @@ void SettingsWindow::CommitPendingProviderChanges() {
     // once per click.
     if (!ordinaryChanges.empty() &&
         !app_.SetProviderEnabledBatch(
-            ordinaryChanges)) {
+            ordinaryChanges,
+            false)) {
         failed = true;
     }
 
@@ -3642,7 +3682,8 @@ void SettingsWindow::CommitPendingProviderChanges() {
             std::string(
                 providers::
                     kEverythingFilesystem),
-            *everythingChange)) {
+            *everythingChange,
+            false)) {
         failed = true;
         everythingFailed = true;
     }
@@ -3650,7 +3691,28 @@ void SettingsWindow::CommitPendingProviderChanges() {
     pendingProviderStates_.clear();
     providerCommitInProgress_ = false;
 
-    RefreshFromSettings();
+    // The clicked switches have already painted the pending state. Avoid the
+    // broad RefreshFromSettings() invalidation here; it repaints unchanged
+    // rows such as Start Menu / Windows Apps / App Paths / PATH and was the
+    // remaining source of the text blink reported on real hardware.
+    if (failed) {
+        for (HWND control :
+             std::array<HWND, 5>{
+                 providerStartMenu_,
+                 providerPackaged_,
+                 providerAppPaths_,
+                 providerPath_,
+                 providerEverything_}) {
+            if (control) {
+                InvalidateRect(
+                    control,
+                    nullptr,
+                    FALSE);
+            }
+        }
+    }
+
+    RefreshProviderStatus();
 
     if (failed) {
         altrun::ui::ShowMessage(
