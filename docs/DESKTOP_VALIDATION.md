@@ -19,6 +19,7 @@ This pass is intentionally presentation-only. Search, Everything, usage ranking,
 - [ ] The search glyph is crisp and vertically centered at 100%, 125%, 150%, 175% and 200% DPI; the native EDIT caret/IME behavior is unchanged.
 - [ ] Short application names place their muted alias close to the primary name instead of pinning it to a far-right column; long primary/secondary strings ellipsize without overlap.
 - [ ] File/folder results keep filename first and parent path as inline muted context.
+- [ ] Search results remain intentionally icon-free across static, packaged-app and Everything results; there are no blank/mismatched icon slots and no result-icon loading worker/cache returns.
 - [ ] Selected rows remain inset rounded cards with the narrow accent marker and do not touch the result-surface edges.
 - [ ] Footer text remains path-ellipsized and the right-side `Enter` affordance never overlaps it.
 - [ ] On Windows 11, verify the launcher remains visually correct whether the system accepts or rejects the backdrop attribute. On Windows 10, verify the solid fallback has no black/transparent artifacts.
