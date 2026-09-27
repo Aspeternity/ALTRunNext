@@ -143,6 +143,15 @@ if version == "0.8.0-alpha.6.4":
             fail(f"alpha.6.4 launcher interaction wiring missing: {token}")
 
     for token in (
+        "LBN_SELCHANGE",
+        "GetFocus() != edit_",
+        "SetFocus(edit_)",
+        "LISTBOX type-to-select behavior",
+    ):
+        if token not in launcher:
+            fail(f"alpha.6.4 Modern mouse/keyboard handoff missing: {token}")
+
+    for token in (
         "StableModernVisibleRows(",
         "StableSelectionIndex(",
         "rows <= 10",

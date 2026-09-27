@@ -3909,6 +3909,16 @@ LRESULT LauncherWindow::HandleMessage(
         }
         if (LOWORD(wParam) == 1002 && HIWORD(wParam) == LBN_SELCHANGE) {
             UpdatePreview();
+
+            if (IsModern() &&
+                edit_ &&
+                GetFocus() != edit_) {
+                // Result clicks change selection, not the launcher's typing
+                // destination. Return focus to the native EDIT so the next
+                // keystroke immediately refines the query instead of invoking
+                // LISTBOX type-to-select behavior.
+                SetFocus(edit_);
+            }
             return 0;
         }
 

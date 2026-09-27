@@ -19,7 +19,7 @@ Alpha.6.4 freezes the accepted alpha.6.3 appearance. This pass is about state st
 - [ ] Rapidly alternate queries that produce 10 -> 1 -> 10 results. There must be no white/old-size flash, stale footer, or exposed parent erase between sizes.
 - [ ] Verify Up/Down/Tab/Shift+Tab wrap, Enter execution, `1–9/0` smart numeric execution, held-digit repeat suppression and `v2` / `v2r` typing arbitration in Modern Compact.
 - [ ] Verify Chinese IME composition, candidate selection, Backspace/Delete, `team`, `测试` and `team测试`; composition must never cause a delayed numeric launch.
-- [ ] Verify mouse single selection, double-click execution and keyboard/mouse handoff; the selected-row `↩` must follow selection and each unselected row must restore its `› n` hint.
+- [ ] Verify mouse single selection, double-click execution and keyboard/mouse handoff; the selected-row `↩` must follow selection and each unselected row must restore its `› n` hint. After a single result click, immediately type another letter: it must go into the search EDIT, not trigger LISTBOX type-to-select.
 - [ ] Verify long application names, aliases, UNC paths and mixed CJK/Latin strings. Text must ellipsize before the fixed right shortcut gutter, and footer text must never overlap `Enter`.
 - [ ] Move/reveal the launcher across 100%/200% mixed-DPI monitors and recheck Windows 10 solid fallback plus Windows 11 backdrop behavior.
 - [ ] Run a rapid typing/navigation soak and confirm GDI, USER and process handles settle rather than growing per query.
