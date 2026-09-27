@@ -355,7 +355,7 @@ PathStartsWithDirectory(
 }
 
 [[nodiscard]] std::filesystem::path
-DetachedAlpha91ServiceRoot() {
+ManagedEverythingServiceHostRoot() {
     const std::wstring programFiles =
         EnvironmentVariable(
             L"ProgramFiles");
@@ -371,51 +371,39 @@ DetachedAlpha91ServiceRoot() {
         L"EverythingService";
 }
 
-[[nodiscard]] bool
-DetachedAlpha91ServiceExecutable(
-    const std::filesystem::path& executable) {
+[[nodiscard]] std::filesystem::path
+ManagedEverythingServiceExecutableForSource(
+    const std::filesystem::path& source) {
+    const auto version =
+        VersionFromManagedExecutablePath(
+            source);
     const auto root =
-        DetachedAlpha91ServiceRoot();
+        ManagedEverythingServiceHostRoot();
 
-    return !root.empty() &&
-        LowerPath(
-            executable.filename()) ==
-            L"everything.exe" &&
-        PathStartsWithDirectory(
-            executable,
-            root);
+    if (!version ||
+        root.empty()) {
+        return {};
+    }
+
+    return root /
+        VersionDirectoryName(
+            *version) /
+        L"Everything.exe";
 }
 
-void CleanupDetachedAlpha91ServiceHost() {
+[[nodiscard]] bool
+ProtectedManagedEverythingServiceExecutable(
+    const std::filesystem::path& executable) {
     const auto root =
-        DetachedAlpha91ServiceRoot();
+        ManagedEverythingServiceHostRoot();
 
-    if (root.empty()) {
-        return;
-    }
-
-    std::error_code ec;
-    std::filesystem::remove_all(
-        root,
-        ec);
-
-    if (ec) {
-        return;
-    }
-
-    const auto altrunDirectory =
-        root.parent_path();
-    const auto vendorDirectory =
-        altrunDirectory.parent_path();
-
-    ec.clear();
-    std::filesystem::remove(
-        altrunDirectory,
-        ec);
-    ec.clear();
-    std::filesystem::remove(
-        vendorDirectory,
-        ec);
+    return !root.empty() &&
+        PathStartsWithDirectory(
+            executable,
+            root) &&
+        VersionFromManagedExecutablePath(
+            executable)
+            .has_value();
 }
 
 struct ExistingCandidate {
