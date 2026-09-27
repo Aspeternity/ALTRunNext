@@ -141,6 +141,10 @@ CheckManagedEverythingUpdate(
 ManagedEverythingExecutable(
     const std::filesystem::path& dataDirectory);
 
+[[nodiscard]] std::filesystem::path
+ManagedEverythingServiceExecutable(
+    const std::filesystem::path& dataDirectory);
+
 [[nodiscard]] bool
 EverythingIpcEndpointAvailable();
 
