@@ -12,11 +12,13 @@
 #include <filesystem>
 #include <stop_token>
 #include <string_view>
+#include <vector>
 
 namespace altrun::win {
 
 struct LockedVerifiedFile {
     HANDLE handle{INVALID_HANDLE_VALUE};
+    std::vector<HANDLE> pathGuards;
 
     LockedVerifiedFile() = default;
     LockedVerifiedFile(
