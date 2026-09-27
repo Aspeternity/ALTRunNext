@@ -8,6 +8,24 @@ Automated CI covers compilation, Config/Search tests, provider smoke tests, hotk
 
 The checks below are the remaining **real interactive Windows desktop** validation items. Automated geometry/behavior tests reduce regression risk but do not replace observing the actual UI, IME, monitor transitions, providers and hotkey lifecycle on a real desktop.
 
+## v0.8.0-alpha.6.3 Modern Compact Visual System I validation
+
+This pass is intentionally presentation-only. Search, Everything, usage ranking, numeric intent and Classic remain on the frozen alpha.5.49 core.
+
+- [ ] Empty/no-result query collapses to the search surface without a large blank result canvas or footer.
+- [ ] One, six and nine visible results produce progressively taller windows; nine rows retain the maximum alpha.6.2 footprint.
+- [ ] Type a query whose static pass is empty but Everything later returns results. The window must not collapse and immediately re-expand while the dynamic reply is pending.
+- [ ] Search, results and footer read as three related but distinct surfaces; the outer background is visibly cooler than the white search surface.
+- [ ] The search glyph is crisp and vertically centered at 100%, 125%, 150%, 175% and 200% DPI; the native EDIT caret/IME behavior is unchanged.
+- [ ] Short application names place their muted alias close to the primary name instead of pinning it to a far-right column; long primary/secondary strings ellipsize without overlap.
+- [ ] File/folder results keep filename first and parent path as inline muted context.
+- [ ] Selected rows remain inset rounded cards with the narrow accent marker and do not touch the result-surface edges.
+- [ ] Footer text remains path-ellipsized and the right-side `Enter` affordance never overlaps it.
+- [ ] On Windows 11, verify the launcher remains visually correct whether the system accepts or rejects the backdrop attribute. On Windows 10, verify the solid fallback has no black/transparent artifacts.
+- [ ] Switch Classic -> Modern -> Classic repeatedly at multiple DPI values; Classic geometry/assets remain unchanged.
+- [ ] Rapid static + Everything updates resize without flicker, stale pixels or GDI/USER growth.
+- [ ] Schemas remain Settings 11 / Commands 2 / Usage 2 / Provider Cache 22; Windows fixed version is 0.8.0.273.
+
 ## v0.8.0-alpha.6.2 Modern Compact Visual Refinement I validation
 
 Alpha.6.2 addresses the first real-Windows visual review without changing launcher search/execution semantics.

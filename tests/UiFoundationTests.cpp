@@ -58,8 +58,10 @@ int main() {
         assert(full.footerSurface.height > 0);
         assert(full.footer.width > 0);
         assert(full.footerAction.width > 0);
-        assert(full.footer.right <=
-               full.footerAction.left);
+        assert(
+            full.footer.left +
+                full.footer.width <=
+            full.footerAction.left);
         assert(full.resultsList.left >
                full.resultsSurface.left);
         assert(

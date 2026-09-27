@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.0-alpha.6.3
+
+- Introduce the first full Modern Compact visual system instead of a single mostly-white canvas.
+- Resize Modern Compact dynamically from search-only through one to nine result rows; preserve the previous height while an empty static pass is still awaiting Everything.
+- Separate search, results and footer into distinct rounded surfaces over a cooler outer background.
+- Add a lightweight painted search glyph while retaining the native EDIT control.
+- Replace the fixed right-hand alias column with measured inline secondary metadata.
+- Add a compact footer context surface and right-aligned `Enter` affordance.
+- Request the Windows 11 DWM system backdrop when supported; keep the solid surface palette as the Windows 10/unsupported fallback.
+- Preserve frozen Classic assets and shared search/Everything/usage/numeric-intent behavior.
+- Publish Windows fixed FileVersion/ProductVersion `0.8.0.273`.
+
+
 ## 0.8.0-alpha.6.2
 
 - Rework Modern Compact result hierarchy after the first real-Windows visual pass: application display name is primary; alias/search identity becomes muted secondary metadata.
