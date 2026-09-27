@@ -2569,14 +2569,15 @@ void SettingsWindow::RefreshProviderStatus() {
     bool showRecheck = false;
     std::wstring text;
 
+    // Treat the tray preference as a runtime control, not as an
+    // installation-path preference. ManagedEverythingExecutable() always
+    // returns a candidate path (including the pinned fallback path), so path
+    // non-emptiness cannot prove that Everything was installed or started.
+    // Ownership of the live default IPC window is the authoritative signal.
     const bool managedActive =
-        bootstrap.source ==
-            win::EverythingBootstrapSource::
-                Managed ||
-        bootstrap.source ==
-            win::EverythingBootstrapSource::
-                Downloaded ||
-        bootstrap.downloaded;
+        enabled &&
+        win::IsManagedEverythingRunning(
+            app_.DataDirectory());
 
     const bool externalActive =
         ipc.availability ==
@@ -2776,10 +2777,12 @@ void SettingsWindow::RefreshProviderStatus() {
 
     const bool visible =
         page_ == Page::Providers;
-    // An unconfigured/disabled source must not advertise an unusable switch.
-    // Only the managed copy belongs to ALTRun; external copies own their UI.
-    const bool showTray = enabled && !externalActive &&
-        !win::ManagedEverythingExecutable(app_.DataDirectory()).empty();
+    // Only expose this after the ALTRun-managed Everything process has
+    // successfully started and owns the default IPC endpoint. Merely having
+    // an install candidate/path is intentionally insufficient.
+    const bool showTray =
+        enabled &&
+        managedActive;
     const bool showActions = showGetEverything || showUpdateEverything || showRecheck;
     const bool layoutChanged = providerTrayVisible_ != showTray ||
         providerActionsVisible_ != showActions;
@@ -3167,8 +3170,25 @@ void SettingsWindow::ShowPage(Page page) {
     Layout();
 
     redrawGuard.Resume();
-    // The redraw guard also suppresses non-client painting. Refresh the frame
-    // after hiding the previous page's scrollbar, even if size is unchanged.
+
+    // ShowScrollBar can change WS_VSCROLL while WM_SETREDRAW is disabled.
+    // On real Windows/DWM the old non-client frame can remain painted until a
+    // later page transition even though GWL_STYLE is already correct. Force a
+    // non-client recalculation after redraw resumes, then lay out once more
+    // against the settled client rectangle.
+    SetWindowPos(
+        hwnd_,
+        nullptr,
+        0,
+        0,
+        0,
+        0,
+        SWP_NOMOVE |
+            SWP_NOSIZE |
+            SWP_NOZORDER |
+            SWP_NOACTIVATE |
+            SWP_FRAMECHANGED);
+    Layout();
 
     RedrawWindow(
         hwnd_,
