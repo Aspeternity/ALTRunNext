@@ -2002,13 +2002,10 @@ PerformUninstall(
         return 5;
     }
 
-    if (service.protectedServiceHost) {
-        CleanupManagedEverythingServiceHostFiles();
-    } else {
-        // Also clean a harmless alpha.9.1 orphan if migration already moved
-        // the service back to the portable tree.
-        CleanupManagedEverythingServiceHostFiles();
-    }
+    // The Program Files host is ALTRun-owned regardless of whether this
+    // uninstall just removed the active protected service or is cleaning an
+    // orphan left by an older portable-service migration.
+    CleanupManagedEverythingServiceHostFiles();
 
     RemovalFailure removalFailure;
     DirectoryHandle rootLease;
