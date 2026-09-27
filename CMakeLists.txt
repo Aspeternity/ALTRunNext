@@ -1341,6 +1341,7 @@ if(BUILD_TESTING)
             everything_lifecycle_tests
             tests/EverythingLifecycleTests.cpp
             src/platform/EverythingBootstrapper.cpp
+            src/platform/SecureElevation.cpp
         )
 
         target_include_directories(
