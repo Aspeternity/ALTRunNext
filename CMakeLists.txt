@@ -190,6 +190,7 @@ if(WIN32)
         src/platform/EverythingIpcClient.cpp
         src/platform/Hotkey.cpp
         src/platform/LaunchTargetInspector.cpp
+        src/platform/SecureArchive.cpp
         src/platform/SecureElevation.cpp
         src/platform/ShellActions.cpp
         src/platform/UpdateManager.cpp
@@ -264,6 +265,7 @@ if(WIN32)
         WIN32
         src/updater/UpdaterMain.cpp
         src/updater/UpdaterTransaction.cpp
+        src/platform/SecureArchive.cpp
         src/platform/SecureElevation.cpp
     )
 
@@ -283,6 +285,8 @@ if(WIN32)
         PRIVATE
             advapi32
             bcrypt
+            ole32
+            oleaut32
             shell32
             user32
     )
