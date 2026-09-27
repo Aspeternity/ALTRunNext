@@ -3171,11 +3171,15 @@ void SettingsWindow::ShowPage(Page page) {
 
     redrawGuard.Resume();
 
-    // ShowScrollBar can change WS_VSCROLL while WM_SETREDRAW is disabled.
-    // On real Windows/DWM the old non-client frame can remain painted until a
-    // later page transition even though GWL_STYLE is already correct. Force a
-    // non-client recalculation after redraw resumes, then lay out once more
-    // against the settled client rectangle.
+    // Reapply the target page's scroll state after WM_SETREDRAW is back
+    // on. ShowScrollBar invoked while redraw is suspended can leave the old
+    // non-client frame cached by USER32/DWM on the first page transition.
+    UpdatePageScrollBar();
+
+    // Force NCCALCSIZE with that final style, then lay out once more against
+    // the settled client rectangle. This is stronger than RDW_FRAME alone:
+    // real machines can otherwise keep painting the previous page's bar until
+    // a second navigation.
     SetWindowPos(
         hwnd_,
         nullptr,
