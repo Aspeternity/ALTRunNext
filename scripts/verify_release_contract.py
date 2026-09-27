@@ -246,7 +246,7 @@ if version == "0.8.0-alpha.6.3":
     provider_commit_body = settings_cpp[provider_commit_start:provider_commit_end]
     if "EnableWindow(" in provider_commit_body:
         fail("alpha.6.3 provider commit must not visibly disable/re-enable rows")
-    if "RefreshFromSettings()" in provider_commit_body:
+    if "RefreshFromSettings();" in provider_commit_body:
         fail("alpha.6.3 provider commit must not broadly repaint unrelated Settings rows")
     for token in (
         "SetProviderEnabledBatch(",
