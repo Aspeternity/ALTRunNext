@@ -12,6 +12,7 @@
 #include <restartmanager.h>
 #include <shellapi.h>
 #include <shlwapi.h>
+#include <shlobj.h>
 #include <tlhelp32.h>
 
 #include <algorithm>
@@ -778,35 +779,42 @@ QueryEverythingServiceExecutable(
 }
 
 [[nodiscard]] std::filesystem::path
-DetachedAlpha91Root() {
-    std::array<wchar_t, 32768>
-        programFiles{};
-    const DWORD length =
-        GetEnvironmentVariableW(
-            L"ProgramFiles",
-            programFiles.data(),
-            static_cast<DWORD>(
-                programFiles.size()));
+ManagedEverythingServiceHostRoot() {
+    PWSTR programFiles = nullptr;
 
-    if (length == 0 ||
-        length >=
-            programFiles.size()) {
+    const HRESULT result =
+        SHGetKnownFolderPath(
+            FOLDERID_ProgramFiles,
+            KF_FLAG_DEFAULT,
+            nullptr,
+            &programFiles);
+
+    if (FAILED(result) ||
+        !programFiles ||
+        !*programFiles) {
+        if (programFiles) {
+            CoTaskMemFree(
+                programFiles);
+        }
         return {};
     }
 
-    return std::filesystem::path(
-               std::wstring(
-                   programFiles.data(),
-                   length)) /
+    const std::filesystem::path root =
+        std::filesystem::path(
+            programFiles) /
         L"Aspeternity" /
         L"ALTRunNext" /
         L"EverythingService";
+
+    CoTaskMemFree(
+        programFiles);
+    return root;
 }
 
 struct ServiceCleanupResult {
     bool success{true};
     bool removed{false};
-    bool detachedAlpha91{false};
+    bool protectedServiceHost{false};
     DWORD error{ERROR_SUCCESS};
 };
 
@@ -868,25 +876,25 @@ StopAndDeleteOwnedEverythingService(
         L"data" /
         L"tools" /
         L"Everything";
-    const auto detachedRoot =
-        DetachedAlpha91Root();
+    const auto protectedRoot =
+        ManagedEverythingServiceHostRoot();
 
     const bool ownedPortable =
         PathStartsWithDirectory(
             serviceExecutable,
             managedRoot);
-    const bool ownedDetached =
-        !detachedRoot.empty() &&
+    const bool ownedProtected =
+        !protectedRoot.empty() &&
         PathStartsWithDirectory(
             serviceExecutable,
-            detachedRoot);
+            protectedRoot);
 
     if (!ownedPortable &&
-        !ownedDetached) {
+        !ownedProtected) {
         return result;
     }
 
-    result.detachedAlpha91 = ownedDetached;
+    result.protectedServiceHost = ownedProtected;
     ServiceHandle controlled;
     controlled.value = OpenServiceW(manager.value, kEverythingService,
         SERVICE_QUERY_CONFIG | SERVICE_QUERY_STATUS | SERVICE_STOP | DELETE);
@@ -1049,9 +1057,9 @@ TerminateManagedEverythingProcesses(
     return success;
 }
 
-void CleanupDetachedAlpha91Files() {
+void CleanupManagedEverythingServiceHostFiles() {
     const auto root =
-        DetachedAlpha91Root();
+        ManagedEverythingServiceHostRoot();
 
     if (root.empty()) {
         return;
@@ -1994,12 +2002,12 @@ PerformUninstall(
         return 5;
     }
 
-    if (service.detachedAlpha91) {
-        CleanupDetachedAlpha91Files();
+    if (service.protectedServiceHost) {
+        CleanupManagedEverythingServiceHostFiles();
     } else {
         // Also clean a harmless alpha.9.1 orphan if migration already moved
         // the service back to the portable tree.
-        CleanupDetachedAlpha91Files();
+        CleanupManagedEverythingServiceHostFiles();
     }
 
     RemovalFailure removalFailure;
