@@ -49,6 +49,8 @@ int main() {
         root,
         ec);
 
+    assert(!IsManagedEverythingRunning(root));
+
     {
         const auto result =
             StopManagedEverything(root);
@@ -182,6 +184,11 @@ int main() {
                 nullptr);
 
         assert(fakeEverything != nullptr);
+
+        // Even with ALTRun-owned managed binaries present on disk, an IPC
+        // window owned by another executable must not make managed runtime
+        // controls visible.
+        assert(!IsManagedEverythingRunning(root));
 
         const auto result =
             StopManagedEverything(root);
