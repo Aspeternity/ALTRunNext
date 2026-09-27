@@ -137,6 +137,29 @@ ParseArguments() {
 }
 
 [[nodiscard]] bool
+WaitForParent(DWORD pid) {
+    HANDLE process =
+        OpenProcess(
+            SYNCHRONIZE,
+            FALSE,
+            pid);
+
+    if (!process) {
+        return GetLastError() ==
+                   ERROR_INVALID_PARAMETER;
+    }
+
+    const DWORD wait =
+        WaitForSingleObject(
+            process,
+            60000);
+
+    CloseHandle(process);
+    return wait ==
+        WAIT_OBJECT_0;
+}
+
+[[nodiscard]] bool
 IsElevated() {
     HANDLE token = nullptr;
 
