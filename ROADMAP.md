@@ -2,6 +2,16 @@
 
 Asterun 1.0.0 is the first stable 1.x baseline, promoted directly from the validated v0.8.0-beta.3 hardening line. Future work continues as post-1.0 maintenance and incremental feature development.
 
+## v1.0.1 - Brand icon and startup reliability
+
+In development:
+
+- Replace the square-backed application and tray artwork with the approved transparent Asterun A + orbital trail + star spark mark.
+- Make primary activation-hotkey registration failure exit cleanly instead of allowing an invisible tray-hidden process to remain alive.
+- Add packaged Windows regression coverage for the hotkey-conflict / hidden-tray startup path.
+- Preserve Settings / Commands / Usage / Provider Cache schemas at 11 / 2 / 2 / 22.
+- Complete owner real-machine validation before publishing the immutable v1.0.1 release.
+
 ## v1.0.0 - First stable release
 
 Completed:
