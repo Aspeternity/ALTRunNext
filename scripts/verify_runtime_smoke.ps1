@@ -301,6 +301,28 @@ public static class AsterunHotkeyConflictProbe {
     [DllImport("user32.dll")]
     public static extern bool PostMessage(IntPtr hWnd, uint message, IntPtr wParam, IntPtr lParam);
 
+    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    public static IntPtr FindTopLevelWindowForProcess(uint targetProcessId) {
+        IntPtr found = IntPtr.Zero;
+        EnumWindows(delegate(IntPtr hWnd, IntPtr lParam) {
+            uint processId;
+            GetWindowThreadProcessId(hWnd, out processId);
+            if (processId == targetProcessId) {
+                found = hWnd;
+                return false;
+            }
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public struct NOTIFYICONIDENTIFIER {
         public uint cbSize;
@@ -390,9 +412,10 @@ public static class AsterunHotkeyConflictProbe {
             throw "Asterun exited after a primary-hotkey conflict. Hotkey conflicts must not terminate the launcher."
         }
 
-        $launcher = [AsterunHotkeyConflictProbe]::FindWindow("Asterun.Launcher", $null)
+        $launcher = [AsterunHotkeyConflictProbe]::FindTopLevelWindowForProcess(
+            [uint32]$process.Id)
         if ($launcher -eq [IntPtr]::Zero) {
-            throw "Asterun launcher window was not available after the hotkey conflict."
+            throw "Asterun top-level window was not available after the hotkey conflict."
         }
 
         $trayDeadline = [DateTime]::UtcNow.AddSeconds(3)
