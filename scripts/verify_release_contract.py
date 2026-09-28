@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SUPPORTED = {
     "0.8.0-beta.3": (11, 2, 2, 22, "0.8.0.10003"),
     "1.0.0": (11, 2, 2, 22, "1.0.0.30000"),
+    "1.0.1": (11, 2, 2, 22, "1.0.1.30000"),
 }
 
 
@@ -58,7 +59,7 @@ for path in ("src/app.manifest", "src/uninstaller/uninstaller.manifest"):
 require("src/uninstaller/uninstaller.manifest", "PerMonitorV2", "longPathAware")
 release_validation = (
     "docs/V1.0_RELEASE_VALIDATION.md"
-    if version == "1.0.0"
+    if version in {"1.0.0", "1.0.1"}
     else "docs/V0.8_BETA_VALIDATION.md"
 )
 for path in ("README.md", "CHANGELOG.md", "ROADMAP.md", release_validation):
