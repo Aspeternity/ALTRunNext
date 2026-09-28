@@ -42,7 +42,7 @@ Built with C++23 + Win32, Asterun brings application discovery, pinyin and mixed
 
 ## v1.0.1 — In Development
 
-Asterun 1.0.1 is undergoing real-machine validation, focusing on the transparent brand icon and a fix for the invisible background-process path when the primary hotkey is unavailable. The current stable release remains v1.0.0. Detailed release history is kept in [CHANGELOG.md](CHANGELOG.md).
+Asterun 1.0.1 is undergoing real-machine validation, focusing on the transparent brand icon, independent tray identity, and cleaner startup behavior when global hotkeys are already in use. The current stable release remains v1.0.0. Detailed release history is kept in [CHANGELOG.md](CHANGELOG.md).
 
 ## Interface Preview
 
