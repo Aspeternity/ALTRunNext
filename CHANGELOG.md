@@ -3,9 +3,10 @@
 ## 1.0.1
 
 - Replace the square-backed application/tray artwork with the approved transparent Asterun mark: crystalline A, orbital launch trail and star spark, preserving a clean silhouette on the Windows desktop and notification area.
-- Treat failure to register the primary activation hotkey as a startup-fatal condition. Asterun now explains the conflict and exits cleanly instead of leaving a tray-hidden background process holding the single-instance mutex.
-- Keep optional auxiliary/global action hotkey failures non-fatal so the primary launcher remains usable when only secondary bindings conflict.
-- Add packaged Windows runtime coverage for the tray-hidden primary-hotkey-conflict path to prevent regression of the invisible ghost-instance failure.
+- Give Asterun a new product-specific tray GUID so it can run beside legacy ALTRun Next without colliding with the old notification-area identity.
+- Keep Asterun running when one or more global hotkeys are already owned by another application; show one concise warning and let the user change bindings in Settings.
+- Retry tray registration after clearing a stale Asterun shell entry, and restore the configured persistent tray icon after Explorer recreates the taskbar.
+- Add packaged Windows runtime coverage that verifies a primary-hotkey conflict does not terminate Asterun.
 
 
 ## 1.0.0
