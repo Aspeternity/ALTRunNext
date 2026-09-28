@@ -1113,6 +1113,15 @@ int main() {
         !ParseUpdateManifest(
             badCommitJson));
 
+    assert(
+        IsUpdateVersionNewer(
+            "1.0.0",
+            "1.0.1"));
+    assert(
+        !IsUpdateVersionNewer(
+            "1.0.1",
+            "1.0.0"));
+
     std::cout
         << "Update policy tests passed\n";
     return 0;
