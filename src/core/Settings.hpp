@@ -71,8 +71,8 @@ struct Settings {
     ProviderEnableMap providerEnabled{
         providers::DefaultEnabled()};
 
-    // Applies only to the Everything copy downloaded and managed by ALTRun
-    // Next. External Everything installations keep their own UI preference.
+    // Applies only to the Everything copy downloaded and managed by Asterun.
+    // External Everything installations keep their own UI preference.
     bool managedEverythingShowTrayIcon{false};
 
     bool autoCheckUpdates{true};
