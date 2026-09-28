@@ -2,6 +2,16 @@
 
 Asterun 1.0.0 is the first stable 1.x baseline, promoted directly from the validated v0.8.0-beta.3 hardening line. Future work continues as post-1.0 maintenance and incremental feature development.
 
+## v1.0.1 - Tray identity and hotkey conflict maintenance
+
+In development:
+
+- Replace square-backed application and tray artwork with the approved transparent Asterun mark.
+- Give Asterun its own tray GUID so it can coexist with legacy ALTRun Next without notification-area identity collisions.
+- Keep Asterun running when startup hotkeys are already owned by another application, while reporting the conflict once and keeping Settings reachable from the tray.
+- Recover tray registration from a stale Asterun shell entry and restore the persistent icon after Explorer recreates the taskbar.
+- Preserve Settings / Commands / Usage / Provider Cache schemas at 11 / 2 / 2 / 22.
+
 ## v1.0.0 - First stable release
 
 Completed:
