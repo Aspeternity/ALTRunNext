@@ -471,6 +471,15 @@ int App::Run() {
             Text(TextId::HotkeyBusy).data(),
             L"Asterun",
             MB_ICONWARNING | MB_OK);
+
+        // The primary activation hotkey is essential to a background launcher.
+        // Continuing here can leave an intentionally tray-hidden instance with
+        // no usable activation path. Exit cleanly so the single-instance mutex,
+        // hidden launcher window and any tray state are released immediately.
+        return static_cast<int>(
+            hotkeyLastError_ != ERROR_SUCCESS
+                ? hotkeyLastError_
+                : ERROR_HOTKEY_ALREADY_REGISTERED);
     }
 
     if (!RebindAuxiliaryHotkey(
