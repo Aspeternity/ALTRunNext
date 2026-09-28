@@ -352,16 +352,14 @@ public static class AsterunHotkeyConflictProbe {
             throw "Unable to dismiss the Asterun primary-hotkey conflict warning."
         }
 
-        if (-not $process.WaitForExit(5000)) {
-            throw "Asterun remained alive after primary-hotkey startup failure (ghost process regression)."
+        Start-Sleep -Milliseconds 500
+        $process.Refresh()
+
+        if ($process.HasExited) {
+            throw "Asterun exited after a primary-hotkey conflict. Hotkey conflicts must not terminate the launcher."
         }
 
-        if ($process.ExitCode -eq 0) {
-            throw "Asterun primary-hotkey startup failure must return a non-zero exit code."
-        }
-
-        Write-Host "Primary-hotkey conflict exit contract passed."
-        $process = $null
+        Write-Host "Primary-hotkey conflict keep-running contract passed."
     }
     finally {
         [void][AsterunHotkeyConflictProbe]::UnregisterHotKey(
