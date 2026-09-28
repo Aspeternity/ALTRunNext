@@ -246,7 +246,7 @@ try {
         Get-Content $settingsFixture -Raw |
         ConvertFrom-Json
 
-    $currentSettings.general.showTrayIcon = $false
+    $currentSettings.general.showTrayIcon = $true
     $currentSettings.general.startupBehavior = "silent"
     $currentSettings.update.autoCheck = $false
 
@@ -281,9 +281,8 @@ try {
         Set-Content -Path (Join-Path $data "settings.json") -Encoding utf8 -NoNewline
 
     # Regression: when the primary activation hotkey is already owned by
-    # another program and the tray icon is intentionally hidden, Asterun must
-    # not continue as an invisible background process holding the
-    # single-instance mutex.
+    # another program, Asterun must keep running and retain its configured
+    # notification-area entry so Settings remains reachable.
     if (-not ("AsterunHotkeyConflictProbe" -as [type])) {
         Add-Type -TypeDefinition @'
 using System;
@@ -301,6 +300,38 @@ public static class AsterunHotkeyConflictProbe {
 
     [DllImport("user32.dll")]
     public static extern bool PostMessage(IntPtr hWnd, uint message, IntPtr wParam, IntPtr lParam);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct NOTIFYICONIDENTIFIER {
+        public uint cbSize;
+        public IntPtr hWnd;
+        public uint uID;
+        public Guid guidItem;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT {
+        public int left;
+        public int top;
+        public int right;
+        public int bottom;
+    }
+
+    [DllImport("shell32.dll")]
+    public static extern int Shell_NotifyIconGetRect(
+        ref NOTIFYICONIDENTIFIER identifier,
+        out RECT iconLocation);
+
+    public static bool HasAsterunTrayIcon(IntPtr launcherWindow) {
+        NOTIFYICONIDENTIFIER identifier = new NOTIFYICONIDENTIFIER();
+        identifier.cbSize = (uint)Marshal.SizeOf(typeof(NOTIFYICONIDENTIFIER));
+        identifier.hWnd = launcherWindow;
+        identifier.uID = 1;
+        identifier.guidItem = new Guid("1f25fb11-dcd3-417c-a6d9-5d8591422ea8");
+
+        RECT rect;
+        return Shell_NotifyIconGetRect(ref identifier, out rect) >= 0;
+    }
 }
 '@
     }
@@ -359,7 +390,26 @@ public static class AsterunHotkeyConflictProbe {
             throw "Asterun exited after a primary-hotkey conflict. Hotkey conflicts must not terminate the launcher."
         }
 
-        Write-Host "Primary-hotkey conflict keep-running contract passed."
+        $launcher = [AsterunHotkeyConflictProbe]::FindWindow("Asterun.Launcher", $null)
+        if ($launcher -eq [IntPtr]::Zero) {
+            throw "Asterun launcher window was not available after the hotkey conflict."
+        }
+
+        $trayDeadline = [DateTime]::UtcNow.AddSeconds(3)
+        $trayVisible = $false
+        while ([DateTime]::UtcNow -lt $trayDeadline) {
+            if ([AsterunHotkeyConflictProbe]::HasAsterunTrayIcon($launcher)) {
+                $trayVisible = $true
+                break
+            }
+            Start-Sleep -Milliseconds 100
+        }
+
+        if (-not $trayVisible) {
+            throw "Asterun stayed alive after the hotkey conflict but its tray icon was not registered."
+        }
+
+        Write-Host "Primary-hotkey conflict keep-running + tray contract passed."
     }
     finally {
         [void][AsterunHotkeyConflictProbe]::UnregisterHotKey(
@@ -380,6 +430,14 @@ public static class AsterunHotkeyConflictProbe {
             $process = $null
         }
     }
+
+    # The following startup-performance pass intentionally hides the tray icon;
+    # the hotkey-conflict regression above already validated the default-visible
+    # tray contract.
+    $currentSettings.general.showTrayIcon = $false
+    $currentSettings |
+        ConvertTo-Json -Depth 12 |
+        Set-Content -Path (Join-Path $data "settings.json") -Encoding utf8 -NoNewline
 
     $sendToDirectory = Join-Path $env:APPDATA "Microsoft\Windows\SendTo"
     $sendToLink = Join-Path $sendToDirectory "Asterun.lnk"
