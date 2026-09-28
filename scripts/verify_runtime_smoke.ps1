@@ -301,6 +301,37 @@ public static class AsterunHotkeyConflictProbe {
     [DllImport("user32.dll")]
     public static extern bool PostMessage(IntPtr hWnd, uint message, IntPtr wParam, IntPtr lParam);
 
+    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder className, int maxCount);
+
+    public static IntPtr FindLauncherWindow(uint processId) {
+        IntPtr found = IntPtr.Zero;
+        EnumWindows(delegate(IntPtr hWnd, IntPtr lParam) {
+            uint windowProcessId;
+            GetWindowThreadProcessId(hWnd, out windowProcessId);
+            if (windowProcessId != processId) {
+                return true;
+            }
+
+            System.Text.StringBuilder className = new System.Text.StringBuilder(128);
+            GetClassName(hWnd, className, className.Capacity);
+            if (String.Equals(className.ToString(), "Asterun.Launcher", StringComparison.Ordinal)) {
+                found = hWnd;
+                return false;
+            }
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public struct NOTIFYICONIDENTIFIER {
         public uint cbSize;
@@ -390,7 +421,8 @@ public static class AsterunHotkeyConflictProbe {
             throw "Asterun exited after a primary-hotkey conflict. Hotkey conflicts must not terminate the launcher."
         }
 
-        $launcher = [AsterunHotkeyConflictProbe]::FindWindow("Asterun.Launcher", $null)
+        $launcher = [AsterunHotkeyConflictProbe]::FindLauncherWindow(
+            [uint32]$process.Id)
         if ($launcher -eq [IntPtr]::Zero) {
             throw "Asterun launcher window was not available after the hotkey conflict."
         }
