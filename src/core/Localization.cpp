@@ -16,8 +16,8 @@ std::wstring_view LocalizedText(TextId id, Language language) {
         return zh ? L"复制文本" : L"Copy text";
     case TextId::HotkeyBusy:
         return zh
-            ? L"主热键已被其他程序占用，Asterun 将退出。"
-            : L"The primary hotkey is already in use. Asterun will exit.";
+            ? L"部分全局热键已被其他程序占用，请在设置中修改。"
+            : L"Some global hotkeys are already in use. Change them in Settings.";
     case TextId::SearchPlaceholder:
         return zh ? L"输入快捷词、程序名或路径…" : L"Type a keyword, app name, or path...";
     case TextId::CommandPrefix:
