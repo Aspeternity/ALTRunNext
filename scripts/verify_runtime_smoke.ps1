@@ -280,6 +280,109 @@ try {
         ConvertTo-Json -Depth 12 |
         Set-Content -Path (Join-Path $data "settings.json") -Encoding utf8 -NoNewline
 
+    # Regression: when the primary activation hotkey is already owned by
+    # another program and the tray icon is intentionally hidden, Asterun must
+    # not continue as an invisible background process holding the
+    # single-instance mutex.
+    if (-not ("AsterunHotkeyConflictProbe" -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+public static class AsterunHotkeyConflictProbe {
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint modifiers, uint virtualKey);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern IntPtr FindWindow(string className, string windowName);
+
+    [DllImport("user32.dll")]
+    public static extern bool PostMessage(IntPtr hWnd, uint message, IntPtr wParam, IntPtr lParam);
+}
+'@
+    }
+
+    $conflictHotkeyId = 0x6A51
+    $modControl = 0x0002
+    $modShift = 0x0004
+    $modNoRepeat = 0x4000
+    $vkF24 = 0x87
+    $conflictModifiers = $modControl -bor $modShift -bor $modNoRepeat
+
+    if (-not [AsterunHotkeyConflictProbe]::RegisterHotKey(
+            [IntPtr]::Zero,
+            $conflictHotkeyId,
+            $conflictModifiers,
+            $vkF24)) {
+        throw "Unable to reserve the Asterun runtime-smoke conflict hotkey."
+    }
+
+    try {
+        $process = Start-Process -FilePath $exe -WorkingDirectory $tempRoot -PassThru
+
+        $dialog = [IntPtr]::Zero
+        $dialogDeadline = [DateTime]::UtcNow.AddSeconds(5)
+
+        while ([DateTime]::UtcNow -lt $dialogDeadline) {
+            $process.Refresh()
+            if ($process.HasExited) {
+                break
+            }
+
+            $dialog = [AsterunHotkeyConflictProbe]::FindWindow("#32770", "Asterun")
+            if ($dialog -ne [IntPtr]::Zero) {
+                break
+            }
+
+            Start-Sleep -Milliseconds 50
+        }
+
+        if ($dialog -eq [IntPtr]::Zero) {
+            throw "Primary-hotkey conflict did not show the Asterun startup warning."
+        }
+
+        if (-not [AsterunHotkeyConflictProbe]::PostMessage(
+                $dialog,
+                0x0111,
+                [IntPtr]1,
+                [IntPtr]::Zero)) {
+            throw "Unable to dismiss the Asterun primary-hotkey conflict warning."
+        }
+
+        if (-not $process.WaitForExit(5000)) {
+            throw "Asterun remained alive after primary-hotkey startup failure (ghost process regression)."
+        }
+
+        if ($process.ExitCode -eq 0) {
+            throw "Asterun primary-hotkey startup failure must return a non-zero exit code."
+        }
+
+        Write-Host "Primary-hotkey conflict exit contract passed."
+        $process = $null
+    }
+    finally {
+        [void][AsterunHotkeyConflictProbe]::UnregisterHotKey(
+            [IntPtr]::Zero,
+            $conflictHotkeyId)
+
+        if ($null -ne $process) {
+            try {
+                $process.Refresh()
+                if (-not $process.HasExited) {
+                    Stop-Process -Id $process.Id -Force
+                    Wait-Process -Id $process.Id -ErrorAction SilentlyContinue
+                }
+            }
+            catch {
+                Write-Warning "Unable to clean up conflict-probe process: $($_.Exception.Message)"
+            }
+            $process = $null
+        }
+    }
+
     $sendToDirectory = Join-Path $env:APPDATA "Microsoft\Windows\SendTo"
     $sendToLink = Join-Path $sendToDirectory "Asterun.lnk"
 
