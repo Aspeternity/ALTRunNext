@@ -7,8 +7,9 @@ Asterun 1.0.0 is the first stable 1.x baseline, promoted directly from the valid
 In development:
 
 - Replace the square-backed application and tray artwork with the approved transparent Asterun A + orbital trail + star spark mark.
-- Make primary activation-hotkey registration failure exit cleanly instead of allowing an invisible tray-hidden process to remain alive.
-- Add packaged Windows regression coverage for the hotkey-conflict / hidden-tray startup path.
+- Give Asterun an independent notification-area GUID so it can coexist with legacy ALTRun Next without losing its tray entry.
+- Keep Asterun running when startup hotkeys conflict, collapse duplicate warnings, and preserve the tray as the recovery path to Settings.
+- Add packaged Windows regression coverage for the hotkey-conflict / visible-tray startup path.
 - Preserve Settings / Commands / Usage / Provider Cache schemas at 11 / 2 / 2 / 22.
 - Complete owner real-machine validation before publishing the immutable v1.0.1 release.
 
